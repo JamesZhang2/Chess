@@ -6,14 +6,21 @@ import java.util.Set;
  * Represents a legal board state.
  */
 public class Board {
+    // Representation Invariant: Board state is always legal.
+    // This means that there is one king on both sides, no pawns are on the first or last rank,
+    // and the side to move cannot capture the opponent's king.
+    // Note that we allow the number of pieces to be arbitrary,
+    // and we don't care about whether a position is reachable from the starting position.
+
     // pieces[i][j] is the piece at rank (i + 1), file ('a' + j)
     // For example, pieces[0][0] is the piece at a1, pieces[3][4] is the piece at d3.
+    // It is null if there is no piece at that square
     Piece[][] pieces = new Piece[8][8];
     boolean whiteToMove;
     boolean whiteCastleK = false, whiteCastleQ = false, blackCastleK = false, blackCastleQ = false;
     // en passant target squares - for white it is x3, for black it is x6, where x is in [a...h]
-    char enPassantWhite;
-    char enPassantBlack;
+    // The value is '-' if there are no en passant target squares for that color.
+    char enPassantWhite = '-', enPassantBlack = '-';
     int halfMove;
     int fullMove;
 
@@ -23,7 +30,8 @@ public class Board {
      * Create board from FEN
      */
     public Board(String fen) throws MalformedFENException, IllegalBoardException {
-        // TODO
+        parseFen(fen);
+        checkBoardLegality();
     }
 
     /**
@@ -57,20 +65,118 @@ public class Board {
      * @return the FEN string representing the current board state
      */
     public String toFEN() {
-        // TODO
-        return "";
+        StringBuilder sb = new StringBuilder();
+
+        // Piece placement
+        for (int r = 7; r >= 0; r--) {
+            int blanks = 0;
+            for (int c = 0; c < 8; c++) {
+                if (pieces[r][c] == null) {
+                    blanks++;
+                } else {
+                    if (blanks > 0) {
+                        sb.append(blanks);
+                    }
+                    blanks = 0;
+                    sb.append(pieces[r][c]);
+                }
+            }
+            if (blanks > 0) {
+                sb.append(blanks);
+            }
+            sb.append('/');
+        }
+        // Remove last slash
+        sb.delete(sb.length() - 1, sb.length());
+
+        // Active color
+        sb.append(' ');
+        sb.append(whiteToMove ? 'w' : 'b');
+
+        // Castling
+        sb.append(' ');
+        if (!whiteCastleK && !whiteCastleQ && !blackCastleK && !blackCastleQ) {
+            sb.append('-');
+        } else {
+            if (whiteCastleK) {
+                sb.append('K');
+            }
+            if (whiteCastleQ) {
+                sb.append('Q');
+            }
+            if (blackCastleK) {
+                sb.append('k');
+            }
+            if (blackCastleQ) {
+                sb.append('q');
+            }
+        }
+
+        // En passant
+        sb.append(' ');
+        if (enPassantWhite == '-' && enPassantBlack == '-') {
+            sb.append('-');
+        } else {
+            if (enPassantBlack == '-') {
+                sb.append(enPassantWhite);
+                sb.append(3);
+            } else {
+                sb.append(enPassantBlack);
+                sb.append(6);
+            }
+        }
+
+        // Halfmove
+        sb.append(' ');
+        sb.append(halfMove);
+
+        // Fullmove
+        sb.append(' ');
+        sb.append(fullMove);
+
+        return sb.toString();
     }
 
+    /**
+     * @return A readable depiction of the board state, used for debugging
+     */
     @Override
     public String toString() {
-        // TODO
-        return "";
+        StringBuilder sb = new StringBuilder();
+        for (int r = 7; r >= 0; r--) {
+            for (int c = 0; c < 8; c++) {
+                sb.append(pieces[r][c] == null ? '.' : pieces[r][c]);
+            }
+            sb.append("\n");
+        }
+
+        if (whiteToMove) {
+            sb.append("White to move\n");
+        } else {
+            sb.append("Black to move\n");
+        }
+
+        sb.append("White O-O: ").append(whiteCastleK).append("\n");
+        sb.append("White O-O-O: ").append(whiteCastleQ).append("\n");
+        sb.append("Black O-O: ").append(blackCastleK).append("\n");
+        sb.append("Black O-O-O: ").append(blackCastleQ).append("\n");
+
+        sb.append("White en passant target square: ").append(enPassantWhite == '-' ? '-' : enPassantWhite + "3");
+        sb.append("\n");
+        sb.append("Black en passant target square: ").append(enPassantBlack == '-' ? '-' : enPassantBlack + "6");
+        sb.append("\n");
+
+        sb.append("Halfmove clock: ").append(halfMove).append("\n");
+        sb.append("Fullmove number: ").append(fullMove).append("\n");
+
+        return sb.toString();
     }
 
     /**
      * Parses the FEN string and updates the board states accordingly.
+     * Note that the resulting board state may be illegal.
      *
-     * @throws MalformedFENException if the FEN is malformed. In this case, the board state can be illegal.
+     * @throws MalformedFENException if the FEN is malformed.
      */
     private void parseFen(String fen) throws MalformedFENException {
         fen = fen.strip();
@@ -123,7 +229,47 @@ public class Board {
             }
         }
 
-        // TODO
+        // En passant
+        String enPassant = fields[3];
+        if (enPassant.length() == 1) {
+            if (enPassant.charAt(0) != '-') {
+                throw new MalformedFENException("Malformed en passant field: " + enPassant);
+            }
+        } else if (enPassant.length() == 2) {
+            if (enPassant.charAt(0) < 'a' || enPassant.charAt(0) > 'h') {
+                throw new MalformedFENException("Unknown file in en passant field: " + enPassant.charAt(0));
+            }
+
+            if (enPassant.charAt(1) == '3') {
+                enPassantWhite = enPassant.charAt(0);
+            } else if (enPassant.charAt(1) == '6') {
+                enPassantBlack = enPassant.charAt(0);
+            } else {
+                throw new MalformedFENException("Rank in en passant field must be 3 or 6");
+            }
+        } else {
+            throw new MalformedFENException("Malformed en passant field: " + enPassant);
+        }
+
+        // Halfmove
+        try {
+            halfMove = Integer.parseInt(fields[4]);
+            if (halfMove < 0) {
+                throw new MalformedFENException("Halfmove field is negative: " + halfMove);
+            }
+        } catch (NumberFormatException e) {
+            throw new MalformedFENException("Halfmove field is not an integer: " + fields[4]);
+        }
+
+        // Fullmove
+        try {
+            fullMove = Integer.parseInt(fields[5]);
+            if (fullMove <= 0) {
+                throw new MalformedFENException("Fullmove field is not positive: " + fullMove);
+            }
+        } catch (NumberFormatException e) {
+            throw new MalformedFENException("Fullmove field is not an integer: " + fields[5]);
+        }
     }
 
     /**
@@ -178,14 +324,23 @@ public class Board {
     }
 
     /**
+     * Checks whether the board state is legal.
+     *
+     * @throws IllegalBoardException if the board state is illegal.
+     */
+    private void checkBoardLegality() throws IllegalBoardException {
+        // TODO
+    }
+
+    /**
      * If the move is legal, make the move by updating the board state and return true.
      * Otherwise, return false and don't change the board state.
-     * Requires: move is of type regular, castle, or en passant.
+     * Requires: move is of type regular, castling, or en passant.
      * @return whether the move is legal
      */
     public boolean move(Move move) {
         // TODO
-        assert move.moveType == Move.Type.REGULAR || move.moveType == Move.Type.CASTLE
+        assert move.moveType == Move.Type.REGULAR || move.moveType == Move.Type.CASTLING
                 || move.moveType == Move.Type.EN_PASSANT;
         return false;
     }
@@ -225,8 +380,16 @@ public class Board {
      */
     public boolean isLegal(Move move) {
         // TODO
-        assert move.moveType == Move.Type.REGULAR || move.moveType == Move.Type.CASTLE
+        assert move.moveType == Move.Type.REGULAR || move.moveType == Move.Type.CASTLING
                 || move.moveType == Move.Type.EN_PASSANT;
+        return false;
+    }
+
+    /**
+     * @return true if the side to move is currently in check, false otherwise
+     */
+    public boolean isInCheck() {
+        // TODO
         return false;
     }
 }

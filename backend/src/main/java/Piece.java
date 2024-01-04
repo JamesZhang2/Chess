@@ -3,12 +3,18 @@
  */
 public class Piece {
     public enum Type {
-        PAWN,
-        KNIGHT,
-        BISHOP,
-        ROOK,
-        QUEEN,
-        KING
+        PAWN("P"),
+        KNIGHT("N"),
+        BISHOP("B"),
+        ROOK("R"),
+        QUEEN("Q"),
+        KING("K");
+
+        final String name;
+
+        Type(String name) {
+            this.name = name;
+        }
     }
 
     private final Type type;
@@ -51,5 +57,10 @@ public class Piece {
             default:
                 throw new IllegalArgumentException("Unknown piece: " + (isWhite ? c : c + 'a' - 'A'));
         }
+    }
+
+    @Override
+    public String toString() {
+        return isWhite ? type.name : type.name.toLowerCase();
     }
 }

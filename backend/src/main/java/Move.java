@@ -4,7 +4,7 @@
 public class Move {
     public enum Type {
         REGULAR,
-        CASTLE,
+        CASTLING,
         EN_PASSANT,
         RESIGN,
         OFFER_DRAW,
@@ -38,7 +38,7 @@ public class Move {
     }
 
     public Move(char castleType) {
-        this.moveType = Type.CASTLE;
+        this.moveType = Type.CASTLING;
         this.castleType = castleType;
     }
 
