@@ -17,8 +17,9 @@ public class Piece {
         }
     }
 
-    private final Type type;
-    private final boolean isWhite;
+    final Type type;
+    final boolean isWhite;
+
     public Piece(Type type, boolean isWhite) {
         this.type = type;
         this.isWhite = isWhite;
@@ -26,12 +27,13 @@ public class Piece {
 
     /**
      * Constructs piece from piece name c.
+     *
      * @throws IllegalArgumentException if c is not a valid piece name.
      */
     public Piece(char c) {
         if (c >= 'a' && c <= 'z') {
             isWhite = false;
-            c = (char)(c - 'a' + 'A');
+            c = (char) (c - 'a' + 'A');
         } else {
             isWhite = true;
         }

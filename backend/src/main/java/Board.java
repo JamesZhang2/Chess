@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -6,11 +7,13 @@ import java.util.Set;
  * Represents a legal board state.
  */
 public class Board {
-    // Representation Invariant: Board state is always legal.
+    // Representation Invariant: Board state is always legal at the end of a public method.
     // This means that there is one king on both sides, no pawns are on the first or last rank,
     // and the side to move cannot capture the opponent's king.
     // Note that we allow the number of pieces to be arbitrary,
     // and we don't care about whether a position is reachable from the starting position.
+
+    // Representation Invariant: The winner variable is always accurate at the end of a public method.
 
     // pieces[i][j] is the piece at rank (i + 1), file ('a' + j)
     // For example, pieces[0][0] is the piece at a1, pieces[3][4] is the piece at d3.
@@ -24,6 +27,9 @@ public class Board {
     int halfMove;
     int fullMove;
 
+    // w: white, b: black, d: draw, u: unknown
+    private char winner;
+
     private static final char[] PIECE_NAMES = {'p', 'n', 'b', 'r', 'q', 'k', 'P', 'N', 'B', 'R', 'Q', 'K'};
 
     /**
@@ -32,6 +38,7 @@ public class Board {
     public Board(String fen) throws MalformedFENException, IllegalBoardException {
         parseFen(fen);
         checkBoardLegality();
+        updateWinner();
     }
 
     /**
@@ -47,10 +54,12 @@ public class Board {
 
     /**
      * Creates a clone of the other board
+     * Requires: The other board is legal
      */
     public Board(Board other) {
         try {
             parseFen(other.toFEN());
+            this.winner = other.winner;
         } catch (Exception e) {
             assert false;
         }
@@ -329,19 +338,64 @@ public class Board {
      * @throws IllegalBoardException if the board state is illegal.
      */
     private void checkBoardLegality() throws IllegalBoardException {
-        // TODO
+        boolean whiteKing = false;
+        boolean blackKing = false;
+
+        // Check number of kings
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                if (pieces[r][c] != null) {
+                    if (pieces[r][c].toString().equals("K")) {
+                        if (whiteKing) {
+                            throw new IllegalBoardException("More than one white kings on the board");
+                        }
+                        whiteKing = true;
+                    } else if (pieces[r][c].toString().equals("k")) {
+                        if (blackKing) {
+                            throw new IllegalBoardException("More than one black kings on the board");
+                        }
+                        blackKing = true;
+                    }
+                }
+            }
+        }
+
+        if (!whiteKing) {
+            System.out.println(this);
+            throw new IllegalBoardException("No white kings on the board");
+        }
+        if (!blackKing) {
+            throw new IllegalBoardException("No black kings on the board");
+        }
+
+        // Check pawns on first or last rank
+        for (int c = 0; c < 8; c++) {
+            if (pieces[0][c] != null && pieces[0][c].type == Piece.Type.PAWN) {
+                throw new IllegalBoardException("There is a pawn on rank 1");
+            }
+            if (pieces[7][c] != null && pieces[7][c].type == Piece.Type.PAWN) {
+                throw new IllegalBoardException("There is a pawn on rank 8");
+            }
+        }
+
+        // Check whether the player not playing is in check
+        if (isInCheck(!whiteToMove)) {
+            String opponent = whiteToMove ? "Black" : "White";
+            throw new IllegalBoardException(opponent + " is in check but it's not their move");
+        }
     }
 
     /**
      * If the move is legal, make the move by updating the board state and return true.
      * Otherwise, return false and don't change the board state.
-     * Requires: move is of type regular, castling, or en passant.
+     * Requires: move is of type regular, castling, promotion, or en passant.
+     *
      * @return whether the move is legal
      */
     public boolean move(Move move) {
         // TODO
         assert move.moveType == Move.Type.REGULAR || move.moveType == Move.Type.CASTLING
-                || move.moveType == Move.Type.EN_PASSANT;
+                || move.moveType == Move.Type.EN_PASSANT || move.moveType == Move.Type.PROMOTION;
         return false;
     }
 
@@ -353,8 +407,69 @@ public class Board {
      * the black king being in check.
      */
     private Set<List<Integer>> controls(boolean white) {
-        // TODO
-        return new HashSet<>();
+        Set<List<Integer>> ans = new HashSet<>();
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                if (pieces[row][col] != null && pieces[row][col].isWhite == white) {
+                    Set<List<Integer>> pieceControls = controls(row, col);
+                    ans.addAll(pieceControls);
+                }
+            }
+        }
+        return ans;
+    }
+
+    /**
+     * @return the set of squares that is controlled by the piece at {row, col}
+     * Requires: there exists a piece at {row, col}
+     */
+    private Set<List<Integer>> controls(int row, int col) {
+        assert pieces[row][col] != null;
+        Set<List<Integer>> ans = new HashSet<>();
+
+        int[][] dirs = switch (pieces[row][col].type) {
+            case QUEEN, KING -> new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+            case ROOK -> new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+            case BISHOP -> new int[][]{{1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+            case KNIGHT -> new int[][]{{2, 1}, {2, -1}, {1, 2}, {1, -2}, {-1, 2}, {-1, -2}, {-2, 1}, {-2, -1}};
+            case PAWN -> pieces[row][col].isWhite ? new int[][]{{1, 1}, {1, -1}} : new int[][]{{-1, 1}, {-1, -1}};
+        };
+
+        switch (pieces[row][col].type) {
+            case QUEEN, ROOK, BISHOP:
+                // Infinite range
+                for (int[] dir : dirs) {
+                    int r = row + dir[0];
+                    int c = col + dir[1];
+                    while (Util.inRange(r) && Util.inRange(c)) {
+                        List<Integer> sqr = new ArrayList<>();
+                        sqr.add(r);
+                        sqr.add(c);
+                        ans.add(sqr);
+                        if (pieces[r][c] != null) {
+                            // Hit an obstacle (note that this square is still controlled)
+                            break;
+                        }
+                        r += dir[0];
+                        c += dir[1];
+                    }
+                }
+                break;
+            case KING, KNIGHT, PAWN:
+                // One-step range
+                for (int[] dir : dirs) {
+                    int r = row + dir[0];
+                    int c = col + dir[1];
+                    if (Util.inRange(r) && Util.inRange(c)) {
+                        List<Integer> sqr = new ArrayList<>();
+                        sqr.add(r);
+                        sqr.add(c);
+                        ans.add(sqr);
+                    }
+                }
+                break;
+        }
+        return ans;
     }
 
     /**
@@ -368,7 +483,7 @@ public class Board {
     /**
      * @return the set of legal moves for the piece at position {row, col}.
      */
-    private Set<Move> getLegalMoves(int row, int col) {
+    public Set<Move> getLegalMoves(int row, int col) {
         // TODO
         return new HashSet<>();
     }
@@ -376,6 +491,7 @@ public class Board {
     /**
      * Only checks whether move is legal or not, does not change the board state.
      * Requires: move is of type regular, castle, or en passant.
+     *
      * @return whether the move is legal
      */
     public boolean isLegal(Move move) {
@@ -389,7 +505,47 @@ public class Board {
      * @return true if the side to move is currently in check, false otherwise
      */
     public boolean isInCheck() {
+        return isInCheck(whiteToMove);
+    }
+
+    /**
+     * @return true if white/black is in check (determined by the parameter white), false otherwise
+     */
+    private boolean isInCheck(boolean white) {
+        List<Integer> kingPos = getKingPos(white);
+        return controls(!white).contains(kingPos);
+    }
+
+    /**
+     * @return the position of the white/black king (determined by the parameter white)
+     * Since we assume the rep invariant is true, there is only one king of each color.
+     */
+    private List<Integer> getKingPos(boolean white) {
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                if (pieces[r][c] != null && pieces[r][c].type == Piece.Type.KING && pieces[r][c].isWhite == white) {
+                    List<Integer> ans = new ArrayList<>();
+                    ans.add(r);
+                    ans.add(c);
+                    return ans;
+                }
+            }
+        }
+        assert false;
+        return new ArrayList<>();
+    }
+
+    /**
+     * @return the winner of the game.
+     */
+    public char getWinner() {
+        return winner;
+    }
+
+    /**
+     * Check if the game ended and update the winner variable.
+     */
+    private void updateWinner() {
         // TODO
-        return false;
     }
 }

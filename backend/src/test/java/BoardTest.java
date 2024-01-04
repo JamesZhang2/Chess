@@ -5,13 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class BoardTest {
 
-
     @Test
     public void TestFENParser() throws IllegalBoardException, MalformedFENException {
         Board start = new Board();
-        System.out.println(start);
         assertEquals("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", start.toFEN());
-        String[] validFens = {
+        String[] validFENs = {
                 "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
                 "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2",
                 "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
@@ -37,12 +35,12 @@ class BoardTest {
                 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 99 54",
                 "rnbqkb1r/pppppppp/5n2/8/8/5N2/PPPPPPPP/RNBQKB1R w Qq - 6 4",
         };
-        for (String validFen : validFens) {
-            Board board = new Board(validFen);
-            assertEquals(validFen, board.toFEN());
+        for (String validFEN : validFENs) {
+            Board board = new Board(validFEN);
+            assertEquals(validFEN, board.toFEN());
         }
 
-        String[] malformedFens = {
+        String[] malformedFENs = {
                 // Missing/Too many fields
                 "",
                 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",
@@ -85,14 +83,14 @@ class BoardTest {
                 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0.5",
                 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0",
         };
-        for (String malformedFen : malformedFens) {
-            assertThrows(MalformedFENException.class, () -> new Board(malformedFen));
+        for (String malformedFEN : malformedFENs) {
+            assertThrows(MalformedFENException.class, () -> new Board(malformedFEN), malformedFEN);
         }
 
         // These FENs are not malformed, but they represent illegal positions
         // (number of white/black kings != 1; king in check when it's not one's turn,
         // pawns on the first or last rank)
-        String[] illegalFens = {
+        String[] illegalFENs = {
                 // Wrong number of kings
                 "8/8/8/8/8/8/8/8 w - - 0 1",
                 "8/8/8/8/8/8/8/4K3 w - - 1 1",
@@ -101,6 +99,8 @@ class BoardTest {
                 // King in check when it's not one's turn
                 "8/8/8/4k3/3K4/8/8/8 w - - 1 1",
                 "8/8/8/4k3/3K4/8/8/8 b - - 1 1",
+                "8/8/8/8/8/1k6/Pp6/K7 w - - 0 1",
+                "8/8/8/8/8/1k6/Pp6/K7 b - - 0 1",
                 "R3k3/8/8/8/8/8/8/4K3 w - - 0 1",
                 "4k3/8/8/8/8/8/3PPP2/4K2r b - - 0 1",
                 "4k3/8/3N4/8/8/8/3PPP2/4K1N1 w - - 0 1",
@@ -111,8 +111,114 @@ class BoardTest {
                 "rnbqkpnr/ppppp1pp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
                 "rnbqk1nr/ppppp1pp/8/8/8/8/PPPPPPPP/RNBQKpNR w KQkq - 0 1",
         };
-        for (String illegalFen : illegalFens) {
-            assertThrows(IllegalBoardException.class, () -> new Board(illegalFen));
+        for (String illegalFEN : illegalFENs) {
+            assertThrows(IllegalBoardException.class, () -> new Board(illegalFEN), illegalFEN);
+        }
+    }
+
+    @Test
+    public void TestInCheck() throws IllegalBoardException, MalformedFENException {
+        // Also tests the private Board.controls method
+        String[] inCheckFENs = {
+                // Queen
+                "4k3/8/8/8/4K1q1/8/8/8 w - - 0 1",
+                "4k3/4q3/8/8/4K3/8/8/8 w - - 0 1",
+                "4k3/8/8/8/3qK3/8/8/8 w - - 0 1",
+                "4k3/8/8/8/4K3/8/8/4q3 w - - 0 1",
+                "4k3/1q6/8/8/4K3/8/8/8 w - - 0 1",
+                "4k3/8/8/5q2/4K3/8/8/8 w - - 0 1",
+                "4k3/8/8/8/4K3/8/6q1/8 w - - 0 1",
+                "4k3/8/8/8/4K3/8/8/1q6 w - - 0 1",
+                // Rook
+                "4k3/8/8/8/8/8/8/r3K3 w - - 0 1",
+                "4k3/8/8/8/8/8/8/3rK3 w - - 0 1",
+                "4k3/8/8/8/8/8/4r3/4K3 w - - 0 1",
+                "4k3/8/8/8/8/8/8/4K1r1 w - - 0 1",
+                "4k3/8/8/8/4K3/4r3/8/8 w - - 0 1",
+                "7k/8/8/8/8/7P/6P1/2r4K w - - 0 1",
+                "8/8/4k3/4r3/8/4K3/4R3/8 w - - 0 1",
+                "4K3/8/8/8/8/1k2r3/4p3/4q3 w - - 0 1",
+                // Bishop
+                "7k/8/8/3b4/8/5K2/8/8 w - - 0 1",
+                "7k/8/8/6b1/8/4K3/8/8 w - - 0 1",
+                "7k/K7/8/8/8/8/8/6b1 w - - 0 1",
+                "7k/8/8/8/8/8/2K5/1b6 w - - 0 1",
+                "7k/8/8/8/b7/3P4/2K5/8 w - - 0 1",
+                // Knight
+                "7k/5n2/8/4K3/8/8/8/8 w - - 0 1",
+                "7k/3n4/8/4K3/8/8/8/8 w - - 0 1",
+                "7k/8/8/1n6/3K4/8/8/8 w - - 0 1",
+                "7k/8/8/8/3K4/1n6/8/8 w - - 0 1",
+                "7k/8/8/8/3K4/8/2n5/8 w - - 0 1",
+                "7k/8/8/8/3K4/8/4n3/8 w - - 0 1",
+                "8/7k/8/8/3K4/5n2/8/8 w - - 0 1",
+                "8/7k/8/8/8/8/2n5/K7 w - - 0 1",
+                "4k3/4n3/3PP3/3K4/8/8/8/8 w - - 0 1",
+                "4k3/8/3PP3/3K4/1np5/8/8/8 w - - 0 1",
+                "4k3/8/8/8/8/6K1/6Br/6Qn w - - 0 1",
+                "4k1Bn/3b2PP/6K1/8/8/8/8/8 w - - 0 1",
+                // Pawn
+                "4k3/8/8/5p2/4K3/8/8/8 w - - 0 1",
+                "4k3/8/8/8/p7/1K6/8/8 w - - 0 1",
+                "8/8/8/8/8/7k/7p/6K1 w - - 0 1",
+                "8/8/8/8/8/1k6/1p1P4/K7 w - - 0 1",
+                // Black in check
+                "8/8/6K1/5B2/8/2kQ4/8/8 b - - 0 1",
+                "4k1R1/8/8/8/8/8/4K3/8 b - - 0 1",
+                "8/8/4B1K1/4B3/8/2k5/8/8 b - - 0 1",
+                "4k3/6N1/8/8/8/8/4K3/8 b - - 0 1",
+                "8/8/8/3k4/2P5/1K6/8/8 b - - 0 1",
+                "8/8/8/6k1/7P/1K6/8/8 b - - 0 1",
+                // Mated
+                "4k3/8/8/8/8/8/7r/r2K4 w - - 0 1",
+                "7k/8/5BKN/8/8/8/8/8 b - - 0 1",
+                "2nkb3/2ppp3/4N3/8/8/3Q4/3K4/8 b - - 0 1",
+        };
+        for (String fen : inCheckFENs) {
+            Board board = new Board(fen);
+            assert board.isInCheck();
+        }
+
+        String[] notInCheckFENs = {
+                // Starting position
+                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                // Two kings
+                "k7/8/8/8/8/8/8/7K w - - 0 1",
+                // Queen
+                "8/8/4k3/4q3/4P3/4K3/8/8 w - - 0 1",
+                "8/8/4k3/5q2/4P3/4K3/8/8 w - - 0 1",
+                "8/8/4k3/8/4P3/4K3/4P3/4q3 w - - 0 1",
+                "8/8/4k3/8/4P3/4KP1q/8/8 w - - 0 1",
+                "8/8/4k2q/6P1/8/4K3/8/8 w - - 0 1",
+                "4K3/8/4k3/8/8/8/8/4q3 w - - 0 1",
+                "4K3/8/8/8/8/1k2b3/8/4q3 w - - 0 1",
+                // Rook
+                "8/4K1pr/8/8/8/1k6/8/8 w - - 0 1",
+                "8/4K1Pr/8/8/8/1k6/8/8 w - - 0 1",
+                "6r1/6P1/6K1/8/8/1k6/8/8 w - - 0 1",
+                // Bishop
+                "7b/6P1/5K2/8/8/1k6/8/8 w - - 0 1",
+                "8/8/8/b7/1n6/1k6/3K4/8 w - - 0 1",
+                "8/8/2K5/8/4r3/1k3r2/6b1/8 w - - 0 1",
+                "8/8/2K5/8/4N3/1k3r2/6b1/8 w - - 0 1",
+                "8/3K4/4N3/8/8/1k5r/6b1/8 w - - 0 1",
+                "8/3K4/4N3/8/3b4/1k6/8/8 w - - 0 1",
+                // Knight
+                "8/4n3/8/6K1/8/1k6/8/8 w - - 0 1",
+                "8/4n1n1/8/4n1K1/8/1k2n1n1/8/8 w - - 0 1",
+                // Pawn
+                "k7/8/6p1/6K1/8/8/8/8 w - - 0 1",
+                "k7/8/8/6K1/8/8/6p1/8 w - - 0 1",
+                // Other positions
+                "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 1",
+                "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2N2N2/PPPP1PPP/R1BQ1RK1 w kq - 0 1",
+                "7k/7P/7K/8/8/8/8/8 b - - 0 1",
+                "7k/7B/7K/8/8/8/8/8 b - - 0 1",
+                "2nkb3/2ppp3/8/8/8/2RQR3/3K4/8 b - - 0 1"
+        };
+        for (String fen : notInCheckFENs) {
+            Board board = new Board(fen);
+            assert !board.isInCheck();
         }
     }
 }
