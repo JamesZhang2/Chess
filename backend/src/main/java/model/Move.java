@@ -153,11 +153,11 @@ public class Move {
                 return "Decline draw";
             case REGULAR, EN_PASSANT, PROMOTION:
                 StringBuilder sb = new StringBuilder();
-                sb.append(startCol + 'a');
+                sb.append((char)(startCol + 'a'));
                 sb.append(startRow + 1);
                 sb.append(isCapture ? 'x' : '-');
-                sb.append(endCol + 'a');
-                sb.append(endCol + 1);
+                sb.append((char)(endCol + 'a'));
+                sb.append(endRow + 1);
                 if (moveType == Type.PROMOTION) {
                     sb.append('=').append(promotionType);
                 }

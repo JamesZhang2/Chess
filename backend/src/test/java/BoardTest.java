@@ -1,12 +1,20 @@
 import model.Board;
 import model.IllegalBoardException;
 import model.MalformedFENException;
+import model.Move;
 import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class BoardTest {
+
+    private final boolean printMoves = true;
 
     @Test
     public void testFENParser() throws IllegalBoardException, MalformedFENException {
@@ -230,9 +238,75 @@ class BoardTest {
 
     }
 
+    private void assertLegalCount(String fen, int expected)
+            throws MalformedFENException, IllegalBoardException {
+        Board board = new Board(fen);
+        Set<Move> legalMoves = board.getLegalMoves();
+        if (printMoves) {
+            System.out.println(board);
+            List<String> sorted = new ArrayList<>();
+            for (Move move : legalMoves) {
+                sorted.add(move.toString());
+            }
+            Collections.sort(sorted);
+            System.out.println("All legal moves: " + sorted);
+            System.out.println();
+        }
+        assertEquals(expected, legalMoves.size(), board.toString());
+    }
+
+    private void assertLegalCount(String fen, String square, int expected)
+            throws MalformedFENException, IllegalBoardException {
+        Board board = new Board(fen);
+        int row = square.charAt(1) - '1';
+        int col = square.charAt(0) - 'a';
+        Set<Move> legalMoves = board.getLegalMoves(row, col);
+        if (printMoves) {
+            System.out.println(board);
+            List<String> sorted = new ArrayList<>();
+            for (Move move : legalMoves) {
+                sorted.add(move.toString());
+            }
+            Collections.sort(sorted);
+            System.out.println("Legal moves for piece at " + square + ": " + sorted);
+            System.out.println();
+        }
+        assertEquals(expected, legalMoves.size(), board.toString());
+    }
+
     @Test
     public void testGetLegalMoves() throws MalformedFENException, IllegalBoardException {
-
+        // Starting position
+        assertLegalCount("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 20);
+        assertLegalCount("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "a1", 0);
+        assertLegalCount("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "a2", 2);
+        // Two Kings
+        assertLegalCount("8/8/2k5/8/8/5K2/8/8 w - - 0 1", 8);
+        assertLegalCount("8/8/2k5/8/8/5K2/8/8 b - - 0 1", 8);
+        // Queen
+        assertLegalCount("4k3/8/8/8/3Q4/8/8/4K3 w - - 0 1", "d4", 27);
+        assertLegalCount("4k3/8/8/8/8/8/8/Q3K3 w - - 0 1", "a1", 17);
+        assertLegalCount("4k3/7r/4n3/8/2n1Q1P1/8/2B5/4K3 w - - 0 1", "e4", 18);
+        assertLegalCount("Qnrrk3/1B6/8/8/6P1/8/p7/4K3 w - - 0 1", "a8", 7);
+        assertLegalCount("Qnrrk3/PB6/8/8/6P1/8/p7/4K3 w - - 0 1", "a8", 1);
+        assertLegalCount("4k3/2q5/8/8/8/8/8/5K2 b - - 0 1", "c7", 23);
+        // Pinned Queen
+        assertLegalCount("4k3/8/4q3/8/8/8/8/4RK2 b - - 0 1", "e6", 6);
+        assertLegalCount("3k4/8/8/8/2b5/8/4Q3/5K2 w - - 0 1", "e2", 2);
+        // Rook
+        assertLegalCount("3k4/8/3K4/8/8/8/8/7R w - - 0 1", "h1", 14);
+        assertLegalCount("3k4/8/3K4/8/5R2/8/8/8 w - - 0 1", "f4", 14);
+        assertLegalCount("3k4/8/3K4/8/8/r7/8/8 b - - 0 1", "a3", 14);
+        assertLegalCount("8/8/k7/8/4K3/r3P3/8/8 b - - 0 1", "a3", 8);
+        assertLegalCount("8/8/k7/8/4K3/r3p3/8/8 b - - 0 1", "a3", 7);
+        // Pinned Rook
+        assertLegalCount("8/8/k7/8/r2RK3/8/8/8 w - - 0 1", "d4", 3);
+        assertLegalCount("8/rb6/k7/3R4/4K3/8/8/8 w - - 0 1", "d5", 0);
+        assertLegalCount("8/4r3/k7/4P3/8/nb2R3/4K3/8 w - - 0 1", "e3", 7);
+        // Bishop
+        // Knight
+        // King
+        // Pawn
     }
 
     @Test
