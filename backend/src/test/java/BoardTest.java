@@ -1,3 +1,6 @@
+import model.Board;
+import model.IllegalBoardException;
+import model.MalformedFENException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -118,7 +121,7 @@ class BoardTest {
 
     @Test
     public void testInCheck() throws IllegalBoardException, MalformedFENException {
-        // Also tests the private Board.controls method
+        // Also tests the private model.Board.controls method
         String[] inCheckFENs = {
                 // Queen
                 "4k3/8/8/8/4K1q1/8/8/8 w - - 0 1",

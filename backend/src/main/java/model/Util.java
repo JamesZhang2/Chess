@@ -1,3 +1,5 @@
+package model;
+
 /**
  * A class for global constants and utilities.
  */

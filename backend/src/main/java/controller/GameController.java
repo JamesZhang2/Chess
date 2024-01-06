@@ -1,3 +1,8 @@
+package controller;
+
+import model.Board;
+import model.Player;
+
 /**
  * The controller sets up the board and asks the players to play.
  * Handles resign, offer draw, accept draw, and decline draw.

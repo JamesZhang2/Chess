@@ -1,3 +1,5 @@
+package model;
+
 /**
  * Thrown when the board state is illegal.
  */

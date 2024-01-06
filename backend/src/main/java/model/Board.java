@@ -1,3 +1,5 @@
+package model;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -7,7 +9,7 @@ import java.util.Set;
  * Represents a legal board state.
  */
 public class Board {
-    // Representation Invariant: Board state is always legal at the end of a public method.
+    // Representation Invariant: model.Board state is always legal at the end of a public method.
     // This means that there is one king on both sides, no pawns are on the first or last rank,
     // and the side to move cannot capture the opponent's king.
     // Note that we allow the number of pieces to be arbitrary,
@@ -76,7 +78,7 @@ public class Board {
     public String toFEN() {
         StringBuilder sb = new StringBuilder();
 
-        // Piece placement
+        // model.Piece placement
         for (int r = 7; r >= 0; r--) {
             int blanks = 0;
             for (int c = 0; c < 8; c++) {
@@ -194,7 +196,7 @@ public class Board {
             throw new MalformedFENException("Number of fields in FEN is not 6");
         }
 
-        // Piece placement
+        // model.Piece placement
         String[] placement = fields[0].split("/");
         parsePiecePlacement(placement);
 
