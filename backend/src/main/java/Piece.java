@@ -17,8 +17,8 @@ public class Piece {
         }
     }
 
-    final Type type;
-    final boolean isWhite;
+    public final Type type;
+    public final boolean isWhite;
 
     public Piece(Type type, boolean isWhite) {
         this.type = type;

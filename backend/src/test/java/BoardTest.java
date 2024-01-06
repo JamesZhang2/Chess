@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class BoardTest {
 
     @Test
-    public void TestFENParser() throws IllegalBoardException, MalformedFENException {
+    public void testFENParser() throws IllegalBoardException, MalformedFENException {
         Board start = new Board();
         assertEquals("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", start.toFEN());
         String[] validFENs = {
@@ -117,7 +117,7 @@ class BoardTest {
     }
 
     @Test
-    public void TestInCheck() throws IllegalBoardException, MalformedFENException {
+    public void testInCheck() throws IllegalBoardException, MalformedFENException {
         // Also tests the private Board.controls method
         String[] inCheckFENs = {
                 // Queen
@@ -220,5 +220,25 @@ class BoardTest {
             Board board = new Board(fen);
             assert !board.isInCheck();
         }
+    }
+
+    @Test
+    public void testMove() throws MalformedFENException, IllegalBoardException {
+
+    }
+
+    @Test
+    public void testGetLegalMoves() throws MalformedFENException, IllegalBoardException {
+
+    }
+
+    @Test
+    public void testIsLegal() throws MalformedFENException, IllegalBoardException {
+
+    }
+
+    @Test
+    public void testGetWinner() throws MalformedFENException, IllegalBoardException {
+
     }
 }

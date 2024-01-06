@@ -361,7 +361,6 @@ public class Board {
         }
 
         if (!whiteKing) {
-            System.out.println(this);
             throw new IllegalBoardException("No white kings on the board");
         }
         if (!blackKing) {
@@ -400,23 +399,37 @@ public class Board {
     }
 
     /**
-     * @return the set of squares that white or black controls.
-     * The format of a square is consistent with the format of the pieces variable,
+     * @return the set of all coordinates of a certain color (determined by the parameter white)
+     * For this method and all the subsequent ones, unless otherwise specified,
+     * the format of a square is consistent with the format of the pieces variable;
      * that is, {i, j} means rank (i + 1), file ('a' + j).
+     */
+    private Set<List<Integer>> getPieceCoords(boolean white) {
+        Set<List<Integer>> coords = new HashSet<>();
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                if (pieces[row][col] != null && pieces[row][col].isWhite == white) {
+                    List<Integer> lst = new ArrayList<>();
+                    lst.add(row);
+                    lst.add(col);
+                    coords.add(lst);
+                }
+            }
+        }
+        return coords;
+    }
+
+    /**
+     * @return the set of squares that white or black controls.
      * A square is said to be "controlled" by white if putting a black king there would result in
      * the black king being in check.
      */
     private Set<List<Integer>> controls(boolean white) {
-        Set<List<Integer>> ans = new HashSet<>();
-        for (int row = 0; row < 8; row++) {
-            for (int col = 0; col < 8; col++) {
-                if (pieces[row][col] != null && pieces[row][col].isWhite == white) {
-                    Set<List<Integer>> pieceControls = controls(row, col);
-                    ans.addAll(pieceControls);
-                }
-            }
+        Set<List<Integer>> controlled = new HashSet<>();
+        for (List<Integer> coord : getPieceCoords(white)) {
+            controlled.addAll(controls(coord.get(0), coord.get(1)));
         }
-        return ans;
+        return controlled;
     }
 
     /**
@@ -476,16 +489,93 @@ public class Board {
      * @return the set of legal moves in the current position
      */
     public Set<Move> getLegalMoves() {
-        // TODO
-        return new HashSet<>();
+        Set<Move> legalMoves = new HashSet<>();
+        for (List<Integer> coord : getPieceCoords(whiteToMove)) {
+            legalMoves.addAll(getLegalMoves(coord.get(0), coord.get(1)));
+        }
+        return legalMoves;
     }
 
     /**
      * @return the set of legal moves for the piece at position {row, col}.
+     * Requires: There is a piece at {row, col} and the color of the piece is the same
+     * as the current player
      */
     public Set<Move> getLegalMoves(int row, int col) {
-        // TODO
-        return new HashSet<>();
+        Set<Move> legalMoves = new HashSet<>();
+        assert pieces[row][col] != null && pieces[row][col].isWhite == whiteToMove;
+        Set<List<Integer>> candidates = controls(row, col);
+        Piece origStart = pieces[row][col];  // used to restore board state
+        for (List<Integer> target : candidates) {
+            int endRow = target.get(0);
+            int endCol = target.get(1);
+            if (pieces[endRow][endCol] != null && pieces[endRow][endCol].isWhite == whiteToMove) {
+                // Can't capture your own piece
+                continue;
+            }
+            if (pieces[row][col].type == Piece.Type.PAWN) {
+                // Pawns can only capture diagonally (which is what they control)
+                if (pieces[endRow][endCol] == null || endRow == 0 || endRow == 7) {
+                    // Will handle pawn capture promotions separately below
+                    continue;
+                }
+            }
+            tryRegularMove(row, col, endRow, endCol, legalMoves);
+        }
+
+        // Special rules for pawn
+        // Pawns move differently from capturing
+        if (pieces[row][col].type == Piece.Type.PAWN) {
+            if (pieces[row][col].isWhite) {
+                if (row != 6 && pieces[row + 1][col] == null) {
+                    tryRegularMove(row, col, row + 1, col, legalMoves);
+                }
+                // Pawns on starting position can move
+                if (row == 1 && pieces[row + 1][col] == null && pieces[row + 2][col] == null) {
+                    tryRegularMove(row, col, row + 2, col, legalMoves);
+                }
+            } else {
+                if (row != 1 && pieces[row - 1][col] == null) {
+                    tryRegularMove(row, col, row - 1, col, legalMoves);
+                }
+                if (row == 6 && pieces[row - 1][col] == null && pieces[row - 2][col] == null) {
+                    tryRegularMove(row, col, row - 2, col, legalMoves);
+                }
+            }
+            // TODO: Handle pawn promotions
+            // TODO: Handle pawn capture promotions
+            // TODO: Handle en passant
+        }
+
+        // Special rules for king
+        if (pieces[row][col].type == Piece.Type.KING) {
+            // TODO: Handle castling
+        }
+
+        return legalMoves;
+    }
+
+    /**
+     * Try to move the piece from {startRow, startCol} to {endRow, endCol}
+     * to see if this will put the player in check.
+     * If it doesn't, add the move to legalMoves.
+     * If it does, do nothing.
+     * Requires: The move is a regular move (that is, not a promotion, en passant, or castling)
+     * Also, the move has to be legal if we ignore checks (that is, normally a piece of
+     * that type should be able to move from {startRow, startCol} to {endRow, endCol}
+     * and {endRow, endCol} can't have a piece with the same color as the current piece).
+     */
+    private void tryRegularMove(int startRow, int startCol, int endRow, int endCol, Set<Move> legalMoves) {
+        Piece origStart = pieces[startRow][startCol];
+        Piece origEnd = pieces[endRow][endCol];
+        pieces[startRow][startCol] = null;
+        pieces[endRow][endCol] = origStart;
+        if (!isInCheck(whiteToMove)) {
+            legalMoves.add(new Move(startRow, startCol, endRow, endCol, false, origEnd != null));
+        }
+        // Restore pieces
+        pieces[startRow][startCol] = origStart;
+        pieces[endRow][endCol] = origEnd;
     }
 
     /**
@@ -495,10 +585,9 @@ public class Board {
      * @return whether the move is legal
      */
     public boolean isLegal(Move move) {
-        // TODO
         assert move.moveType == Move.Type.REGULAR || move.moveType == Move.Type.CASTLING
                 || move.moveType == Move.Type.EN_PASSANT;
-        return false;
+        return getLegalMoves().contains(move);
     }
 
     /**
