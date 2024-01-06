@@ -62,6 +62,7 @@ function renderSquares(position) {
 }
 
 function Board() {
+    // TODO: Use state for position
     const startPos = [
         "rnbqkbnr".split(""),
         "pppppppp".split(""),
