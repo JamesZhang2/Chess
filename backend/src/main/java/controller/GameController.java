@@ -13,6 +13,6 @@ public class GameController {
 
     public void startGame() {
         // TODO
-        // Note: Must pass in a clone of the board to players
+        // Note: Must pass in a clone of the board (or FEN) to players to avoid tampering with current board state
     }
 }

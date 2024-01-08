@@ -93,6 +93,11 @@ class BoardTest {
                 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 -1",
                 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0.5",
                 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0",
+                // En passant field does not match board state
+                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq e3 0 1",
+                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq e6 0 1",
+                "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e3 0 1",
+                "rnbqkbnr/pppp1ppp/8/4p3/8/8/PPPPPPPP/RNBQKBNR b KQkq e6 0 1",
         };
         for (String malformedFEN : malformedFENs) {
             assertThrows(MalformedFENException.class, () -> new Board(malformedFEN), malformedFEN);
@@ -392,7 +397,7 @@ class BoardTest {
         assertLegalCount("4k3/8/8/8/7p/7R/8/4K3 b - - 0 1", "h4", 0);
         assertLegalCount("4k3/2p5/8/2n5/8/8/8/4K3 b - - 0 1", "c7", 1);
         // Pawn captures
-        assertLegalCount("4k3/8/8/8/8/3r4/2P5/4K3 w - - 0 1", "c2", 2);
+        assertLegalCount("4k3/8/8/8/8/3r4/2P5/4K3 w - - 0 1", "c2", 3);
         assertLegalCount("4k3/8/8/8/8/5b1n/6P1/4K3 w - - 0 1", "g2", 4);
         assertLegalCount("4k3/8/8/8/6r1/5b1n/6P1/4K3 w - - 0 1", "g2", 3);
         assertLegalCount("4k3/nb6/P7/8/8/8/8/4K3 w - - 0 1", "a6", 1);
@@ -420,13 +425,16 @@ class BoardTest {
         assertLegalCount("8/8/8/1k6/8/8/2p2K2/1NnR4 b - - 0 1", "c2", 8);
         assertLegalCount("8/8/8/1k6/8/8/2p2K2/1QnR4 b - - 0 1", "c2", 4);
         assertLegalCount("8/8/8/8/8/8/2p2K2/1Q5k b - - 0 1", "c2", 8);
-        assertLegalCount("8/2KP2r1/7k/8/8/8/8/8 w - - 0 1", "c7", 0);
+        assertLegalCount("8/2KP2r1/7k/8/8/8/8/8 w - - 0 1", "d7", 0);
         // En passant
         assertLegalCount("rnbqkbnr/pppp1ppp/8/3Pp3/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 2", "d5", 2);
         assertLegalCount("4k3/8/8/8/6pP/8/8/4K3 b - h3 0 1", "g4", 2);
         assertLegalCount("4k3/8/8/2PpP3/8/8/8/4K3 w - d6 0 2", 9);
         assertLegalCount("4k3/8/8/8/5pPp/8/8/4K3 b - g3 0 1", 9);
         assertLegalCount("8/8/3B4/8/5pP1/8/2K4k/8 b - g3 0 1", "f4", 1);
+        // Can only en passant a pawn
+        assertLegalCount("8/4k3/8/2Pr4/8/8/2K5/8 w - - 0 2", "c5", 1);
+        assertLegalCount("8/4k3/8/8/5pB1/8/2K5/8 b - - 0 2", "f4", 1);
         // En passant to resolve check
         assertLegalCount("5k2/8/8/5Pp1/5K2/8/8/8 w - g6 0 2", "f5", 1);
         assertLegalCount("8/8/8/6k1/4pP2/8/8/4K3 b - f3 0 1", "e4", 1);

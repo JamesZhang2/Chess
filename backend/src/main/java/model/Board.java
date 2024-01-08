@@ -17,16 +17,16 @@ public class Board {
     // pieces[i][j] is the piece at rank (i + 1), file ('a' + j)
     // For example, pieces[0][0] is the piece at a1, pieces[3][4] is the piece at d3.
     // It is null if there is no piece at that square
-    Piece[][] pieces = new Piece[8][8];
-    boolean whiteToMove;
-    boolean whiteCastleK = false, whiteCastleQ = false, blackCastleK = false, blackCastleQ = false;
+    private Piece[][] pieces = new Piece[8][8];
+    private boolean whiteToMove;
+    private boolean whiteCastleK = false, whiteCastleQ = false, blackCastleK = false, blackCastleQ = false;
     // en passant target squares - for white it is x3, for black it is x6, where x is in [a...h]
     // The value is '-' if there are no en passant target squares for that color.
-    char enPassantWhite = '-', enPassantBlack = '-';
-    int halfMove;
-    int fullMove;
+    private char enPassantWhite = '-', enPassantBlack = '-';
+    private int halfMove;
+    private int fullMove;
 
-    Map<String, Integer> posFreq;  // Position frequency: How many times has a position occurred
+    private Map<String, Integer> posFreq;  // Position frequency: How many times has a position occurred
     // Maps the FEN string (except the halfMove and fullMove fields) to the number of times the position occurred
 
     // w: white, b: black, d: draw, u: unknown
@@ -56,6 +56,7 @@ public class Board {
 
     /**
      * Creates a clone of the other board
+     * <p>
      * Requires: The other board is legal
      */
     public Board(Board other) {
@@ -213,54 +214,10 @@ public class Board {
         }
 
         // Castling
-        if (!(fields[2].length() == 1 && fields[2].charAt(0) == '-')) {
-            Set<Character> seen = new HashSet<>();
-            for (int i = 0; i < fields[2].length(); i++) {
-                char c = fields[2].charAt(i);
-                if (seen.contains(c)) {
-                    throw new MalformedFENException("Duplicate character in castling field: " + c);
-                }
-                seen.add(c);
-                switch (fields[2].charAt(i)) {
-                    case 'K':
-                        whiteCastleK = true;
-                        break;
-                    case 'Q':
-                        whiteCastleQ = true;
-                        break;
-                    case 'k':
-                        blackCastleK = true;
-                        break;
-                    case 'q':
-                        blackCastleQ = true;
-                        break;
-                    default:
-                        throw new MalformedFENException("Unknown character in castling field: " + fields[2].charAt(i));
-                }
-            }
-        }
+        parseCastling(fields[2]);
 
         // En passant
-        String enPassant = fields[3];
-        if (enPassant.length() == 1) {
-            if (enPassant.charAt(0) != '-') {
-                throw new MalformedFENException("Malformed en passant field: " + enPassant);
-            }
-        } else if (enPassant.length() == 2) {
-            if (enPassant.charAt(0) < 'a' || enPassant.charAt(0) > 'h') {
-                throw new MalformedFENException("Unknown file in en passant field: " + enPassant.charAt(0));
-            }
-
-            if (enPassant.charAt(1) == '3') {
-                enPassantWhite = enPassant.charAt(0);
-            } else if (enPassant.charAt(1) == '6') {
-                enPassantBlack = enPassant.charAt(0);
-            } else {
-                throw new MalformedFENException("Rank in en passant field must be 3 or 6");
-            }
-        } else {
-            throw new MalformedFENException("Malformed en passant field: " + enPassant);
-        }
+        parseEnPassant(fields[3]);
 
         // Halfmove
         try {
@@ -335,6 +292,85 @@ public class Board {
     }
 
     /**
+     * Parses the castling field and updates the castling right variables.
+     *
+     * @throws MalformedFENException if the FEN is malformed. In this case, the board state can be illegal.
+     */
+    private void parseCastling(String castling) throws MalformedFENException {
+        if (!(castling.length() == 1 && castling.charAt(0) == '-')) {
+            Set<Character> seen = new HashSet<>();
+            for (int i = 0; i < castling.length(); i++) {
+                char c = castling.charAt(i);
+                if (seen.contains(c)) {
+                    throw new MalformedFENException("Duplicate character in castling field: " + c);
+                }
+                seen.add(c);
+                switch (castling.charAt(i)) {
+                    case 'K':
+                        whiteCastleK = true;
+                        break;
+                    case 'Q':
+                        whiteCastleQ = true;
+                        break;
+                    case 'k':
+                        blackCastleK = true;
+                        break;
+                    case 'q':
+                        blackCastleQ = true;
+                        break;
+                    default:
+                        throw new MalformedFENException("Unknown character in castling field: " + castling.charAt(i));
+                }
+            }
+        }
+    }
+
+    /**
+     * Parses the en passant field and updates the en passant variables.
+     * <p>
+     * Requires: The pieces field and whiteToMove field have already been set based on the FEN.
+     *
+     * @throws MalformedFENException if the FEN is malformed. In this case, the board state can be illegal.
+     */
+    private void parseEnPassant(String enPassant) throws MalformedFENException {
+        if (enPassant.length() == 1) {
+            if (enPassant.charAt(0) != '-') {
+                throw new MalformedFENException("Malformed en passant field: " + enPassant);
+            }
+        } else if (enPassant.length() == 2) {
+            if (enPassant.charAt(0) < 'a' || enPassant.charAt(0) > 'h') {
+                throw new MalformedFENException("Unknown file in en passant field: " + enPassant.charAt(0));
+            }
+
+            if (enPassant.charAt(1) == '3') {
+                enPassantWhite = enPassant.charAt(0);
+                Piece expectedWhitePawn = pieces[3][enPassantWhite - 'a'];
+                if (whiteToMove) {
+                    throw new MalformedFENException("Impossible en passant state: White didn't make the last move, but en passant field is " + enPassant);
+                }
+                if (expectedWhitePawn == null || !expectedWhitePawn.isWhite || expectedWhitePawn.type != Piece.Type.PAWN) {
+                    throw new MalformedFENException("Impossible en passant state: " + enPassant +
+                            " (No white pawn was found at " + enPassantWhite + "4)");
+                }
+            } else if (enPassant.charAt(1) == '6') {
+                enPassantBlack = enPassant.charAt(0);
+                Piece expectedBlackPawn = pieces[4][enPassantBlack - 'a'];
+                if (!whiteToMove) {
+                    throw new MalformedFENException("Impossible en passant state: Black didn't make the last move, but en passant field is " + enPassant);
+                }
+                if (expectedBlackPawn == null || expectedBlackPawn.isWhite || expectedBlackPawn.type != Piece.Type.PAWN) {
+                    throw new MalformedFENException("Impossible en passant state: " + enPassant +
+                            " (No black pawn was found at " + enPassantBlack + "5)");
+                }
+            } else {
+                throw new MalformedFENException("Rank in en passant field must be 3 or 6");
+            }
+        } else {
+            throw new MalformedFENException("Malformed en passant field: " + enPassant);
+        }
+    }
+
+    /**
      * Checks whether the board state is legal.
      *
      * @throws IllegalBoardException if the board state is illegal.
@@ -389,6 +425,7 @@ public class Board {
     /**
      * If the move is legal, make the move by updating the board state and return true.
      * Otherwise, return false and don't change the board state.
+     * <p>
      * Requires: move is of type regular, castling, promotion, or en passant.
      *
      * @return whether the move is legal
@@ -397,6 +434,17 @@ public class Board {
         // TODO
         assert move.moveType == Move.Type.REGULAR || move.moveType == Move.Type.CASTLING
                 || move.moveType == Move.Type.EN_PASSANT || move.moveType == Move.Type.PROMOTION;
+        return false;
+    }
+
+    /**
+     * Undo the last move and restore the board to the same state as the one before the move.
+     * If the current board state is already the initial state (when the board was loaded), do nothing.
+     *
+     * @return false if the board state is already the initial state, true otherwise.
+     */
+    public boolean undoLastMove() {
+        // TODO
         return false;
     }
 
@@ -436,6 +484,7 @@ public class Board {
 
     /**
      * @return the set of squares that is controlled by the piece at {row, col}
+     * <p>
      * Requires: there exists a piece at {row, col}
      */
     private Set<List<Integer>> controls(int row, int col) {
@@ -500,6 +549,7 @@ public class Board {
 
     /**
      * @return the set of legal moves for the piece at position {row, col}.
+     * <p>
      * Requires: There is a piece at {row, col} and the color of the piece is the same
      * as the current player
      */
@@ -528,33 +578,118 @@ public class Board {
         // Special rules for pawn
         // Pawns move differently from capturing
         if (pieces[row][col].type == Piece.Type.PAWN) {
-            if (pieces[row][col].isWhite) {
-                if (row != 6 && pieces[row + 1][col] == null) {
-                    tryRegularMove(row, col, row + 1, col, legalMoves);
+            int startRow = whiteToMove ? 1 : 6;
+            int promRow = whiteToMove ? 7 : 0;
+            int advance = whiteToMove ? 1 : -1;
+            int enPassantRow = whiteToMove ? 4 : 3;
+
+            if (row != promRow - advance && pieces[row + advance][col] == null) {
+                tryRegularMove(row, col, row + advance, col, legalMoves);
+            }
+            // Pawns on starting position can move two squares
+            if (row == startRow && pieces[row + advance][col] == null && pieces[row + 2 * advance][col] == null) {
+                tryRegularMove(row, col, row + 2 * advance, col, legalMoves);
+            }
+            // Promotion - Note that we don't need to specify which piece to promote to
+            // because if one of the promotions is legal, then so are all others.
+            if (row == promRow - advance) {
+                if (pieces[promRow][col] == null) {
+                    tryPromotion(row, col, row + advance, col, legalMoves);
                 }
-                // Pawns on starting position can move
-                if (row == 1 && pieces[row + 1][col] == null && pieces[row + 2][col] == null) {
-                    tryRegularMove(row, col, row + 2, col, legalMoves);
+                if (col != 0 && pieces[promRow][col - 1] != null && pieces[promRow][col - 1].isWhite != whiteToMove) {
+                    tryPromotion(row, col, row + advance, col - 1, legalMoves);
                 }
-            } else {
-                if (row != 1 && pieces[row - 1][col] == null) {
-                    tryRegularMove(row, col, row - 1, col, legalMoves);
-                }
-                if (row == 6 && pieces[row - 1][col] == null && pieces[row - 2][col] == null) {
-                    tryRegularMove(row, col, row - 2, col, legalMoves);
+                if (col != 7 && pieces[promRow][col + 1] != null && pieces[promRow][col + 1].isWhite != whiteToMove) {
+                    tryPromotion(row, col, row + advance, col + 1, legalMoves);
                 }
             }
-            // TODO: Handle pawn promotions
-            // TODO: Handle pawn capture promotions
-            // TODO: Handle en passant
+            // En passant
+            if (row == enPassantRow) {
+                int targetCol = -999;
+                if (whiteToMove && enPassantBlack != '-') {
+                    targetCol = enPassantBlack - 'a';
+                } else if (!whiteToMove && enPassantWhite != '-') {
+                    targetCol = enPassantWhite - 'a';
+                }
+                if (Util.inRange(targetCol)) {
+                    // Make sure that the square contains an enemy pawn
+                    assert pieces[enPassantRow][targetCol] != null
+                            && pieces[enPassantRow][targetCol].isWhite != whiteToMove
+                            && pieces[enPassantRow][targetCol].type == Piece.Type.PAWN;
+                    // Target square must be empty since the enemy pawn just moved through it
+                    assert pieces[enPassantRow + advance][targetCol] == null;
+                    if (col - targetCol == 1 || col - targetCol == -1) {
+                        tryEnPassant(row, col, row + advance, targetCol, legalMoves);
+                    }
+                }
+            }
         }
 
         // Special rules for king
         if (pieces[row][col].type == Piece.Type.KING) {
-            // TODO: Handle castling
+            Set<List<Integer>> whiteControls = controls(true);
+            Set<List<Integer>> blackControls = controls(false);
+            if (whiteToMove && whiteCastleK) {
+                // White's king and kingside rook must not have moved
+                assert row == 0 && col == 4;
+                assert pieces[0][7] != null && pieces[0][7].isWhite && pieces[0][7].type == Piece.Type.ROOK;
+                int[][] checkSquares = {{0, 4}, {0, 5}, {0, 6}};
+                if (pieces[0][5] == null && pieces[0][6] == null
+                        && canPass(checkSquares, blackControls)) {
+                    legalMoves.add(new Move('K'));
+                }
+            }
+            if (whiteToMove && whiteCastleQ) {
+                // White's king and queenside rook must not have moved
+                assert row == 0 && col == 4;
+                assert pieces[0][0] != null && pieces[0][0].isWhite && pieces[0][0].type == Piece.Type.ROOK;
+                int[][] checkSquares = {{0, 2}, {0, 3}, {0, 4}};
+                if (pieces[0][1] == null && pieces[0][2] == null && pieces[0][3] == null
+                        && canPass(checkSquares, blackControls)) {
+                    legalMoves.add(new Move('Q'));
+                }
+            }
+            if (!whiteToMove && blackCastleK) {
+                // Black's king and kingside rook must not have moved
+                assert row == 7 && col == 4;
+                assert pieces[7][7] != null && !pieces[7][7].isWhite && pieces[7][7].type == Piece.Type.ROOK;
+                int[][] checkSquares = {{7, 4}, {7, 5}, {7, 6}};
+                if (pieces[7][5] == null && pieces[7][6] == null
+                        && canPass(checkSquares, whiteControls)) {
+                    legalMoves.add(new Move('k'));
+                }
+            }
+            if (!whiteToMove && blackCastleQ) {
+                // Black's king and queenside rook must not have moved
+                assert row == 7 && col == 4;
+                assert pieces[7][0] != null && !pieces[7][0].isWhite && pieces[7][0].type == Piece.Type.ROOK;
+                int[][] checkSquares = {{7, 2}, {7, 3}, {7, 4}};
+                if (pieces[7][1] == null && pieces[7][2] == null && pieces[7][3] == null
+                        && canPass(checkSquares, whiteControls)) {
+                    legalMoves.add(new Move('q'));
+                }
+            }
         }
 
         return legalMoves;
+    }
+
+    /**
+     * Checks whether a king can pass through all the squares without being in check.
+     * @param squares the squares to check
+     * @param opponentControls the squares controlled by the opponent
+     * @return false if any square in squares is controlled by the opponent, true otherwise.
+     */
+    private boolean canPass(int[][] squares, Set<List<Integer>> opponentControls) {
+        for (int[] square : squares) {
+            List<Integer> lst = new ArrayList<>();
+            lst.add(square[0]);
+            lst.add(square[1]);
+            if (opponentControls.contains(lst)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -562,18 +697,79 @@ public class Board {
      * to see if this will put the player in check.
      * If it doesn't, add the move to legalMoves.
      * If it does, do nothing.
-     * Requires: The move is a regular move (that is, not a promotion, en passant, or castling)
-     * Also, the move has to be legal if we ignore checks (that is, normally a piece of
+     * <p>
+     * Requires: The move is a regular move (not a promotion, en passant, or castling) and it is pseudo-legal.
+     */
+    private void tryRegularMove(int startRow, int startCol, int endRow, int endCol, Set<Move> legalMoves) {
+        tryRegOrProm(startRow, startCol, endRow, endCol, false, legalMoves);
+    }
+
+    /**
+     * Try to move the piece from {startRow, startCol} to {endRow, endCol}
+     * to see if this will put the player in check.
+     * If it doesn't, add the move to legalMoves.
+     * If it does, do nothing.
+     * <p>
+     * Requires: The move is a promotion and it is pseudo-legal.
+     */
+    private void tryPromotion(int startRow, int startCol, int endRow, int endCol, Set<Move> legalMoves) {
+        tryRegOrProm(startRow, startCol, endRow, endCol, true, legalMoves);
+    }
+
+    /**
+     * Try to move the piece from {startRow, startCol} to {endRow, endCol}
+     * to see if this will put the player in check.
+     * If it doesn't, add the move to legalMoves.
+     * If it does, do nothing.
+     * <p>
+     * Requires: The move is an en passant and it is pseudo-legal.
+     */
+    private void tryEnPassant(int startRow, int startCol, int endRow, int endCol, Set<Move> legalMoves) {
+        Piece origStart = pieces[startRow][startCol];
+        Piece origEnemyPawn = pieces[startRow][endCol];
+        // Note that the target square must be empty
+        assert pieces[endRow][endCol] == null;
+
+        // Perform the en passant
+        pieces[startRow][startCol] = null;
+        pieces[endRow][endCol] = origStart;
+        pieces[startRow][endCol] = null;
+        if (!isInCheck(whiteToMove)) {
+            legalMoves.add(new Move(startRow, startCol, endRow, endCol, true, true));
+        }
+        // Restore pieces
+        pieces[startRow][startCol] = origStart;
+        pieces[endRow][endCol] = null;
+        pieces[startRow][endCol] = origEnemyPawn;
+    }
+
+    /**
+     * Try to move the piece from {startRow, startCol} to {endRow, endCol}
+     * to see if this will put the player in check.
+     * If it doesn't, add the move to legalMoves.
+     * If it does, do nothing.
+     * <p>
+     * Requires: The move is a regular move or a promotion, not an en passant or castling.
+     * Also, the move has to be "pseudo-legal" - legal if we ignore checks (that is, normally a piece of
      * that type should be able to move from {startRow, startCol} to {endRow, endCol}
      * and {endRow, endCol} can't have a piece with the same color as the current piece).
      */
-    private void tryRegularMove(int startRow, int startCol, int endRow, int endCol, Set<Move> legalMoves) {
+    private void tryRegOrProm(int startRow, int startCol, int endRow, int endCol,
+                              boolean isPromotion, Set<Move> legalMoves) {
         Piece origStart = pieces[startRow][startCol];
         Piece origEnd = pieces[endRow][endCol];
         pieces[startRow][startCol] = null;
         pieces[endRow][endCol] = origStart;
+        boolean isCapture = origEnd != null;
         if (!isInCheck(whiteToMove)) {
-            legalMoves.add(new Move(startRow, startCol, endRow, endCol, false, origEnd != null));
+            if (isPromotion) {
+                char[] promPieces = whiteToMove ? "QRBN".toCharArray() : "qrbn".toCharArray();
+                for (char promPiece : promPieces) {
+                    legalMoves.add(new Move(startRow, startCol, endRow, endCol, promPiece, isCapture));
+                }
+            } else {
+                legalMoves.add(new Move(startRow, startCol, endRow, endCol, false, isCapture));
+            }
         }
         // Restore pieces
         pieces[startRow][startCol] = origStart;
@@ -582,6 +778,7 @@ public class Board {
 
     /**
      * Only checks whether move is legal or not, does not change the board state.
+     * <p>
      * Requires: move is of type regular, castle, or en passant.
      *
      * @return whether the move is legal

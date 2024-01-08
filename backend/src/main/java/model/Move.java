@@ -3,7 +3,9 @@ package model;
 import java.util.Objects;
 
 /**
- * Represents a chess move (or resign/offer draw).
+ * Represents a chess move (or resign, offer draw, accept draw, or decline draw).
+ * Note that this is not used in the PGN because the Standard Algebra Notation (SAN) in the PGN
+ * requires more information about the board (like checks, checkmates, and avoiding ambiguity)
  */
 public class Move {
     public enum Type {
@@ -60,20 +62,22 @@ public class Move {
     }
 
     /**
-     * Creates a new promotion move. The starting row, ending row and ending column is inferred.
+     * Creates a new promotion move.
      *
      * @param promotion QRBN for white, qrbn for black
      */
-    public Move(int startCol, char promotion, boolean isCapture) {
+    public Move(int startRow, int startCol, int endRow, int endCol, char promotion, boolean isCapture) {
         assert "QRBNqrbn".indexOf(promotion) >= 0;
         assert Util.inRange(startCol);
         this.moveType = Type.PROMOTION;
         this.startCol = startCol;
-        this.endCol = startCol;
+        this.endCol = endCol;
         if (promotion >= 'A' && promotion <= 'Z') {
+            assert startRow == 6 && endRow == 7;
             this.startRow = 6;
             this.endRow = 7;
         } else {
+            assert startRow == 1 && endRow == 0;
             this.startRow = 1;
             this.endRow = 0;
         }
