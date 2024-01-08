@@ -180,6 +180,8 @@ class BoardTest {
                 "4k3/6N1/8/8/8/8/4K3/8 b - - 0 1",
                 "8/8/8/3k4/2P5/1K6/8/8 b - - 0 1",
                 "8/8/8/6k1/7P/1K6/8/8 b - - 0 1",
+                // White is in check even though the black knight is pinned
+                "8/8/8/8/3kn1R1/8/5K2/8 w - - 0 1",
                 // Mated
                 "4k3/8/8/8/8/8/7r/r2K4 w - - 0 1",
                 "7k/8/5BKN/8/8/8/8/8 b - - 0 1",
@@ -225,7 +227,8 @@ class BoardTest {
                 "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2N2N2/PPPP1PPP/R1BQ1RK1 w kq - 0 1",
                 "7k/7P/7K/8/8/8/8/8 b - - 0 1",
                 "7k/7B/7K/8/8/8/8/8 b - - 0 1",
-                "2nkb3/2ppp3/8/8/8/2RQR3/3K4/8 b - - 0 1"
+                "2nkb3/2ppp3/8/8/8/2RQR3/3K4/8 b - - 0 1",
+                "8/8/8/8/7p/3k2pP/5pP1/5K1B w - - 12 7",
         };
         for (String fen : notInCheckFENs) {
             Board board = new Board(fen);
@@ -283,6 +286,7 @@ class BoardTest {
         // Two Kings
         assertLegalCount("8/8/2k5/8/8/5K2/8/8 w - - 0 1", 8);
         assertLegalCount("8/8/2k5/8/8/5K2/8/8 b - - 0 1", 8);
+
         // Queen
         assertLegalCount("4k3/8/8/8/3Q4/8/8/4K3 w - - 0 1", "d4", 27);
         assertLegalCount("4k3/8/8/8/8/8/8/Q3K3 w - - 0 1", "a1", 17);
@@ -293,6 +297,14 @@ class BoardTest {
         // Pinned Queen
         assertLegalCount("4k3/8/4q3/8/8/8/8/4RK2 b - - 0 1", "e6", 6);
         assertLegalCount("3k4/8/8/8/2b5/8/4Q3/5K2 w - - 0 1", "e2", 2);
+        // In Check
+        assertLegalCount("5r2/8/1k6/8/8/3Q1K2/8/8 w - - 0 1", "d3", 1);
+        assertLegalCount("5r2/8/1k6/8/8/5K2/8/7Q w - - 0 1", "h1", 0);
+        assertLegalCount("5r2/8/1k6/7Q/8/8/8/5K2 w - - 0 1", "h5", 3);
+        assertLegalCount("5rQ1/8/1k6/8/8/8/8/5K2 w - - 0 1", "g8", 2);
+        assertLegalCount("8/8/1k6/7q/2N5/8/8/5K2 b - - 0 1", "h5", 0);
+        assertLegalCount("8/8/1k6/4q3/8/4B3/8/5K2 b - - 0 1", "e5", 3);
+
         // Rook
         assertLegalCount("3k4/8/3K4/8/8/8/8/7R w - - 0 1", "h1", 14);
         assertLegalCount("3k4/8/3K4/8/5R2/8/8/8 w - - 0 1", "f4", 14);
@@ -303,10 +315,139 @@ class BoardTest {
         assertLegalCount("8/8/k7/8/r2RK3/8/8/8 w - - 0 1", "d4", 3);
         assertLegalCount("8/rb6/k7/3R4/4K3/8/8/8 w - - 0 1", "d5", 0);
         assertLegalCount("8/4r3/k7/4P3/8/nb2R3/4K3/8 w - - 0 1", "e3", 7);
+        // In Check
+        assertLegalCount("8/8/1k6/8/2b5/2R5/8/5K2 w - - 0 1", "c3", 2);
+        assertLegalCount("8/r7/pk6/8/NN6/8/8/5K2 b - - 0 1", "a7", 0);
+
         // Bishop
+        assertLegalCount("8/8/4k3/8/3BK3/8/8/8 w - - 0 1", "d4", 13);
+        assertLegalCount("8/8/6kb/8/4K3/8/8/8 b - - 0 1", "h6", 7);
+        assertLegalCount("8/8/6k1/8/4K3/8/8/1B6 w - - 0 1", "b1", 3);
+        assertLegalCount("2k5/8/P5p1/8/8/3B4/8/1R1K1n2 w - - 0 1", "d3", 8);
+        assertLegalCount("2k5/8/8/8/7p/6pP/5pP1/3K3B w - - 0 1", "h1", 0);
+        assertLegalCount("7k/5K2/6B1/6B1/8/8/8/8 w - - 0 1", "g5", 9);
+        // Pinned Bishop
+        assertLegalCount("8/4k3/4q3/8/8/4B3/4K3/8 w - - 0 1", "e3", 0);
+        assertLegalCount("8/6k1/7b/8/8/4B3/3K4/8 w - - 0 1", "e3", 3);
+        // In check
+        assertLegalCount("8/1k6/p7/8/8/8/5B2/5K1r w - - 0 1", "f2", 1);
+        assertLegalCount("8/8/1k5R/6b1/8/8/8/5K2 b - - 0 1", "g5", 2);
+        assertLegalCount("8/7b/1k3R2/8/8/8/8/5K2 b - - 0 1", "h7", 0);
+
         // Knight
+        assertLegalCount("4k3/8/8/8/2N5/8/8/4K3 w - - 0 1", "c4", 8);
+        assertLegalCount("4k3/8/8/8/8/7n/8/4K3 b - - 0 1", "h3", 4);
+        assertLegalCount("N6k/8/8/8/8/8/8/4K3 w - - 0 1", "a8", 2);
+        assertLegalCount("2k5/2P1n3/1r3r2/3N4/1n3Q2/2p1b3/8/4K3 w - - 0 1", "d5", 6);
+        assertLegalCount("3k4/8/8/8/8/2PPP3/2PNP3/2RKR3 w - - 0 1", "d2", 6);
+        // Pinned Knight
+        assertLegalCount("4k3/8/4r3/8/8/8/4N3/4K3 w - - 0 1", "e2", 0);
+        assertLegalCount("8/2k5/8/4n3/8/8/7Q/4K3 b - - 0 1", "e5", 0);
+        // In Check
+        assertLegalCount("8/8/8/1n6/8/1k3R2/8/5K2 b - - 0 1", "b5", 1);
+        assertLegalCount("8/8/5q2/8/6N1/1k6/8/5K2 w - - 0 1", "g4", 2);
+        assertLegalCount("8/8/5q2/8/8/1k3K2/8/6N1 w - - 0 1", "g1", 0);
+
         // King
+        assertLegalCount("8/8/4k3/8/8/8/8/K7 w - - 0 1", "a1", 3);
+        assertLegalCount("8/8/4k3/8/8/8/8/4K3 w - - 0 1", "e1", 5);
+        assertLegalCount("8/8/4k3/8/8/4K3/8/8 w - - 0 1", "e3", 8);
+        assertLegalCount("8/8/4k3/8/4P3/4K3/8/8 w - - 0 1", "e3", 7);
+        assertLegalCount("4k3/3bNR2/8/8/4P3/4K3/8/8 b - - 0 1", "e8", 2);
+        assertLegalCount("8/8/4k3/4b3/4P3/4K3/8/8 w - - 0 1", "e3", 5);
+        assertLegalCount("8/3k4/8/5b1r/8/6K1/8/4n3 w - - 0 1", "g3", 2);
+        // In Check/Checkmated
+        assertLegalCount("8/3k4/4r3/8/8/4K3/8/8 w - - 0 1", "e3", 6);
+        assertLegalCount("8/3k4/8/8/8/8/4PPP1/1r3K2 w - - 0 1", "f1", 0);
+        assertLegalCount("8/8/8/6n1/8/1k3K2/8/6N1 w - - 0 1", "f3", 7);
+        assertLegalCount("8/8/8/6n1/8/1k2NK2/4RB2/8 w - - 0 1", "f3", 4);
+        // Castling
+        assertLegalCount("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", "e1", 7);
+        assertLegalCount("r3k2r/8/8/8/8/8/8/R3K2R w Qkq - 0 1", "e1", 6);
+        assertLegalCount("r3k2r/8/8/8/8/8/8/R3K2R w Kkq - 0 1", "e1", 6);
+        assertLegalCount("r3k2r/8/8/8/8/8/8/R3K2R w kq - 0 1", "e1", 5);
+        assertLegalCount("r3k1r1/8/8/8/8/8/8/R3K2R b KQq - 0 1", "e8", 6);
+        // Can't castle when in check
+        assertLegalCount("r3k3/4r3/8/8/8/8/8/R3K2R w KQq - 0 1", "e1", 4);
+        // Can't castle through check
+        assertLegalCount("r3k2r/8/8/5R2/8/8/8/4K3 b kq - 0 1", "e8", 4);
+        assertLegalCount("r3k2r/6P1/8/8/8/8/8/1R2K2R b Kkq - 0 1", "e8", 5);
+        // Can't castle when landing square is a check
+        assertLegalCount("r3k2r/8/8/8/8/8/7p/R3K2R w KQ - 0 1", "e1", 6);
+        assertLegalCount("r3k2r/8/8/8/5b2/8/7p/R3K2R w KQkq - 0 1", "e1", 4);
+        // Can't castle when blocked by pieces
+        assertLegalCount("r3k1nr/8/8/8/8/8/8/R3K2R b kq - 0 1", "e8", 6);
+        assertLegalCount("r3kB1r/8/8/8/8/8/8/R3K2R b KQkq - 0 1", "e8", 5);
+        assertLegalCount("r3k2r/8/8/8/8/8/8/R2QK1nR w KQkq - 0 1", "e1", 3);
+        // Can castle when rook passes through a square controlled by opponent
+        assertLegalCount("r3k2r/8/8/8/8/8/8/1R2K2R b Kkq - 0 1", "e8", 7);
+
         // Pawn
+        assertLegalCount("4k3/8/8/8/4P3/8/8/4K3 w - - 0 1", "e4", 1);
+        assertLegalCount("4k3/8/8/8/8/8/5P2/4K3 w - - 0 1", "f2", 2);
+        assertLegalCount("4k3/8/p7/8/8/8/8/4K3 b - - 0 1", "a6", 1);
+        assertLegalCount("4k3/7p/8/8/8/8/8/4K3 b - - 0 1", "h7", 2);
+        assertLegalCount("4k3/8/2r5/2P5/8/8/8/4K3 w - - 0 1", "c5", 0);
+        assertLegalCount("4k3/8/8/8/2B5/8/2P5/4K3 w - - 0 1", "c2", 1);
+        assertLegalCount("4k3/8/8/8/7p/7R/8/4K3 b - - 0 1", "h4", 0);
+        assertLegalCount("4k3/2p5/8/2n5/8/8/8/4K3 b - - 0 1", "c7", 1);
+        // Pawn captures
+        assertLegalCount("4k3/8/8/8/8/3r4/2P5/4K3 w - - 0 1", "c2", 2);
+        assertLegalCount("4k3/8/8/8/8/5b1n/6P1/4K3 w - - 0 1", "g2", 4);
+        assertLegalCount("4k3/8/8/8/6r1/5b1n/6P1/4K3 w - - 0 1", "g2", 3);
+        assertLegalCount("4k3/nb6/P7/8/8/8/8/4K3 w - - 0 1", "a6", 1);
+        assertLegalCount("4k3/1p6/B1N5/8/8/8/8/4K3 b - - 0 1", "b7", 4);
+        assertLegalCount("4k3/8/8/6p1/6rB/8/8/4K3 b - - 0 1", "g5", 1);
+        assertLegalCount("4k3/8/8/6p1/5qrB/8/8/4K3 b - - 0 1", "g5", 1);
+        // Pinned Pawn
+        assertLegalCount("6k1/6r1/8/6P1/6K1/8/8/8 w - - 0 1", "g5", 1);
+        assertLegalCount("6k1/6r1/5b1r/6P1/6K1/8/8/8 w - - 0 1", "g5", 1);
+        assertLegalCount("6k1/6r1/8/8/8/5b1r/6P1/6K1 w - - 0 1", "g2", 2);
+        assertLegalCount("6k1/8/8/2b5/8/8/5P2/6K1 w - - 0 1", "f2", 0);
+        assertLegalCount("5k2/5p2/4R1B1/8/8/8/5R2/6K1 b - - 0 1", "f7", 2);
+        assertLegalCount("5k2/8/5p2/4R1B1/8/8/5R2/6K1 b - - 0 1", "f6", 1);
+        assertLegalCount("5k2/4p3/8/8/1Q6/8/8/6K1 b - - 0 1", "e7", 0);
+        assertLegalCount("5k2/4p3/3Q4/8/8/8/8/6K1 b - - 0 1", "e7", 1);
+        // In Check
+        assertLegalCount("5k2/8/8/8/4n3/5P2/5K2/8 w - - 0 1", "f3", 1);
+        assertLegalCount("5k2/5p2/6N1/8/8/8/5K2/8 b - - 0 1", "f7", 1);
+        assertLegalCount("8/5p2/8/1k5R/8/8/5K2/8 b - - 0 1", "f7", 1);
+        // Promotions
+        assertLegalCount("8/3P4/8/1k6/8/8/5K2/8 w - - 0 1", "d7", 4);
+        assertLegalCount("3n1b2/4P3/8/1k6/8/8/5K2/8 w - - 0 1", "e7", 12);
+        assertLegalCount("3n1r2/4P3/8/1k6/8/8/5K2/8 w - - 0 1", "e7", 4);
+        assertLegalCount("8/8/8/1k6/8/8/1p3K2/8 b - - 0 1", "b2", 4);
+        assertLegalCount("8/8/8/1k6/8/8/2p2K2/1NnR4 b - - 0 1", "c2", 8);
+        assertLegalCount("8/8/8/1k6/8/8/2p2K2/1QnR4 b - - 0 1", "c2", 4);
+        assertLegalCount("8/8/8/8/8/8/2p2K2/1Q5k b - - 0 1", "c2", 8);
+        assertLegalCount("8/2KP2r1/7k/8/8/8/8/8 w - - 0 1", "c7", 0);
+        // En passant
+        assertLegalCount("rnbqkbnr/pppp1ppp/8/3Pp3/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 2", "d5", 2);
+        assertLegalCount("4k3/8/8/8/6pP/8/8/4K3 b - h3 0 1", "g4", 2);
+        assertLegalCount("4k3/8/8/2PpP3/8/8/8/4K3 w - d6 0 2", 9);
+        assertLegalCount("4k3/8/8/8/5pPp/8/8/4K3 b - g3 0 1", 9);
+        assertLegalCount("8/8/3B4/8/5pP1/8/2K4k/8 b - g3 0 1", "f4", 1);
+        // En passant to resolve check
+        assertLegalCount("5k2/8/8/5Pp1/5K2/8/8/8 w - g6 0 2", "f5", 1);
+        assertLegalCount("8/8/8/6k1/4pP2/8/8/4K3 b - f3 0 1", "e4", 1);
+        // Cannot en passant if opponent pawn hasn't just moved
+        assertLegalCount("rnbqkbnr/ppp1pppp/8/8/3pP3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1", "d4", 1);
+        assertLegalCount("rnbqkbnr/ppp1pppp/8/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1", "e5", 1);
+        // Cannot en passant if doing so leaves your king in check
+        assertLegalCount("2r5/4k3/8/2Pp4/8/8/2K5/8 w - d6 0 2", "c5", 1);
+        assertLegalCount("8/8/8/8/5pP1/8/3R3k/4K3 b - g3 0 1", "f4", 0);
+        assertLegalCount("4k3/8/8/r4pPK/8/8/8/8 w - f6 0 2", "g5", 1);
+        assertLegalCount("8/8/8/8/k2Pp2Q/8/8/4K3 b - d3 0 1", "e4", 1);
+        // Others
+        assertLegalCount("rnbqkbnr/pppppppp/5N2/8/8/8/PPPPPPPP/RNBQKB1R b KQkq - 0 1", 3);
+        assertLegalCount("rnbqkbnr/pppp1ppp/8/8/8/8/PPPP1PPP/RNBQR1K1 b kq - 0 1", 3);
+        assertLegalCount("rnbqkbnr/pppp1ppp/5N2/8/8/8/PPPP1PPP/RNBQR1K1 b kq - 0 1", 0);
+        assertLegalCount("r6K/PPPPPPPP/8/8/8/8/8/4k3 w - - 0 1", 28);
+        // Largest number of legal moves
+        assertLegalCount("R6R/3Q4/1Q4Q1/4Q3/2Q4Q/Q4Q2/pp1Q4/kBNN1KB1 w - - 0 1", 218);
+        // En passant mate
+        assertLegalCount("rn1q1bkr/pppp2pp/8/4P3/2B5/8/8/4K3 b - - 0 1", 1);
+        assertLegalCount("rn1q1bkr/ppp3pp/8/3pP3/2B5/8/8/4K3 w - d6 0 2", 15);
     }
 
     @Test

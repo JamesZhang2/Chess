@@ -1,9 +1,6 @@
 package model;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Represents a legal board state.
@@ -28,6 +25,9 @@ public class Board {
     char enPassantWhite = '-', enPassantBlack = '-';
     int halfMove;
     int fullMove;
+
+    Map<String, Integer> posFreq;  // Position frequency: How many times has a position occurred
+    // Maps the FEN string (except the halfMove and fullMove fields) to the number of times the position occurred
 
     // w: white, b: black, d: draw, u: unknown
     private char winner;
