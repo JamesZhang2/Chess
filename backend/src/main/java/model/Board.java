@@ -17,7 +17,7 @@ public class Board {
     // pieces[i][j] is the piece at rank (i + 1), file ('a' + j)
     // For example, pieces[0][0] is the piece at a1, pieces[3][4] is the piece at d3.
     // It is null if there is no piece at that square
-    private Piece[][] pieces = new Piece[8][8];
+    private final Piece[][] pieces = new Piece[8][8];
     private boolean whiteToMove;
     private boolean whiteCastleK = false, whiteCastleQ = false, blackCastleK = false, blackCastleQ = false;
     // en passant target squares - for white it is x3, for black it is x6, where x is in [a...h]
@@ -32,6 +32,10 @@ public class Board {
     // w: white, b: black, d: draw, u: unknown
     private char winner;
 
+    private PGN pgn;
+
+    private List<String> history;  // history positions stored in FEN form
+
     private static final char[] PIECE_NAMES = {'p', 'n', 'b', 'r', 'q', 'k', 'P', 'N', 'B', 'R', 'Q', 'K'};
 
     /**
@@ -41,6 +45,8 @@ public class Board {
         parseFen(fen);
         checkBoardLegality();
         updateWinner();
+        this.pgn = new PGN(fullMove, whiteToMove, getResult());
+        this.history = new ArrayList<>();
     }
 
     /**
@@ -49,6 +55,10 @@ public class Board {
     public Board() {
         try {
             parseFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+            checkBoardLegality();
+            updateWinner();
+            this.pgn = new PGN(1, true, "*");
+            this.history = new ArrayList<>();
         } catch (Exception e) {
             assert false;
         }
@@ -62,7 +72,10 @@ public class Board {
     public Board(Board other) {
         try {
             parseFen(other.toFEN());
+            checkBoardLegality();
             this.winner = other.winner;
+            this.pgn = new PGN(other.pgn);
+            this.history = new ArrayList<>(other.history);
         } catch (Exception e) {
             assert false;
         }
@@ -147,6 +160,26 @@ public class Board {
         sb.append(fullMove);
 
         return sb.toString();
+    }
+
+    /**
+     * @return the PGN of this game.
+     */
+    public String toPGN() {
+        return pgn.toString();
+    }
+
+    /**
+     * @return the result of the game (1-0 or 1/2-1/2 or 0-1 or *)
+     */
+    private String getResult() {
+        return switch (winner) {
+            case 'u' -> "*";
+            case 'w' -> "1-0";
+            case 'd' -> "1/2-1/2";
+            case 'b' -> "0-1";
+            default -> throw new IllegalStateException("Unexpected value for winner: " + winner);
+        };
     }
 
     /**
@@ -423,7 +456,7 @@ public class Board {
     }
 
     /**
-     * If the move is legal, make the move by updating the board state and return true.
+     * If the move is legal, make the move by updating the board state (including the winner) and return true.
      * Otherwise, return false and don't change the board state.
      * <p>
      * Requires: move is of type regular, castling, promotion, or en passant.
@@ -431,10 +464,164 @@ public class Board {
      * @return whether the move is legal
      */
     public boolean move(Move move) {
-        // TODO
         assert move.moveType == Move.Type.REGULAR || move.moveType == Move.Type.CASTLING
                 || move.moveType == Move.Type.EN_PASSANT || move.moveType == Move.Type.PROMOTION;
-        return false;
+        // Can simply check if move is in the set of all legal moves,
+        // but checking a specific piece would be more efficient.
+        int startRow = move.getStartRow();
+        int startCol = move.getStartCol();
+        int endRow = move.getEndRow();
+        int endCol = move.getStartCol();
+        Piece curPiece = pieces[startRow][startCol];
+        if (curPiece == null || curPiece.isWhite != whiteToMove) {
+            return false;
+        }
+        Set<Move> pieceLegalMoves = getLegalMoves(startRow, startCol);
+        if (!pieceLegalMoves.contains(move)) {
+            return false;
+        }
+
+        // Take a snapshot of the current state (in FEN form) and put it in history
+        history.add(this.toFEN());
+
+        // For now, we're using a verbose version of the Standard Algebraic Notation for the PGN
+        // For every non-pawn move, we include the entire starting square regardless of ambiguity
+        // TODO: Simplify SAN
+
+        StringBuilder pgnMove = new StringBuilder();
+        // Reset en passant state, will be changed below if pawn just moved two squares
+        enPassantWhite = enPassantBlack = '-';
+
+        // Remove castling rights if necessary
+        if (curPiece.type == Piece.Type.KING) {
+            if (whiteToMove) {
+                whiteCastleK = false;
+                whiteCastleQ = false;
+            } else {
+                blackCastleK = false;
+                blackCastleQ = false;
+            }
+        } else if (curPiece.type == Piece.Type.ROOK) {
+            if (startRow == 0 && startCol == 0 && whiteToMove) {
+                whiteCastleQ = false;
+            } else if (startRow == 0 && startCol == 7 && whiteToMove) {
+                whiteCastleK = false;
+            } else if (startRow == 7 && startCol == 0 && !whiteToMove) {
+                blackCastleQ = false;
+            } else if (startRow == 7 && startCol == 7 && !whiteToMove) {
+                blackCastleK = false;
+            }
+        }
+
+        switch (move.moveType) {
+            case REGULAR:
+                if (curPiece.type != Piece.Type.PAWN) {
+                    pgnMove.append(curPiece.toString().toUpperCase());
+                    pgnMove.append(toSquare(startRow, startCol));
+                    if (move.getIsCapture()) {
+                        halfMove = 0;
+                        pgnMove.append("x");
+                    } else {
+                        halfMove++;
+                    }
+                } else {
+                    // Is a pawn move
+                    halfMove = 0;
+                    if (move.getIsCapture()) {
+                        pgnMove.append((char) (startCol + 'a'));
+                        pgnMove.append("x");
+                    }
+                    if (endRow - startRow == 2) {
+                        enPassantWhite = (char) (startCol + 'a');
+                    }
+                    if (endRow - startRow == -2) {
+                        enPassantBlack = (char) (startCol + 'a');
+                    }
+                }
+                pgnMove.append(toSquare(endRow, endCol));
+
+                // Update pieces
+                pieces[endRow][endCol] = curPiece;
+                pieces[startRow][startCol] = null;
+                break;
+
+            case CASTLING:
+                pgnMove.append(move.getCastleType() == 'K' || move.getCastleType() == 'k' ? "O-O" : "O-O-O");
+                halfMove++;
+
+                // Update pieces
+                pieces[endRow][endCol] = curPiece;
+                pieces[startRow][startCol] = null;
+                // Move the rook
+                int rookRow = (move.getCastleType() == 'K' || move.getCastleType() == 'Q') ? 0 : 7;
+                int rookStartCol = (move.getCastleType() == 'K' || move.getCastleType() == 'k') ? 7 : 0;
+                int rookEndCol = (move.getCastleType() == 'K' || move.getCastleType() == 'k') ? 5 : 3;
+                pieces[rookRow][rookEndCol] = pieces[rookRow][rookStartCol];
+                pieces[rookRow][rookStartCol] = null;
+                break;
+
+            case EN_PASSANT:
+                pgnMove.append((char) (startCol + 'a'));
+                pgnMove.append("x");
+                pgnMove.append(toSquare(endRow, endCol));
+                halfMove = 0;
+
+                // Update pieces
+                pieces[endRow][endCol] = curPiece;
+                pieces[startRow][startCol] = null;
+                // Remove the enemy pawn
+                pieces[startRow][endCol] = null;
+                break;
+
+            case PROMOTION:
+                if (move.getIsCapture()) {
+                    pgnMove.append((char) (startCol + 'a'));
+                    pgnMove.append("x");
+                }
+                pgnMove.append(toSquare(endRow, endCol));
+                pgnMove.append("=");
+                pgnMove.append(Character.toUpperCase(move.getPromotionType()));
+                halfMove = 0;
+
+                // Update pieces
+                pieces[startRow][startCol] = null;
+                // ending square becomes promoted piece
+                pieces[endRow][endCol] = new Piece(move.getPromotionType());
+                break;
+
+            default:
+                assert false;
+        }
+
+        if (!whiteToMove) {
+            fullMove++;
+        }
+        whiteToMove = !whiteToMove;
+
+        boolean changed = updateWinner();
+
+        if (isInCheck()) {
+            if (changed) {
+                // Must be checkmate
+                pgnMove.append("#");
+            } else {
+                pgnMove.append("+");
+            }
+        }
+        pgn.addMove(pgnMove.toString());
+
+        // TODO: Update posFreq
+
+        // Sanity check
+        // TODO: Can be removed after fully tested
+        try {
+            checkBoardLegality();
+        } catch (IllegalBoardException e) {
+            e.printStackTrace();
+            assert false;
+        }
+
+        return true;
     }
 
     /**
@@ -444,8 +631,23 @@ public class Board {
      * @return false if the board state is already the initial state, true otherwise.
      */
     public boolean undoLastMove() {
-        // TODO
-        return false;
+        if (history.isEmpty()) {
+            return false;
+        }
+        String prevFEN = history.removeLast();
+        // TODO update posFreq
+        try {
+            parseFen(prevFEN);
+            checkBoardLegality();  // Sanity check, TODO: Can be removed after fully tested
+        } catch (MalformedFENException e) {
+            assert false;
+        } catch (IllegalBoardException e) {
+            e.printStackTrace();
+            assert false;
+        }
+        pgn.undoLastMove();
+        winner = 'u';
+        return true;
     }
 
     /**
@@ -676,7 +878,8 @@ public class Board {
 
     /**
      * Checks whether a king can pass through all the squares without being in check.
-     * @param squares the squares to check
+     *
+     * @param squares          the squares to check
      * @param opponentControls the squares controlled by the opponent
      * @return false if any square in squares is controlled by the opponent, true otherwise.
      */
@@ -832,8 +1035,18 @@ public class Board {
 
     /**
      * Check if the game ended and update the winner variable.
+     *
+     * @return true if the winner has changed, false otherwise.
      */
-    private void updateWinner() {
+    private boolean updateWinner() {
         // TODO
+        return false;
+    }
+
+    /**
+     * @return the chessboard notation for the square at {row, col}. (for example: a1, e4)
+     */
+    private String toSquare(int row, int col) {
+        return "" + ('a' + col) + (row + 1);
     }
 }

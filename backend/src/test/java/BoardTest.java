@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class BoardTest {
 
-    private final boolean printMoves = true;
+    private final boolean printMoves = false;
 
     @Test
     public void testFENParser() throws IllegalBoardException, MalformedFENException {

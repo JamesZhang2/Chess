@@ -13,6 +13,8 @@ public class Move {
         CASTLING,
         EN_PASSANT,
         PROMOTION,
+        // TODO: Consider removing the following as moves, and use separate methods to handle them
+        // One reason that they shouldn't be moves is that players should be allowed to resign/offer draw at any time
         RESIGN,
         OFFER_DRAW,
         ACCEPT_DRAW,
@@ -21,7 +23,9 @@ public class Move {
 
     public final Type moveType;
 
-    private int startRow, startCol, endRow, endCol;
+    // For castling, these fields are the starting and ending positions of the king.
+    // For resign and draw, these fields are -1, and they should never be queried.
+    private final int startRow, startCol, endRow, endCol;
 
     // K: white castles kingside, Q: white castles queenside,
     // k: black castles kingside, q: black castles queenside.
@@ -55,6 +59,19 @@ public class Move {
      */
     public Move(char castleType) {
         assert "KQkq".indexOf(castleType) >= 0;
+        if (castleType == 'K' || castleType == 'Q') {
+            this.startRow = 0;
+            this.endRow = 0;
+        } else {
+            this.startRow = 7;
+            this.endRow = 7;
+        }
+        this.startCol = 4;
+        if (castleType == 'K' || castleType == 'k') {
+            this.endCol = 6;
+        } else {
+            this.endCol = 2;
+        }
         this.moveType = Type.CASTLING;
         this.castleType = castleType;
         // Castling can't be a capture
@@ -91,26 +108,27 @@ public class Move {
     public Move(Type type) {
         assert type == Type.RESIGN || type == Type.OFFER_DRAW
                 || type == Type.ACCEPT_DRAW || type == Type.DECLINE_DRAW;
+        startRow = startCol = endRow = endCol = -1;
         this.moveType = type;
     }
 
     public int getStartRow() {
-        assert moveType == Type.REGULAR || moveType == Type.EN_PASSANT || moveType == Type.PROMOTION;
+        assert moveType == Type.REGULAR || moveType == Type.EN_PASSANT || moveType == Type.PROMOTION || moveType == Type.CASTLING;
         return startRow;
     }
 
     public int getStartCol() {
-        assert moveType == Type.REGULAR || moveType == Type.EN_PASSANT || moveType == Type.PROMOTION;
+        assert moveType == Type.REGULAR || moveType == Type.EN_PASSANT || moveType == Type.PROMOTION || moveType == Type.CASTLING;
         return startCol;
     }
 
     public int getEndRow() {
-        assert moveType == Type.REGULAR || moveType == Type.EN_PASSANT || moveType == Type.PROMOTION;
+        assert moveType == Type.REGULAR || moveType == Type.EN_PASSANT || moveType == Type.PROMOTION || moveType == Type.CASTLING;
         return endRow;
     }
 
     public int getEndCol() {
-        assert moveType == Type.REGULAR || moveType == Type.EN_PASSANT || moveType == Type.PROMOTION;
+        assert moveType == Type.REGULAR || moveType == Type.EN_PASSANT || moveType == Type.PROMOTION || moveType == Type.CASTLING;
         return endCol;
     }
 
@@ -134,7 +152,8 @@ public class Move {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Move move = (Move) o;
-        return startRow == move.startRow && startCol == move.startCol && endRow == move.endRow && endCol == move.endCol && castleType == move.castleType && promotionType == move.promotionType && moveType == move.moveType;
+        return startRow == move.startRow && startCol == move.startCol && endRow == move.endRow && endCol == move.endCol
+                && castleType == move.castleType && promotionType == move.promotionType && moveType == move.moveType;
     }
 
     @Override
