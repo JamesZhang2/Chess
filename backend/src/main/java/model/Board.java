@@ -30,7 +30,7 @@ public class Board {
     // Maps the FEN string (except the halfMove and fullMove fields) to the number of times the position occurred
 
     // w: white, b: black, d: draw, u: unknown
-    private char winner;
+    private char winner = 'u';
 
     private PGN pgn;
 
@@ -330,6 +330,10 @@ public class Board {
      * @throws MalformedFENException if the FEN is malformed. In this case, the board state can be illegal.
      */
     private void parseCastling(String castling) throws MalformedFENException {
+        whiteCastleK = false;
+        whiteCastleQ = false;
+        blackCastleK = false;
+        blackCastleQ = false;
         if (!(castling.length() == 1 && castling.charAt(0) == '-')) {
             Set<Character> seen = new HashSet<>();
             for (int i = 0; i < castling.length(); i++) {
@@ -366,6 +370,8 @@ public class Board {
      * @throws MalformedFENException if the FEN is malformed. In this case, the board state can be illegal.
      */
     private void parseEnPassant(String enPassant) throws MalformedFENException {
+        enPassantWhite = '-';
+        enPassantBlack = '-';
         if (enPassant.length() == 1) {
             if (enPassant.charAt(0) != '-') {
                 throw new MalformedFENException("Malformed en passant field: " + enPassant);
@@ -471,8 +477,9 @@ public class Board {
         int startRow = move.getStartRow();
         int startCol = move.getStartCol();
         int endRow = move.getEndRow();
-        int endCol = move.getStartCol();
+        int endCol = move.getEndCol();
         Piece curPiece = pieces[startRow][startCol];
+        Piece enemyPiece = pieces[endRow][endCol];  // May be null
         if (curPiece == null || curPiece.isWhite != whiteToMove) {
             return false;
         }
@@ -509,6 +516,17 @@ public class Board {
             } else if (startRow == 7 && startCol == 0 && !whiteToMove) {
                 blackCastleQ = false;
             } else if (startRow == 7 && startCol == 7 && !whiteToMove) {
+                blackCastleK = false;
+            }
+        }
+        if (enemyPiece != null && enemyPiece.type == Piece.Type.ROOK) {
+            if (endRow == 0 && endCol == 0) {
+                whiteCastleQ = false;
+            } else if (endRow == 0 && endCol == 7) {
+                whiteCastleK = false;
+            } else if (endRow == 7 && endCol == 0) {
+                blackCastleQ = false;
+            } else if (endRow == 7 && endCol == 7) {
                 blackCastleK = false;
             }
         }

@@ -158,7 +158,7 @@ public class Move {
 
     @Override
     public int hashCode() {
-        return Objects.hash(moveType, startRow, startCol, endRow, endCol, castleType, promotionType);
+        return Objects.hash(moveType, startRow, startCol, endRow, endCol, castleType, promotionType, isCapture);
     }
 
     @Override
