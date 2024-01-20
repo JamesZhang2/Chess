@@ -3,7 +3,7 @@ package model;
 import java.util.Objects;
 
 /**
- * Represents a chess move (or resign, offer draw, accept draw, or decline draw).
+ * Represents a chess move.
  * Note that this is not used in the PGN because the Standard Algebra Notation (SAN) in the PGN
  * requires more information about the board (like checks, checkmates, and avoiding ambiguity)
  */
@@ -13,12 +13,6 @@ public class Move {
         CASTLING,
         EN_PASSANT,
         PROMOTION,
-        // TODO: Consider removing the following as moves, and use separate methods to handle them
-        // One reason that they shouldn't be moves is that players should be allowed to resign/offer draw at any time
-        RESIGN,
-        OFFER_DRAW,
-        ACCEPT_DRAW,
-        DECLINE_DRAW
     }
 
     public final Type moveType;
@@ -34,16 +28,14 @@ public class Move {
     // QRBN for white, qrbn for black
     private char promotionType;
 
-    private boolean isCapture;
+    private final boolean isCapture;
 
     /**
      * Creates a new regular or en passant move
      */
     public Move(int startRow, int startCol, int endRow, int endCol, boolean isEnPassant, boolean isCapture) {
         assert Util.inRange(startRow) && Util.inRange(startCol) && Util.inRange(endRow) && Util.inRange(endCol);
-        if (isEnPassant) {
-            assert isCapture;
-        }
+        assert !isEnPassant || isCapture;  // an en passant move must be a capture
         this.moveType = isEnPassant ? Type.EN_PASSANT : Type.REGULAR;
         this.startRow = startRow;
         this.startCol = startCol;
@@ -102,33 +94,19 @@ public class Move {
         this.isCapture = isCapture;
     }
 
-    /**
-     * Creates a move of a special type
-     */
-    public Move(Type type) {
-        assert type == Type.RESIGN || type == Type.OFFER_DRAW
-                || type == Type.ACCEPT_DRAW || type == Type.DECLINE_DRAW;
-        startRow = startCol = endRow = endCol = -1;
-        this.moveType = type;
-    }
-
     public int getStartRow() {
-        assert moveType == Type.REGULAR || moveType == Type.EN_PASSANT || moveType == Type.PROMOTION || moveType == Type.CASTLING;
         return startRow;
     }
 
     public int getStartCol() {
-        assert moveType == Type.REGULAR || moveType == Type.EN_PASSANT || moveType == Type.PROMOTION || moveType == Type.CASTLING;
         return startCol;
     }
 
     public int getEndRow() {
-        assert moveType == Type.REGULAR || moveType == Type.EN_PASSANT || moveType == Type.PROMOTION || moveType == Type.CASTLING;
         return endRow;
     }
 
     public int getEndCol() {
-        assert moveType == Type.REGULAR || moveType == Type.EN_PASSANT || moveType == Type.PROMOTION || moveType == Type.CASTLING;
         return endCol;
     }
 
@@ -143,7 +121,6 @@ public class Move {
     }
 
     public boolean getIsCapture() {
-        assert moveType == Type.REGULAR || moveType == Type.EN_PASSANT || moveType == Type.PROMOTION || moveType == Type.CASTLING;
         return isCapture;
     }
 
@@ -166,14 +143,6 @@ public class Move {
         switch (moveType) {
             case CASTLING:
                 return (castleType == 'K' || castleType == 'k') ? "O-O" : "O-O-O";
-            case RESIGN:
-                return "Resign";
-            case OFFER_DRAW:
-                return "Offer draw";
-            case ACCEPT_DRAW:
-                return "Accept draw";
-            case DECLINE_DRAW:
-                return "Decline draw";
             case REGULAR, EN_PASSANT, PROMOTION:
                 StringBuilder sb = new StringBuilder();
                 sb.append((char)(startCol + 'a'));

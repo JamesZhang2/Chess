@@ -470,8 +470,6 @@ public class Board {
      * @return whether the move is legal
      */
     public boolean move(Move move) {
-        assert move.moveType == Move.Type.REGULAR || move.moveType == Move.Type.CASTLING
-                || move.moveType == Move.Type.EN_PASSANT || move.moveType == Move.Type.PROMOTION;
         // Can simply check if move is in the set of all legal moves,
         // but checking a specific piece would be more efficient.
         int startRow = move.getStartRow();
@@ -1005,8 +1003,6 @@ public class Board {
      * @return whether the move is legal
      */
     public boolean isLegal(Move move) {
-        assert move.moveType == Move.Type.REGULAR || move.moveType == Move.Type.CASTLING
-                || move.moveType == Move.Type.EN_PASSANT;
         return getLegalMoves().contains(move);
     }
 
