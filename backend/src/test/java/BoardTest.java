@@ -972,12 +972,15 @@ class BoardTest {
 
     @Test
     public void perftTests() throws IllegalBoardException, MalformedFENException {
+        // perft test cases are from https://www.chessprogramming.org/Perft_Results
         // Working directory is backend/
         try {
             BufferedReader reader = new BufferedReader(new FileReader("src/test/perft.txt"));
             String perftStr = reader.readLine();
             while (perftStr != null) {
-                perft(perftStr);
+                if (!perftStr.startsWith("//")) {
+                    perft(perftStr);
+                }
                 perftStr = reader.readLine();
             }
         } catch (IOException e) {
