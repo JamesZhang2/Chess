@@ -648,9 +648,9 @@ class BoardTest {
         assertLegalCount("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 20);
         assertLegalCount("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "a1", 0);
         assertLegalCount("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "a2", 2);
-        // Two Kings
-        assertLegalCount("8/8/2k5/8/8/5K2/8/8 w - - 0 1", 8);
-        assertLegalCount("8/8/2k5/8/8/5K2/8/8 b - - 0 1", 8);
+        // Two Kings (and two pawns to avoid insufficient material)
+        assertLegalCount("8/7p/2k4P/8/8/5K2/8/8 w - - 0 1", 8);
+        assertLegalCount("8/7p/2k4P/8/8/5K2/8/8 b - - 0 1", 8);
 
         // Queen
         assertLegalCount("4k3/8/8/8/3Q4/8/8/4K3 w - - 0 1", "d4", 27);
@@ -904,12 +904,16 @@ class BoardTest {
         assertWinnerAfterMove("q7/8/8/4K1k1/8/8/8/8 b - - 99 80",
                 moveFromSquares("a8", "e8", false, false), 'd');
         // Threefold repetition
+        boolean legal = true;
         Board board = new Board();
-        board.move(moveFromSquares("g1", "f3", false, false));
-        for (int i = 0; i < 3; i++) {
-            board.move(moveFromSquares("g8", "f6", false, false));
-            board.move(moveFromSquares("g1", "f3", false, false));
+        legal &= board.move(moveFromSquares("g1", "f3", false, false));
+        for (int i = 0; i < 2; i++) {
+            legal &= board.move(moveFromSquares("g8", "f6", false, false));
+            legal &= board.move(moveFromSquares("f3", "g1", false, false));
+            legal &= board.move(moveFromSquares("f6", "g8", false, false));
+            legal &= board.move(moveFromSquares("g1", "f3", false, false));
         }
+        assert legal;
         assertEquals('d', board.getWinner());
 
         // Underpromotion, or stalemate

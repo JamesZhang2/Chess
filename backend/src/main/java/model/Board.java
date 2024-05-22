@@ -17,7 +17,7 @@ public class Board {
     // pieces[i][j] is the piece at rank (i + 1), file ('a' + j)
     // For example, pieces[0][0] is the piece at a1, pieces[3][4] is the piece at d3.
     // It is null if there is no piece at that square
-    private final Piece[][] pieces = new Piece[8][8];
+    private char[][] pieces = new char[8][8];  // capital letter for white, lower-case letter for black, 0 for empty
     private boolean whiteToMove;
     private boolean whiteCastleK = false, whiteCastleQ = false, blackCastleK = false, blackCastleQ = false;
     // en passant target squares - for white it is x3, for black it is x6, where x is in [a...h]
@@ -106,7 +106,7 @@ public class Board {
         for (int r = 7; r >= 0; r--) {
             int blanks = 0;
             for (int c = 0; c < 8; c++) {
-                if (pieces[r][c] == null) {
+                if (pieces[r][c] == 0) {
                     blanks++;
                 } else {
                     if (blanks > 0) {
@@ -212,7 +212,7 @@ public class Board {
         StringBuilder sb = new StringBuilder();
         for (int r = 7; r >= 0; r--) {
             for (int c = 0; c < 8; c++) {
-                sb.append(pieces[r][c] == null ? '.' : pieces[r][c]);
+                sb.append(pieces[r][c] == 0 ? '.' : pieces[r][c]);
             }
             sb.append("\n");
         }
@@ -252,7 +252,7 @@ public class Board {
             throw new MalformedFENException("Number of fields in FEN is not 6");
         }
 
-        // model.Piece placement
+        // Piece placement
         String[] placement = fields[0].split("/");
         parsePiecePlacement(placement);
 
@@ -323,14 +323,14 @@ public class Board {
                                 + (8 - row) + " is greater than 8");
                     }
                     for (int j = 0; j < blanks; j++) {
-                        pieces[row][col++] = null;
+                        pieces[row][col++] = 0;
                     }
                 } else {
                     // curChar may represent a piece
                     boolean found = false;
                     for (char valid : PIECE_NAMES) {
                         if (curChar == valid) {
-                            pieces[row][col++] = new Piece(curChar);
+                            pieces[row][col++] = curChar;
                             found = true;
                         }
                     }
@@ -405,21 +405,19 @@ public class Board {
 
             if (enPassant.charAt(1) == '3') {
                 enPassantWhite = enPassant.charAt(0);
-                Piece expectedWhitePawn = pieces[3][enPassantWhite - 'a'];
                 if (whiteToMove) {
                     throw new MalformedFENException("Impossible en passant state: White didn't make the last move, but en passant field is " + enPassant);
                 }
-                if (expectedWhitePawn == null || !expectedWhitePawn.isWhite || expectedWhitePawn.type != Piece.Type.PAWN) {
+                if (pieces[3][enPassantWhite - 'a'] != 'P') {
                     throw new MalformedFENException("Impossible en passant state: " + enPassant +
                             " (No white pawn was found at " + enPassantWhite + "4)");
                 }
             } else if (enPassant.charAt(1) == '6') {
                 enPassantBlack = enPassant.charAt(0);
-                Piece expectedBlackPawn = pieces[4][enPassantBlack - 'a'];
                 if (!whiteToMove) {
                     throw new MalformedFENException("Impossible en passant state: Black didn't make the last move, but en passant field is " + enPassant);
                 }
-                if (expectedBlackPawn == null || expectedBlackPawn.isWhite || expectedBlackPawn.type != Piece.Type.PAWN) {
+                if (pieces[4][enPassantBlack - 'a'] != 'p') {
                     throw new MalformedFENException("Impossible en passant state: " + enPassant +
                             " (No black pawn was found at " + enPassantBlack + "5)");
                 }
@@ -443,13 +441,13 @@ public class Board {
         // Check number of kings
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
-                if (pieces[r][c] != null) {
-                    if (pieces[r][c].toString().equals("K")) {
+                if (pieces[r][c] != 0) {
+                    if (pieces[r][c] == 'K') {
                         if (whiteKing) {
                             throw new IllegalBoardException("More than one white kings on the board");
                         }
                         whiteKing = true;
-                    } else if (pieces[r][c].toString().equals("k")) {
+                    } else if (pieces[r][c] == 'k') {
                         if (blackKing) {
                             throw new IllegalBoardException("More than one black kings on the board");
                         }
@@ -468,10 +466,10 @@ public class Board {
 
         // Check pawns on first or last rank
         for (int c = 0; c < 8; c++) {
-            if (pieces[0][c] != null && pieces[0][c].type == Piece.Type.PAWN) {
+            if (pieces[0][c] == 'p' || pieces[0][c] == 'P') {
                 throw new IllegalBoardException("There is a pawn on rank 1");
             }
-            if (pieces[7][c] != null && pieces[7][c].type == Piece.Type.PAWN) {
+            if (pieces[7][c] == 'p' || pieces[7][c] == 'P') {
                 throw new IllegalBoardException("There is a pawn on rank 8");
             }
         }
@@ -498,9 +496,14 @@ public class Board {
         int startCol = move.getStartCol();
         int endRow = move.getEndRow();
         int endCol = move.getEndCol();
-        Piece curPiece = pieces[startRow][startCol];
-        Piece enemyPiece = pieces[endRow][endCol];  // May be null
-        if (curPiece == null || curPiece.isWhite != whiteToMove) {
+        char curPiece = pieces[startRow][startCol];
+        char enemyPiece = pieces[endRow][endCol];  // May be 0
+        if (curPiece == 0 || (curPiece <= 'Z' != whiteToMove)) {
+            // Can only move pieces of your color
+            return false;
+        }
+        if (enemyPiece != 0 && ((int) enemyPiece - 'a') * ((int) curPiece - 'a') > 0) {
+            // Can only take enemy pieces
             return false;
         }
         if (!PERFT) {
@@ -528,31 +531,33 @@ public class Board {
         enPassantWhite = enPassantBlack = '-';
 
         // Remove castling rights if necessary
-        if (curPiece.type == Piece.Type.KING) {
-            if (whiteToMove) {
-                whiteCastleK = false;
+        if (curPiece == 'K') {
+            whiteCastleK = false;
+            whiteCastleQ = false;
+        } else if (curPiece == 'k') {
+            blackCastleK = false;
+            blackCastleQ = false;
+        } else if (curPiece == 'R') {
+            if (startRow == 0 && startCol == 0) {
                 whiteCastleQ = false;
-            } else {
-                blackCastleK = false;
-                blackCastleQ = false;
+            } else if (startRow == 0 && startCol == 7) {
+                whiteCastleK = false;
             }
-        } else if (curPiece.type == Piece.Type.ROOK) {
-            if (startRow == 0 && startCol == 0 && whiteToMove) {
-                whiteCastleQ = false;
-            } else if (startRow == 0 && startCol == 7 && whiteToMove) {
-                whiteCastleK = false;
-            } else if (startRow == 7 && startCol == 0 && !whiteToMove) {
+        } else if (curPiece == 'r') {
+            if (startRow == 7 && startCol == 0) {
                 blackCastleQ = false;
-            } else if (startRow == 7 && startCol == 7 && !whiteToMove) {
+            } else if (startRow == 7 && startCol == 7) {
                 blackCastleK = false;
             }
         }
-        if (enemyPiece != null && enemyPiece.type == Piece.Type.ROOK) {
+        if (enemyPiece == 'R') {
             if (endRow == 0 && endCol == 0) {
                 whiteCastleQ = false;
             } else if (endRow == 0 && endCol == 7) {
                 whiteCastleK = false;
-            } else if (endRow == 7 && endCol == 0) {
+            }
+        } else if (enemyPiece == 'r') {
+            if (endRow == 7 && endCol == 0) {
                 blackCastleQ = false;
             } else if (endRow == 7 && endCol == 7) {
                 blackCastleK = false;
@@ -561,8 +566,8 @@ public class Board {
 
         switch (move.moveType) {
             case REGULAR:
-                if (curPiece.type != Piece.Type.PAWN) {
-                    pgnMove.append(curPiece.toString().toUpperCase());
+                if (curPiece != 'P' && curPiece != 'p') {
+                    pgnMove.append(curPiece > 'a' ? (char)(curPiece - 'a' + 'A') : curPiece);
                     pgnMove.append(toSquare(startRow, startCol));
                     if (move.getIsCapture()) {
                         halfMove = 0;
@@ -588,7 +593,7 @@ public class Board {
 
                 // Update pieces
                 pieces[endRow][endCol] = curPiece;
-                pieces[startRow][startCol] = null;
+                pieces[startRow][startCol] = 0;
                 break;
 
             case CASTLING:
@@ -597,13 +602,13 @@ public class Board {
 
                 // Update pieces
                 pieces[endRow][endCol] = curPiece;
-                pieces[startRow][startCol] = null;
+                pieces[startRow][startCol] = 0;
                 // Move the rook
                 int rookRow = (move.getCastleType() == 'K' || move.getCastleType() == 'Q') ? 0 : 7;
                 int rookStartCol = (move.getCastleType() == 'K' || move.getCastleType() == 'k') ? 7 : 0;
                 int rookEndCol = (move.getCastleType() == 'K' || move.getCastleType() == 'k') ? 5 : 3;
                 pieces[rookRow][rookEndCol] = pieces[rookRow][rookStartCol];
-                pieces[rookRow][rookStartCol] = null;
+                pieces[rookRow][rookStartCol] = 0;
                 break;
 
             case EN_PASSANT:
@@ -614,9 +619,9 @@ public class Board {
 
                 // Update pieces
                 pieces[endRow][endCol] = curPiece;
-                pieces[startRow][startCol] = null;
+                pieces[startRow][startCol] = 0;
                 // Remove the enemy pawn
-                pieces[startRow][endCol] = null;
+                pieces[startRow][endCol] = 0;
                 break;
 
             case PROMOTION:
@@ -630,9 +635,9 @@ public class Board {
                 halfMove = 0;
 
                 // Update pieces
-                pieces[startRow][startCol] = null;
+                pieces[startRow][startCol] = 0;
                 // ending square becomes promoted piece
-                pieces[endRow][endCol] = new Piece(move.getPromotionType());
+                pieces[endRow][endCol] = move.getPromotionType();
                 break;
 
             default:
@@ -717,7 +722,7 @@ public class Board {
         Set<List<Integer>> coords = new HashSet<>();
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
-                if (pieces[row][col] != null && pieces[row][col].isWhite == white) {
+                if (pieces[row][col] != 0 && (pieces[row][col] < 'a' == white)) {
                     List<Integer> lst = new ArrayList<>();
                     lst.add(row);
                     lst.add(col);
@@ -747,19 +752,22 @@ public class Board {
      * Requires: there exists a piece at {row, col}
      */
     private Set<List<Integer>> controls(int row, int col) {
-        assert pieces[row][col] != null;
+        assert pieces[row][col] != 0;
         Set<List<Integer>> ans = new HashSet<>();
+        char pieceTypeUpper = Util.toUpperCase(pieces[row][col]);
 
-        int[][] dirs = switch (pieces[row][col].type) {
-            case QUEEN, KING -> new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
-            case ROOK -> new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-            case BISHOP -> new int[][]{{1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
-            case KNIGHT -> new int[][]{{2, 1}, {2, -1}, {1, 2}, {1, -2}, {-1, 2}, {-1, -2}, {-2, 1}, {-2, -1}};
-            case PAWN -> pieces[row][col].isWhite ? new int[][]{{1, 1}, {1, -1}} : new int[][]{{-1, 1}, {-1, -1}};
+        int[][] dirs = switch (pieceTypeUpper) {
+            case 'Q', 'K' -> new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+            case 'R' -> new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+            case 'B' -> new int[][]{{1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+            case 'N' -> new int[][]{{2, 1}, {2, -1}, {1, 2}, {1, -2}, {-1, 2}, {-1, -2}, {-2, 1}, {-2, -1}};
+            case 'P' -> pieces[row][col] == 'P' ? new int[][]{{1, 1}, {1, -1}} : new int[][]{{-1, 1}, {-1, -1}};
+            default ->
+                    throw new IllegalStateException(String.format("Illegal piece at row %d, col %d: %c", row, col, pieces[row][col]));
         };
 
-        switch (pieces[row][col].type) {
-            case QUEEN, ROOK, BISHOP:
+        switch (pieceTypeUpper) {
+            case 'Q', 'R', 'B':
                 // Infinite range
                 for (int[] dir : dirs) {
                     int r = row + dir[0];
@@ -769,7 +777,7 @@ public class Board {
                         sqr.add(r);
                         sqr.add(c);
                         ans.add(sqr);
-                        if (pieces[r][c] != null) {
+                        if (pieces[r][c] != 0) {
                             // Hit an obstacle (note that this square is still controlled)
                             break;
                         }
@@ -778,7 +786,7 @@ public class Board {
                     }
                 }
                 break;
-            case KING, KNIGHT, PAWN:
+            case 'K', 'N', 'P':
                 // One-step range
                 for (int[] dir : dirs) {
                     int r = row + dir[0];
@@ -817,19 +825,20 @@ public class Board {
      */
     public Set<Move> getLegalMoves(int row, int col) {
         Set<Move> legalMoves = new HashSet<>();
-        assert pieces[row][col] != null && pieces[row][col].isWhite == whiteToMove;
+        assert pieces[row][col] != 0 && (pieces[row][col] <= 'Z') == whiteToMove;
         Set<List<Integer>> candidates = controls(row, col);
-        Piece origStart = pieces[row][col];  // used to restore board state
+        char pieceTypeUpper = Util.toUpperCase(pieces[row][col]);
+
         for (List<Integer> target : candidates) {
             int endRow = target.get(0);
             int endCol = target.get(1);
-            if (pieces[endRow][endCol] != null && pieces[endRow][endCol].isWhite == whiteToMove) {
+            if (pieces[endRow][endCol] != 0 && (pieces[endRow][endCol] <= 'Z') == whiteToMove) {
                 // Can't capture your own piece
                 continue;
             }
-            if (pieces[row][col].type == Piece.Type.PAWN) {
+            if (pieceTypeUpper == 'P') {
                 // Pawns can only capture diagonally (which is what they control)
-                if (pieces[endRow][endCol] == null || endRow == 0 || endRow == 7) {
+                if (pieces[endRow][endCol] == 0 || endRow == 0 || endRow == 7) {
                     // Will handle pawn capture promotions separately below
                     continue;
                 }
@@ -839,29 +848,29 @@ public class Board {
 
         // Special rules for pawn
         // Pawns move differently from capturing
-        if (pieces[row][col].type == Piece.Type.PAWN) {
+        if (pieceTypeUpper == 'P') {
             int startRow = whiteToMove ? 1 : 6;
             int promRow = whiteToMove ? 7 : 0;
             int advance = whiteToMove ? 1 : -1;
             int enPassantRow = whiteToMove ? 4 : 3;
 
-            if (row != promRow - advance && pieces[row + advance][col] == null) {
+            if (row != promRow - advance && pieces[row + advance][col] == 0) {
                 tryRegularMove(row, col, row + advance, col, legalMoves);
             }
             // Pawns on starting position can move two squares
-            if (row == startRow && pieces[row + advance][col] == null && pieces[row + 2 * advance][col] == null) {
+            if (row == startRow && pieces[row + advance][col] == 0 && pieces[row + 2 * advance][col] == 0) {
                 tryRegularMove(row, col, row + 2 * advance, col, legalMoves);
             }
             // Promotion - Note that we don't need to specify which piece to promote to
             // because if one of the promotions is legal, then so are all others.
             if (row == promRow - advance) {
-                if (pieces[promRow][col] == null) {
+                if (pieces[promRow][col] == 0) {
                     tryPromotion(row, col, row + advance, col, legalMoves);
                 }
-                if (col != 0 && pieces[promRow][col - 1] != null && pieces[promRow][col - 1].isWhite != whiteToMove) {
+                if (col != 0 && pieces[promRow][col - 1] != 0 && pieces[promRow][col - 1] <= 'Z' != whiteToMove) {
                     tryPromotion(row, col, row + advance, col - 1, legalMoves);
                 }
-                if (col != 7 && pieces[promRow][col + 1] != null && pieces[promRow][col + 1].isWhite != whiteToMove) {
+                if (col != 7 && pieces[promRow][col + 1] != 0 && pieces[promRow][col + 1] <= 'Z' != whiteToMove) {
                     tryPromotion(row, col, row + advance, col + 1, legalMoves);
                 }
             }
@@ -875,11 +884,10 @@ public class Board {
                 }
                 if (Util.inRange(targetCol)) {
                     // Make sure that the square contains an enemy pawn
-                    assert pieces[enPassantRow][targetCol] != null
-                            && pieces[enPassantRow][targetCol].isWhite != whiteToMove
-                            && pieces[enPassantRow][targetCol].type == Piece.Type.PAWN;
+                    assert pieces[enPassantRow][targetCol] != 0
+                            && pieces[enPassantRow][targetCol] == (whiteToMove ? 'p' : 'P');
                     // Target square must be empty since the enemy pawn just moved through it
-                    assert pieces[enPassantRow + advance][targetCol] == null;
+                    assert pieces[enPassantRow + advance][targetCol] == 0;
                     if (col - targetCol == 1 || col - targetCol == -1) {
                         tryEnPassant(row, col, row + advance, targetCol, legalMoves);
                     }
@@ -888,15 +896,15 @@ public class Board {
         }
 
         // Special rules for king
-        if (pieces[row][col].type == Piece.Type.KING) {
+        if (pieceTypeUpper == 'K') {
             Set<List<Integer>> whiteControls = controls(true);
             Set<List<Integer>> blackControls = controls(false);
             if (whiteToMove && whiteCastleK) {
                 // White's king and kingside rook must not have moved
                 assert row == 0 && col == 4;
-                assert pieces[0][7] != null && pieces[0][7].isWhite && pieces[0][7].type == Piece.Type.ROOK;
+                assert pieces[0][7] == 'R';
                 int[][] checkSquares = {{0, 4}, {0, 5}, {0, 6}};
-                if (pieces[0][5] == null && pieces[0][6] == null
+                if (pieces[0][5] == 0 && pieces[0][6] == 0
                         && canPass(checkSquares, blackControls)) {
                     legalMoves.add(new Move('K'));
                 }
@@ -904,9 +912,9 @@ public class Board {
             if (whiteToMove && whiteCastleQ) {
                 // White's king and queenside rook must not have moved
                 assert row == 0 && col == 4;
-                assert pieces[0][0] != null && pieces[0][0].isWhite && pieces[0][0].type == Piece.Type.ROOK;
+                assert pieces[0][0] == 'R';
                 int[][] checkSquares = {{0, 2}, {0, 3}, {0, 4}};
-                if (pieces[0][1] == null && pieces[0][2] == null && pieces[0][3] == null
+                if (pieces[0][1] == 0 && pieces[0][2] == 0 && pieces[0][3] == 0
                         && canPass(checkSquares, blackControls)) {
                     legalMoves.add(new Move('Q'));
                 }
@@ -914,9 +922,9 @@ public class Board {
             if (!whiteToMove && blackCastleK) {
                 // Black's king and kingside rook must not have moved
                 assert row == 7 && col == 4;
-                assert pieces[7][7] != null && !pieces[7][7].isWhite && pieces[7][7].type == Piece.Type.ROOK;
+                assert pieces[7][7] == 'r';
                 int[][] checkSquares = {{7, 4}, {7, 5}, {7, 6}};
-                if (pieces[7][5] == null && pieces[7][6] == null
+                if (pieces[7][5] == 0 && pieces[7][6] == 0
                         && canPass(checkSquares, whiteControls)) {
                     legalMoves.add(new Move('k'));
                 }
@@ -924,9 +932,9 @@ public class Board {
             if (!whiteToMove && blackCastleQ) {
                 // Black's king and queenside rook must not have moved
                 assert row == 7 && col == 4;
-                assert pieces[7][0] != null && !pieces[7][0].isWhite && pieces[7][0].type == Piece.Type.ROOK;
+                assert pieces[7][0] == 'r';
                 int[][] checkSquares = {{7, 2}, {7, 3}, {7, 4}};
-                if (pieces[7][1] == null && pieces[7][2] == null && pieces[7][3] == null
+                if (pieces[7][1] == 0 && pieces[7][2] == 0 && pieces[7][3] == 0
                         && canPass(checkSquares, whiteControls)) {
                     legalMoves.add(new Move('q'));
                 }
@@ -988,21 +996,21 @@ public class Board {
      * Requires: The move is an en passant and it is pseudo-legal.
      */
     private void tryEnPassant(int startRow, int startCol, int endRow, int endCol, Set<Move> legalMoves) {
-        Piece origStart = pieces[startRow][startCol];
-        Piece origEnemyPawn = pieces[startRow][endCol];
+        char origStart = pieces[startRow][startCol];
+        char origEnemyPawn = pieces[startRow][endCol];
         // Note that the target square must be empty
-        assert pieces[endRow][endCol] == null;
+        assert pieces[endRow][endCol] == 0;
 
         // Perform the en passant
-        pieces[startRow][startCol] = null;
+        pieces[startRow][startCol] = 0;
         pieces[endRow][endCol] = origStart;
-        pieces[startRow][endCol] = null;
+        pieces[startRow][endCol] = 0;
         if (!isInCheck(whiteToMove)) {
             legalMoves.add(new Move(startRow, startCol, endRow, endCol, true, true));
         }
         // Restore pieces
         pieces[startRow][startCol] = origStart;
-        pieces[endRow][endCol] = null;
+        pieces[endRow][endCol] = 0;
         pieces[startRow][endCol] = origEnemyPawn;
     }
 
@@ -1019,11 +1027,11 @@ public class Board {
      */
     private void tryRegOrProm(int startRow, int startCol, int endRow, int endCol,
                               boolean isPromotion, Set<Move> legalMoves) {
-        Piece origStart = pieces[startRow][startCol];
-        Piece origEnd = pieces[endRow][endCol];
-        pieces[startRow][startCol] = null;
+        char origStart = pieces[startRow][startCol];
+        char origEnd = pieces[endRow][endCol];
+        pieces[startRow][startCol] = 0;
         pieces[endRow][endCol] = origStart;
-        boolean isCapture = origEnd != null;
+        boolean isCapture = (origEnd != 0);
         if (!isInCheck(whiteToMove)) {
             if (isPromotion) {
                 char[] promPieces = whiteToMove ? "QRBN".toCharArray() : "qrbn".toCharArray();
@@ -1041,8 +1049,6 @@ public class Board {
 
     /**
      * Only checks whether move is legal or not, does not change the board state.
-     * <p>
-     * Requires: move is of type regular, castle, or en passant.
      *
      * @return whether the move is legal
      */
@@ -1077,7 +1083,7 @@ public class Board {
     private List<Integer> getKingPos(boolean white) {
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
-                if (pieces[r][c] != null && pieces[r][c].type == Piece.Type.KING && pieces[r][c].isWhite == white) {
+                if (pieces[r][c] == (white ? 'K' : 'k')) {
                     List<Integer> ans = new ArrayList<>();
                     ans.add(r);
                     ans.add(c);
@@ -1163,8 +1169,8 @@ public class Board {
         } else if (allPieces.size() == 3) {
             // K vs. KN or K vs. KB
             for (List<Integer> piecePos : allPieces) {
-                Piece piece = pieces[piecePos.get(0)][piecePos.get(1)];
-                if (piece.type == Piece.Type.QUEEN || piece.type == Piece.Type.ROOK || piece.type == Piece.Type.PAWN) {
+                char pieceTypeUpper = Util.toUpperCase(pieces[piecePos.get(0)][piecePos.get(1)]);
+                if (pieceTypeUpper == 'R' || pieceTypeUpper == 'Q' || pieceTypeUpper == 'P') {
                     return false;
                 }
             }
@@ -1173,11 +1179,11 @@ public class Board {
             // KB vs. KB
             int bishopCoordSum = -1;  // sum of row and col of one bishop
             for (List<Integer> piecePos : allPieces) {
-                Piece piece = pieces[piecePos.get(0)][piecePos.get(1)];
-                if (piece.type == Piece.Type.KING) {
+                char pieceTypeUpper = Util.toUpperCase(pieces[piecePos.get(0)][piecePos.get(1)]);
+                if (pieceTypeUpper == 'K') {
                     continue;
                 }
-                if (piece.type != Piece.Type.BISHOP) {
+                if (pieceTypeUpper != 'B') {
                     return false;
                 }
                 if (bishopCoordSum == -1) {
