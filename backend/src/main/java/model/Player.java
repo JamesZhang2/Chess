@@ -9,5 +9,5 @@ public abstract class Player {
     /**
      * Make a move on the given board
      */
-    abstract public Move play(Board board);
+    abstract public Move play(MailboxBoard board);
 }
