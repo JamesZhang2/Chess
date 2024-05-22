@@ -949,21 +949,23 @@ class BoardTest {
      * Postcondition: board is unchanged
      */
     private long countLeafPos(Board board, int depth, HashMap<String, Long> memo) {
-        // Board copy = board.clone();
         String key = board + " " + depth;
         if (memo.containsKey(key)) {
             return memo.get(key);
         }
-        if (depth == 0) {
-            return 1;
-        }
         long count = 0;
-        for (Move move : board.getLegalMoves()) {
-            board.move(move);
-            count += countLeafPos(board, depth - 1, memo);
-            board.undoLastMove();
+        if (depth == 0) {
+            count = 1;
+        } else if (depth == 1) {
+            // Bulk-counting
+            count = board.getLegalMoves().size();
+        } else {
+            for (Move move : board.getLegalMoves()) {
+                board.move(move);
+                count += countLeafPos(board, depth - 1, memo);
+                board.undoLastMove();
+            }
         }
-//        assertEquals(copy.toFEN(), board.toFEN());
         memo.put(key, count);
         return count;
     }
