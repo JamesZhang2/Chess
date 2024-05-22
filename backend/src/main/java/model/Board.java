@@ -40,6 +40,9 @@ public class Board {
 
     private static final String START_POS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
+    // When testing perft, set this to false. Otherwise, don't touch it!
+    public boolean CHECK_THREEFOLD = true;
+
     /**
      * Create board from FEN
      */
@@ -49,7 +52,7 @@ public class Board {
         this.pgn = new PGN(fullMove, whiteToMove, getResult());
         this.history = new ArrayList<>();
         this.posFreq = new HashMap<>();
-        posFreq.put(getUnclockedFEN(fen), 1);
+        posFreq.put(getUnclockedFEN(), 1);
         updateWinner();
     }
 
@@ -63,7 +66,7 @@ public class Board {
             this.pgn = new PGN(1, true, "*");
             this.history = new ArrayList<>();
             this.posFreq = new HashMap<>();
-            posFreq.put(getUnclockedFEN(START_POS), 1);
+            posFreq.put(getUnclockedFEN(), 1);
             updateWinner();
         } catch (Exception e) {
             assert false;
@@ -170,13 +173,14 @@ public class Board {
     }
 
     /**
-     * @param fen the FEN string
-     * @return the FEN string without the halfMove and fullMove fields
+     * @return return the FEN string representing the current board state
+     * without the halfMove and fullMove fields
      */
-    public String getUnclockedFEN(String fen) {
+    public String getUnclockedFEN() {
         // Find index of second-to-last space
+        String fen = this.toFEN();
         int idx = fen.lastIndexOf(' ');
-        idx = fen.lastIndexOf(' ', idx);
+        idx = fen.substring(0, idx).lastIndexOf(' ');
         return fen.substring(0, idx);
     }
 
@@ -650,7 +654,7 @@ public class Board {
         pgn.addMove(pgnMove.toString());
 
         // Update posFreq
-        String unclockedFEN = getUnclockedFEN(this.toFEN());
+        String unclockedFEN = getUnclockedFEN();
         posFreq.put(unclockedFEN, posFreq.getOrDefault(unclockedFEN, 0) + 1);
 
         // Sanity check
@@ -677,8 +681,9 @@ public class Board {
         String prevFEN = history.removeLast();
 
         // Update posFreq
-        String unclockedFEN = getUnclockedFEN(prevFEN);
-        assert posFreq.containsKey(unclockedFEN) && posFreq.get(unclockedFEN) > 0;
+        String unclockedFEN = getUnclockedFEN();
+        assert posFreq.containsKey(unclockedFEN) && posFreq.get(unclockedFEN) > 0 :
+                String.format("unclockedFEN: %s\n posFreq: %s\n", unclockedFEN, posFreq);
         posFreq.put(unclockedFEN, posFreq.get(unclockedFEN) - 1);
 
         try {
@@ -1105,11 +1110,13 @@ public class Board {
             return true;
         }
 
-        // Threefold repetition
-        for (String key : posFreq.keySet()) {
-            if (posFreq.get(key) >= 3) {
-                winner = 'd';
-                return true;
+        if (CHECK_THREEFOLD) {
+            // Threefold repetition
+            for (String key : posFreq.keySet()) {
+                if (posFreq.get(key) >= 3) {
+                    winner = 'd';
+                    return true;
+                }
             }
         }
         return false;

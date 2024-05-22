@@ -4,10 +4,8 @@ import model.MalformedFENException;
 import model.Move;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.io.*;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -922,5 +920,59 @@ class BoardTest {
         // Checkmate overrides fifty-move rule
         assertWinnerAfterMove("4k3/7R/4K3/8/8/8/8/8 w - - 99 60",
                 moveFromSquares("h7", "h8", false, false), 'w');
+    }
+
+    private void perft(String perftStr) throws IllegalBoardException, MalformedFENException {
+        int last = perftStr.lastIndexOf(' ');
+        int secondToLast = perftStr.substring(0, last).lastIndexOf(' ');
+        perft(perftStr.substring(0, secondToLast),
+                Integer.parseInt(perftStr.substring(secondToLast + 1, last)),
+                Integer.parseInt(perftStr.substring(last + 1)));
+    }
+
+    private void perft(String fen, int depth, long expected) throws IllegalBoardException, MalformedFENException {
+        System.out.printf("Running perft on %s, depth %d\n", fen, depth);
+        Board board = new Board(fen);
+        board.CHECK_THREEFOLD = false;
+        assertEquals(expected, countLeafPos(board, depth, new HashMap<>()));
+    }
+
+    /**
+     * Count the number of leaf positions starting from board
+     * Postcondition: board is unchanged
+     */
+    private long countLeafPos(Board board, int depth, HashMap<String, Long> memo) {
+        // Board copy = board.clone();
+        String key = board + " " + depth;
+        if (memo.containsKey(key)) {
+            return memo.get(key);
+        }
+        if (depth == 0) {
+            return 1;
+        }
+        long count = 0;
+        for (Move move : board.getLegalMoves()) {
+            board.move(move);
+            count += countLeafPos(board, depth - 1, memo);
+            board.undoLastMove();
+        }
+//        assertEquals(copy.toFEN(), board.toFEN());
+        memo.put(key, count);
+        return count;
+    }
+
+    @Test
+    public void perftTests() throws IllegalBoardException, MalformedFENException {
+        // Working directory is backend/
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader("src/test/perft.txt"));
+            String perftStr = reader.readLine();
+            while (perftStr != null) {
+                perft(perftStr);
+                perftStr = reader.readLine();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
