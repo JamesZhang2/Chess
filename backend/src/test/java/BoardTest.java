@@ -931,10 +931,13 @@ class BoardTest {
     }
 
     private void perft(String fen, int depth, long expected) throws IllegalBoardException, MalformedFENException {
+        long startTime = System.nanoTime();
         System.out.printf("Running perft on %s, depth %d\n", fen, depth);
         Board board = new Board(fen);
-        board.CHECK_THREEFOLD = false;
+        board.PERFT = true;
         assertEquals(expected, countLeafPos(board, depth, new HashMap<>()));
+        long endTime = System.nanoTime();
+        System.out.println("Time spent: " + (endTime - startTime) / 1.0e6 + " ms");
     }
 
     /**

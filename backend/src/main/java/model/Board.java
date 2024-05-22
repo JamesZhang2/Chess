@@ -40,8 +40,8 @@ public class Board {
 
     private static final String START_POS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-    // When testing perft, set this to false. Otherwise, don't touch it!
-    public boolean CHECK_THREEFOLD = true;
+    // When running perft, set this to true. Otherwise, don't touch it!
+    public boolean PERFT = false;
 
     /**
      * Create board from FEN
@@ -503,9 +503,12 @@ public class Board {
         if (curPiece == null || curPiece.isWhite != whiteToMove) {
             return false;
         }
-        Set<Move> pieceLegalMoves = getLegalMoves(startRow, startCol);
-        if (!pieceLegalMoves.contains(move)) {
-            return false;
+        if (!PERFT) {
+            // All moves tried in perft must be legal, since we iterate through all the legal moves
+            Set<Move> pieceLegalMoves = getLegalMoves(startRow, startCol);
+            if (!pieceLegalMoves.contains(move)) {
+                return false;
+            }
         }
         if (getWinner() != 'u') {
             // Game already ended
@@ -654,17 +657,19 @@ public class Board {
         pgn.addMove(pgnMove.toString());
 
         // Update posFreq
-        String unclockedFEN = getUnclockedFEN();
-        posFreq.put(unclockedFEN, posFreq.getOrDefault(unclockedFEN, 0) + 1);
+        if (!PERFT) {
+            String unclockedFEN = getUnclockedFEN();
+            posFreq.put(unclockedFEN, posFreq.getOrDefault(unclockedFEN, 0) + 1);
+        }
 
         // Sanity check
         // TODO: Can be removed after fully tested
-        try {
-            checkBoardLegality();
-        } catch (IllegalBoardException e) {
-            e.printStackTrace();
-            assert false;
-        }
+//        try {
+//            checkBoardLegality();
+//        } catch (IllegalBoardException e) {
+//            e.printStackTrace();
+//            assert false;
+//        }
         return true;
     }
 
@@ -681,19 +686,21 @@ public class Board {
         String prevFEN = history.removeLast();
 
         // Update posFreq
-        String unclockedFEN = getUnclockedFEN();
-        assert posFreq.containsKey(unclockedFEN) && posFreq.get(unclockedFEN) > 0 :
-                String.format("unclockedFEN: %s\n posFreq: %s\n", unclockedFEN, posFreq);
-        posFreq.put(unclockedFEN, posFreq.get(unclockedFEN) - 1);
+        if (!PERFT) {
+            String unclockedFEN = getUnclockedFEN();
+            assert posFreq.containsKey(unclockedFEN) && posFreq.get(unclockedFEN) > 0 :
+                    String.format("unclockedFEN: %s\n posFreq: %s\n", unclockedFEN, posFreq);
+            posFreq.put(unclockedFEN, posFreq.get(unclockedFEN) - 1);
+        }
 
         try {
             parseFen(prevFEN);
-            checkBoardLegality();  // Sanity check, TODO: Can be removed after fully tested
+//            checkBoardLegality();  // Sanity check, TODO: Can be removed after fully tested
         } catch (MalformedFENException e) {
             assert false;
-        } catch (IllegalBoardException e) {
-            e.printStackTrace();
-            assert false;
+//        } catch (IllegalBoardException e) {
+//            e.printStackTrace();
+//            assert false;
         }
         pgn.undoLastMove();
         winner = 'u';
@@ -792,6 +799,9 @@ public class Board {
      * @return the set of legal moves in the current position
      */
     public Set<Move> getLegalMoves() {
+        if (winner != 'u') {
+            return new HashSet<>();
+        }
         Set<Move> legalMoves = new HashSet<>();
         for (List<Integer> coord : getPieceCoords(whiteToMove)) {
             legalMoves.addAll(getLegalMoves(coord.get(0), coord.get(1)));
@@ -1052,7 +1062,12 @@ public class Board {
      */
     private boolean isInCheck(boolean white) {
         List<Integer> kingPos = getKingPos(white);
-        return controls(!white).contains(kingPos);
+        for (List<Integer> opponent : getPieceCoords(!white)) {
+            if (controls(opponent.get(0), opponent.get(1)).contains(kingPos)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -1087,7 +1102,15 @@ public class Board {
      * @return true if the winner has changed, false otherwise.
      */
     private boolean updateWinner() {
-        if (getLegalMoves().isEmpty()) {
+        // Early exit to speed up performance
+        boolean hasLegalMoves = false;
+        for (List<Integer> coord : getPieceCoords(whiteToMove)) {
+            if (!getLegalMoves(coord.get(0), coord.get(1)).isEmpty()) {
+                hasLegalMoves = true;
+                break;
+            }
+        }
+        if (!hasLegalMoves) {
             if (isInCheck()) {
                 // Checkmate
                 winner = whiteToMove ? 'b' : 'w';
@@ -1110,7 +1133,7 @@ public class Board {
             return true;
         }
 
-        if (CHECK_THREEFOLD) {
+        if (!PERFT) {
             // Threefold repetition
             for (String key : posFreq.keySet()) {
                 if (posFreq.get(key) >= 3) {
