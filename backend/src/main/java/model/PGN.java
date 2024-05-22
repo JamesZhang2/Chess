@@ -12,7 +12,7 @@ public class PGN {
 
     private final List<String> moves;  // Moves are in Standard Algebraic Notation (SAN)
 
-    private String result;
+    private String result;  // 1-0, 1/2-1/2, 0-1, or *
 
     public PGN(int numStart, boolean whiteStart, String result) {
         this.numStart = numStart;

@@ -163,6 +163,17 @@ public class Board {
     }
 
     /**
+     * @param fen the FEN string
+     * @return the FEN string without the halfMove and fullMove fields
+     */
+    public String getUnclockedFEN(String fen) {
+        // Find index of second-to-last space
+        int idx = fen.lastIndexOf(' ');
+        idx = fen.lastIndexOf(' ', idx);
+        return fen.substring(0, idx);
+    }
+
+    /**
      * @return the PGN of this game.
      */
     public String toPGN() {
@@ -626,7 +637,9 @@ public class Board {
         }
         pgn.addMove(pgnMove.toString());
 
-        // TODO: Update posFreq
+        // Update posFreq
+        String unclockedFEN = getUnclockedFEN(this.toFEN());
+        posFreq.put(unclockedFEN, posFreq.getOrDefault(unclockedFEN, 0) + 1);
 
         // Sanity check
         // TODO: Can be removed after fully tested
@@ -637,6 +650,7 @@ public class Board {
             assert false;
         }
 
+        updateWinner();
         return true;
     }
 
@@ -651,7 +665,12 @@ public class Board {
             return false;
         }
         String prevFEN = history.removeLast();
-        // TODO update posFreq
+
+        // Update posFreq
+        String unclockedFEN = getUnclockedFEN(prevFEN);
+        assert posFreq.get(unclockedFEN) > 0;
+        posFreq.put(unclockedFEN, posFreq.get(unclockedFEN) - 1);
+
         try {
             parseFen(prevFEN);
             checkBoardLegality();  // Sanity check, TODO: Can be removed after fully tested
@@ -1053,7 +1072,81 @@ public class Board {
      * @return true if the winner has changed, false otherwise.
      */
     private boolean updateWinner() {
-        // TODO
+        if (getLegalMoves().isEmpty()) {
+            if (isInCheck()) {
+                // Checkmate
+                winner = whiteToMove ? 'b' : 'w';
+            } else {
+                // Stalemate
+                winner = 'd';
+            }
+            return true;
+        }
+
+        // Insufficient material
+        if (insufficientMaterial()) {
+            winner = 'd';
+            return true;
+        }
+
+        // Fifty-move rule
+        if (halfMove == 100) {
+            winner = 'd';
+            return true;
+        }
+
+        // Threefold repetition
+        for (String key : posFreq.keySet()) {
+            if (posFreq.get(key) >= 3) {
+                winner = 'd';
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if the players have insufficient material to win the game.
+     * Insufficient material means K vs. K, or KN vs. K, or KB vs. K,
+     * or KB vs. KB where bishops are of the same color
+     *
+     * @return true if the players have insufficient material, false otherwise.
+     */
+    private boolean insufficientMaterial() {
+        Set<List<Integer>> whitePieces = getPieceCoords(true);
+        Set<List<Integer>> blackPieces = getPieceCoords(false);
+        Set<List<Integer>> allPieces = new HashSet<>(whitePieces);
+        allPieces.addAll(blackPieces);
+        if (allPieces.size() == 2) {
+            // K vs. K
+            return true;
+        } else if (allPieces.size() == 3) {
+            // K vs. KN or K vs. KB
+            for (List<Integer> piecePos : allPieces) {
+                Piece piece = pieces[piecePos.get(0)][piecePos.get(1)];
+                if (piece.type == Piece.Type.QUEEN || piece.type == Piece.Type.ROOK || piece.type == Piece.Type.PAWN) {
+                    return false;
+                }
+            }
+            return true;
+        } else if (whitePieces.size() == 2 && blackPieces.size() == 2) {
+            // KB vs. KB
+            int bishopCoordSum = -1;  // sum of row and col of one bishop
+            for (List<Integer> piecePos : allPieces) {
+                Piece piece = pieces[piecePos.get(0)][piecePos.get(1)];
+                if (piece.type == Piece.Type.KING) {
+                    continue;
+                }
+                if (piece.type != Piece.Type.BISHOP) {
+                    return false;
+                }
+                if (bishopCoordSum == -1) {
+                    bishopCoordSum = piecePos.get(0) + piecePos.get(1);
+                } else {
+                    return (bishopCoordSum + piecePos.get(0) + piecePos.get(1)) % 2 == 0;
+                }
+            }
+        }
         return false;
     }
 
