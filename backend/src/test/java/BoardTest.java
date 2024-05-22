@@ -448,6 +448,9 @@ class BoardTest {
         testLegalMove("8/8/8/4k3/8/4K1p1/8/8 b - - 0 1",
                 moveFromSquares("g3", "g2", false, false),
                 "8/8/8/4k3/8/4K3/6p1/8 w - - 0 2");
+        testLegalMove("8/3PK1k1/8/8/8/8/8/8 w - - 99 80",
+                new Move(6, 3, 7, 3, 'Q', false),
+                "3Q4/4K1k1/8/8/8/8/8/8 b - - 0 80");
         // Pawn captures
         testLegalMove("8/7b/6P1/4k3/8/4K3/8/8 w - - 0 2",
                 moveFromSquares("g6", "h7", false, true),
@@ -511,6 +514,13 @@ class BoardTest {
         // Not a piece
         testIllegalMove("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
                 moveFromSquares("d3", "d4", false, false));
+        // Can't move after game already ended
+        testIllegalMove("rnb1kbnr/pppp1ppp/4p3/8/5PPq/8/PPPPP2P/RNBQKBNR w KQkq - 0 1",
+                moveFromSquares("g1", "f3", false, false));
+        testIllegalMove("8/4k3/4b3/4K3/8/8/8/8 w - - 0 1",
+                moveFromSquares("e5", "e4", false, false));
+        testIllegalMove("8/8/8/8/8/6k1/2R5/6K1 w - - 100 70",
+                moveFromSquares("c2", "c3", false, false));
         // Incorrect piece movement
         testIllegalMove("4k3/8/8/8/8/8/7Q/4K3 w - - 0 1",
                 moveFromSquares("h2", "a5", false, false));
@@ -810,8 +820,107 @@ class BoardTest {
         assertLegalCount("rn1q1bkr/ppp3pp/8/3pP3/2B5/8/8/4K3 w - d6 0 2", 15);
     }
 
+    /**
+     * Asserts that the winner of the game parsed from fen is equal to expected.
+     */
+    private void assertWinner(String fen, char expected) throws IllegalBoardException, MalformedFENException {
+        Board board = new Board(fen);
+        assertEquals(expected, board.getWinner(), board.toString());
+    }
+
+    /**
+     * Asserts that 1) the winner of the game parsed from fen is 'u' and
+     * 2) the winner of the game after making the move is equal to expected.
+     */
+    private void assertWinnerAfterMove(String fen, Move move, char expected)
+            throws IllegalBoardException, MalformedFENException {
+        Board board = new Board(fen);
+        assertEquals('u', board.getWinner(), board.toString());
+        board.move(move);
+        assertEquals(expected, board.getWinner(), board.toString());
+    }
+
     @Test
     public void testGetWinner() throws MalformedFENException, IllegalBoardException {
-        // TODO
+        // Starting position
+        assertWinner("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 'u');
+        // Winner-unknown positions
+        assertWinner("r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3", 'u');
+        assertWinner("4k3/8/8/8/8/8/8/4KBN1 w - - 0 1", 'u');
+        assertWinner("4k3/8/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1", 'u');
+        // In check but not mated
+        assertWinner("4k2R/8/8/8/8/8/8/4K3 b - - 0 1", 'u');
+        assertWinner("4k3/8/8/8/8/8/8/4K2r w - - 0 1", 'u');
+        // White wins by checkmate
+        assertWinner("4k2R/8/4K3/8/8/8/8/8 b - - 0 1", 'w');
+        assertWinner("7k/8/5BKN/8/8/8/8/8 b - - 0 1", 'w');
+        assertWinner("R3kq2/1R6/4K3/8/8/8/8/8 b - - 99 60", 'w');
+        // Black wins by checkmate
+        assertWinner("rnb1kbnr/pppp1ppp/4p3/8/5PPq/8/PPPPP2P/RNBQKBNR w KQkq - 0 1", 'b');
+        assertWinner("rnbqkbnr/pppp3p/6p1/4pp1K/8/8/PPPPPPPP/RNBQ1BNR w kq - 0 1", 'b');
+        // White has mate in 1
+        assertWinnerAfterMove("7k/5Q2/5K2/8/8/8/8/8 w - - 0 1",
+                moveFromSquares("f7", "g7", false, false), 'w');
+        // Black has mate in 1
+        assertWinnerAfterMove("rnb1kb1r/ppppqppp/8/4n3/8/2P5/PP1PPPPP/RNBQKBNR b KQkq - 0 1",
+                moveFromSquares("e5", "d3", false, false), 'b');
+        // Capture mate
+        assertWinnerAfterMove("rnbq1rk1/pppppppp/8/8/8/1P4Q1/PBPPPPPP/RN3RK1 w - - 0 1",
+                moveFromSquares("g3", "g7", false, true), 'w');
+        assertWinnerAfterMove("7k/6p1/5P2/3PK3/4P3/5q2/8/8 b - - 0 1",
+                moveFromSquares("f3", "f6", false, true), 'b');
+        // Promotion mate
+        assertWinnerAfterMove("rnb1k2r/ppppppPp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                new Move(6, 6, 7, 7, 'R', true), 'w');
+        assertWinnerAfterMove("rnb1k2r/ppppppPp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                new Move(6, 6, 7, 7, 'Q', true), 'w');
+        assertWinnerAfterMove("rnb1k2r/ppppppPp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                new Move(6, 6, 7, 7, 'N', true), 'u');
+        assertWinnerAfterMove("rnb1k2r/ppppppPp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                new Move(6, 6, 7, 7, 'B', true), 'u');
+        // En passant mate
+        assertWinnerAfterMove("3bkr2/4pp2/8/1pP5/B7/8/8/4K3 w - b6 0 2",
+                moveFromSquares("c5", "b6", true, true), 'w');
+
+        // Stalemate
+        assertWinner("4k3/4P3/4K3/8/8/8/8/8 b - - 0 1", 'd');
+        assertWinner("8/8/8/8/8/8/4kq2/7K w - - 0 1", 'd');
+        assertWinner("8/8/8/8/8/8/p1p5/kbK5 b - - 0 1", 'd');
+        // Insufficient Material
+        assertWinner("8/8/8/8/4k3/8/4K3/8 w - - 0 1", 'd');
+        assertWinner("8/8/8/8/4k3/4N3/4K3/8 w - - 0 1", 'd');
+        assertWinner("7k/8/8/8/8/8/8/B6K b - - 0 1", 'd');
+        assertWinner("6nk/8/8/8/8/8/8/7K b - - 0 1", 'd');
+        assertWinner("7k/8/7b/8/8/8/7B/7K w - - 0 1", 'd');
+        // Two bishops of different colors is not a draw
+        assertWinner("8/8/5k2/2BK4/6b1/8/8/8 w - - 0 1", 'u');
+        assertWinnerAfterMove("K1k5/B7/4b3/8/8/8/8/8 b - - 0 1",
+                moveFromSquares("e6", "d5", false, false), 'b');
+        // Fifty-move rule
+        assertWinner("8/8/8/4K1k1/8/8/7q/8 w - - 100 80", 'd');
+        assertWinner("8/8/8/4K1k1/8/8/2q5/8 w - - 120 80", 'd');
+        assertWinnerAfterMove("8/5K2/5R2/8/7k/8/8/8 w - - 99 60",
+                moveFromSquares("f6", "g6", false, false), 'd');
+        assertWinnerAfterMove("8/8/3N4/3K2k1/3N4/8/8/8 w - - 99 80",
+                moveFromSquares("d5", "e5", false, false), 'd');
+        assertWinnerAfterMove("q7/8/8/4K1k1/8/8/8/8 b - - 99 80",
+                moveFromSquares("a8", "e8", false, false), 'd');
+        // Threefold repetition
+        Board board = new Board();
+        board.move(moveFromSquares("g1", "f3", false, false));
+        for (int i = 0; i < 3; i++) {
+            board.move(moveFromSquares("g8", "f6", false, false));
+            board.move(moveFromSquares("g1", "f3", false, false));
+        }
+        assertEquals('d', board.getWinner());
+
+        // Underpromotion, or stalemate
+        assertWinnerAfterMove("8/6P1/7k/8/6K1/8/8/8 w - - 0 1",
+                new Move(6, 6, 7, 6, 'R', false), 'u');
+        assertWinnerAfterMove("8/6P1/7k/8/6K1/8/8/8 w - - 0 1",
+                new Move(6, 6, 7, 6, 'Q', false), 'd');
+        // Checkmate overrides fifty-move rule
+        assertWinnerAfterMove("4k3/7R/4K3/8/8/8/8/8 w - - 99 60",
+                moveFromSquares("h7", "h8", false, false), 'w');
     }
 }

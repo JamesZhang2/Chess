@@ -38,15 +38,19 @@ public class Board {
 
     private static final char[] PIECE_NAMES = {'p', 'n', 'b', 'r', 'q', 'k', 'P', 'N', 'B', 'R', 'Q', 'K'};
 
+    private static final String START_POS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
     /**
      * Create board from FEN
      */
     public Board(String fen) throws MalformedFENException, IllegalBoardException {
         parseFen(fen);
         checkBoardLegality();
-        updateWinner();
         this.pgn = new PGN(fullMove, whiteToMove, getResult());
         this.history = new ArrayList<>();
+        this.posFreq = new HashMap<>();
+        posFreq.put(getUnclockedFEN(fen), 1);
+        updateWinner();
     }
 
     /**
@@ -54,11 +58,13 @@ public class Board {
      */
     public Board() {
         try {
-            parseFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+            parseFen(START_POS);
             checkBoardLegality();
-            updateWinner();
             this.pgn = new PGN(1, true, "*");
             this.history = new ArrayList<>();
+            this.posFreq = new HashMap<>();
+            posFreq.put(getUnclockedFEN(START_POS), 1);
+            updateWinner();
         } catch (Exception e) {
             assert false;
         }
@@ -76,6 +82,7 @@ public class Board {
             this.winner = other.winner;
             this.pgn = new PGN(other.pgn);
             this.history = new ArrayList<>(other.history);
+            this.posFreq = new HashMap<>(other.posFreq);
         } catch (Exception e) {
             assert false;
         }
@@ -496,7 +503,12 @@ public class Board {
         if (!pieceLegalMoves.contains(move)) {
             return false;
         }
+        if (getWinner() != 'u') {
+            // Game already ended
+            return false;
+        }
 
+        // Move must be legal, make the move by changing board state
         // Take a snapshot of the current state (in FEN form) and put it in history
         history.add(this.toFEN());
 
@@ -649,8 +661,6 @@ public class Board {
             e.printStackTrace();
             assert false;
         }
-
-        updateWinner();
         return true;
     }
 
@@ -668,7 +678,7 @@ public class Board {
 
         // Update posFreq
         String unclockedFEN = getUnclockedFEN(prevFEN);
-        assert posFreq.get(unclockedFEN) > 0;
+        assert posFreq.containsKey(unclockedFEN) && posFreq.get(unclockedFEN) > 0;
         posFreq.put(unclockedFEN, posFreq.get(unclockedFEN) - 1);
 
         try {
@@ -1090,7 +1100,7 @@ public class Board {
         }
 
         // Fifty-move rule
-        if (halfMove == 100) {
+        if (halfMove >= 100) {
             winner = 'd';
             return true;
         }
