@@ -6,13 +6,17 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class BoardTest {
+abstract class BoardTest {
 
     private final boolean printMoves = false;
 
+    protected abstract Board createBoard();
+
+    protected abstract Board createBoard(String fen) throws IllegalBoardException, MalformedFENException;
+
     @Test
     public void testFENParser() throws IllegalBoardException, MalformedFENException {
-        MailboxBoard start = new MailboxBoard();
+        Board start = createBoard();
         assertEquals("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", start.toFEN());
         String[] validFENs = {
                 "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
@@ -41,7 +45,7 @@ class BoardTest {
                 "rnbqkb1r/pppppppp/5n2/8/8/5N2/PPPPPPPP/RNBQKB1R w Qq - 6 4",
         };
         for (String validFEN : validFENs) {
-            MailboxBoard board = new MailboxBoard(validFEN);
+            Board board = createBoard(validFEN);
             assertEquals(validFEN, board.toFEN());
         }
 
@@ -94,7 +98,7 @@ class BoardTest {
                 "rnbqkbnr/pppp1ppp/8/4p3/8/8/PPPPPPPP/RNBQKBNR b KQkq e6 0 1",
         };
         for (String malformedFEN : malformedFENs) {
-            assertThrows(MalformedFENException.class, () -> new MailboxBoard(malformedFEN), malformedFEN);
+            assertThrows(MalformedFENException.class, () -> createBoard(malformedFEN), malformedFEN);
         }
 
         // These FENs are not malformed, but they represent illegal positions
@@ -122,7 +126,7 @@ class BoardTest {
                 "rnbqk1nr/ppppp1pp/8/8/8/8/PPPPPPPP/RNBQKpNR w KQkq - 0 1",
         };
         for (String illegalFEN : illegalFENs) {
-            assertThrows(IllegalBoardException.class, () -> new MailboxBoard(illegalFEN), illegalFEN);
+            assertThrows(IllegalBoardException.class, () -> createBoard(illegalFEN), illegalFEN);
         }
     }
 
@@ -187,7 +191,7 @@ class BoardTest {
                 "2nkb3/2ppp3/4N3/8/8/3Q4/3K4/8 b - - 0 1",
         };
         for (String fen : inCheckFENs) {
-            MailboxBoard board = new MailboxBoard(fen);
+            Board board = createBoard(fen);
             assert board.isInCheck();
         }
 
@@ -230,7 +234,7 @@ class BoardTest {
                 "8/8/8/8/7p/3k2pP/5pP1/5K1B w - - 12 7",
         };
         for (String fen : notInCheckFENs) {
-            MailboxBoard board = new MailboxBoard(fen);
+            Board board = createBoard(fen);
             assert !board.isInCheck();
         }
     }
@@ -241,7 +245,7 @@ class BoardTest {
      */
     private void testLegalMove(String fen, Move move, String expectedFEN)
             throws IllegalBoardException, MalformedFENException {
-        MailboxBoard board = new MailboxBoard(fen);
+        Board board = createBoard(fen);
         boolean legal = board.move(move);
         String msg = "Original FEN: " + fen + ", move: " + move;
         assert legal : "Move should be legal but judged as illegal. " + msg;
@@ -260,7 +264,7 @@ class BoardTest {
      */
     private void testIllegalMove(String fen, Move move)
             throws IllegalBoardException, MalformedFENException {
-        MailboxBoard board = new MailboxBoard(fen);
+        Board board = createBoard(fen);
         boolean legal = board.move(move);
         String msg = "Original FEN: " + fen + ", move: " + move;
         assert !legal : "Move should be illegal but judged as legal. " + msg;
@@ -282,6 +286,7 @@ class BoardTest {
 
     /**
      * Convenience method for constructing moves
+     *
      * @return the move constructed from the given fields
      */
     private Move moveFromSquares(String from, String to, boolean isEnPassant, boolean isCapture) {
@@ -486,7 +491,7 @@ class BoardTest {
                 moveFromSquares("c2", "c1", 'n', false),
                 "4k3/8/8/8/8/8/8/2n1K3 w - - 0 3");
         testLegalMove("3qk3/2P5/8/8/8/8/8/4K3 w - - 0 3",
-                 moveFromSquares("c7", "d8", 'N', true),
+                moveFromSquares("c7", "d8", 'N', true),
                 "3Nk3/8/8/8/8/8/8/4K3 b - - 0 3");
         testLegalMove("4k3/8/8/8/8/8/1p6/B3K3 b - - 0 3",
                 moveFromSquares("b2", "a1", 'r', true),
@@ -592,7 +597,7 @@ class BoardTest {
                 moveFromSquares("e5", "g6", true, true));
 
         // Can't undo last move if no move was made
-        MailboxBoard board = new MailboxBoard();
+        Board board = createBoard();
         assertFalse(board.undoLastMove());
         assertEquals(Util.START_POS, board.toFEN());
     }
@@ -602,7 +607,7 @@ class BoardTest {
      */
     private void assertLegalCount(String fen, int expected)
             throws MalformedFENException, IllegalBoardException {
-        MailboxBoard board = new MailboxBoard(fen);
+        Board board = createBoard(fen);
         Set<Move> legalMoves = board.getLegalMoves();
         if (printMoves) {
             System.out.println(board);
@@ -623,7 +628,7 @@ class BoardTest {
      */
     private void assertLegalCount(String fen, String square, int expected)
             throws MalformedFENException, IllegalBoardException {
-        MailboxBoard board = new MailboxBoard(fen);
+        Board board = createBoard(fen);
         int[] coord = squareToCoords(square);
         Set<Move> legalMoves = board.getLegalMoves(coord[0], coord[1]);
         if (printMoves) {
@@ -819,7 +824,7 @@ class BoardTest {
      * Asserts that the winner of the game parsed from fen is equal to expected.
      */
     private void assertWinner(String fen, char expected) throws IllegalBoardException, MalformedFENException {
-        MailboxBoard board = new MailboxBoard(fen);
+        Board board = createBoard(fen);
         assertEquals(expected, board.getWinner(), board.toString());
     }
 
@@ -829,7 +834,7 @@ class BoardTest {
      */
     private void assertWinnerAfterMove(String fen, Move move, char expected)
             throws IllegalBoardException, MalformedFENException {
-        MailboxBoard board = new MailboxBoard(fen);
+        Board board = createBoard(fen);
         assertEquals('u', board.getWinner(), board.toString());
         board.move(move);
         assertEquals(expected, board.getWinner(), board.toString());
@@ -902,7 +907,7 @@ class BoardTest {
                 moveFromSquares("a8", "e8", false, false), 'd');
         // Threefold repetition
         boolean legal = true;
-        MailboxBoard board = new MailboxBoard();
+        Board board = createBoard();
         legal &= board.move(moveFromSquares("g1", "f3", false, false));
         for (int i = 0; i < 2; i++) {
             legal &= board.move(moveFromSquares("g8", "f6", false, false));
@@ -934,7 +939,7 @@ class BoardTest {
     private void perft(String fen, int depth, long expected) throws IllegalBoardException, MalformedFENException {
         long startTime = System.nanoTime();
         System.out.printf("Running perft on %s, depth %d\n", fen, depth);
-        MailboxBoard board = new MailboxBoard(fen);
+        Board board = createBoard(fen);
         board.PERFT = true;
         assertEquals(expected, countLeafPos(board, depth, new HashMap<>()));
         long endTime = System.nanoTime();
@@ -945,7 +950,7 @@ class BoardTest {
      * Count the number of leaf positions starting from board
      * Postcondition: board is unchanged
      */
-    private long countLeafPos(MailboxBoard board, int depth, HashMap<String, Long> memo) {
+    private long countLeafPos(Board board, int depth, HashMap<String, Long> memo) {
 //        Board copy = board.clone();
         String key = board + " " + depth;
         if (memo.containsKey(key)) {
