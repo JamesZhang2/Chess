@@ -22,6 +22,27 @@ public abstract class Board {
     // For example, pieces[0][0] is the piece at a1, pieces[3][4] is the piece at d3.
     // It is 0 if there is no piece at that square
 
+    protected boolean whiteToMove;
+    protected boolean whiteCastleK = false, whiteCastleQ = false, blackCastleK = false, blackCastleQ = false;
+    // en passant target squares - for white it is x3, for black it is x6, where x is in [a...h]
+    // The value is '-' if there are no en passant target squares for that color.
+    protected char enPassantWhite = '-', enPassantBlack = '-';
+    protected int halfMove;
+    protected int fullMove;
+
+    protected Map<String, Integer> posFreq;  // Position frequency: How many times has a position occurred
+    // Maps the FEN string (except the halfMove and fullMove fields) to the number of times the position occurred
+
+    // w: white, b: black, d: draw, u: unknown
+    protected char winner = 'u';
+
+    protected PGN pgn;
+
+    protected List<String> history;  // history positions stored in FEN form
+
+    // When running perft, set this to true. Otherwise, don't touch it!
+    public boolean PERFT = false;
+
     public Board(String fen) throws MalformedFENException, IllegalBoardException {
         parseFen(fen);
         checkBoardLegality();
@@ -59,27 +80,6 @@ public abstract class Board {
         }
     }
 
-    protected boolean whiteToMove;
-    protected boolean whiteCastleK = false, whiteCastleQ = false, blackCastleK = false, blackCastleQ = false;
-    // en passant target squares - for white it is x3, for black it is x6, where x is in [a...h]
-    // The value is '-' if there are no en passant target squares for that color.
-    protected char enPassantWhite = '-', enPassantBlack = '-';
-    protected int halfMove;
-    protected int fullMove;
-
-    protected Map<String, Integer> posFreq;  // Position frequency: How many times has a position occurred
-    // Maps the FEN string (except the halfMove and fullMove fields) to the number of times the position occurred
-
-    // w: white, b: black, d: draw, u: unknown
-    protected char winner = 'u';
-
-    protected PGN pgn;
-
-    protected List<String> history;  // history positions stored in FEN form
-
-    // When running perft, set this to true. Otherwise, don't touch it!
-    public boolean PERFT = false;
-
     @Override
     public abstract Board clone();
 
@@ -89,10 +89,8 @@ public abstract class Board {
     public String toFEN() {
         StringBuilder sb = new StringBuilder();
 
+        // Piece placement
         sb.append(piecesToFEN());
-
-        // Remove last slash
-        sb.delete(sb.length() - 1, sb.length());
 
         // Active color
         sb.append(' ');
@@ -173,6 +171,7 @@ public abstract class Board {
     public String toString() {
         StringBuilder sb = new StringBuilder();
 
+        sb.append(piecesToString());
 
         if (whiteToMove) {
             sb.append("White to move\n");

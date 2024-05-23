@@ -59,7 +59,8 @@ public class MailboxBoard extends Board {
             }
             sb.append('/');
         }
-        return sb.toString();
+        // Remove last slash
+        return sb.substring(0, sb.length() - 1);
     }
 
     @Override
