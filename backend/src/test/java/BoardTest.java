@@ -1,7 +1,4 @@
-import model.MailboxBoard;
-import model.IllegalBoardException;
-import model.MalformedFENException;
-import model.Move;
+import model.*;
 import org.junit.jupiter.api.Test;
 
 import java.io.*;
@@ -196,7 +193,7 @@ class BoardTest {
 
         String[] notInCheckFENs = {
                 // Starting position
-                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                Util.START_POS,
                 // Two kings
                 "k7/8/8/8/8/8/8/7K w - - 0 1",
                 // Queen
@@ -303,7 +300,7 @@ class BoardTest {
     public void testMove() throws MalformedFENException, IllegalBoardException {
         // Legal moves
         // Stafford Gambit line
-        testLegalMove("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        testLegalMove(Util.START_POS,
                 moveFromSquares("e2", "e4", false, false),
                 "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
         testLegalMove("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
@@ -510,7 +507,7 @@ class BoardTest {
 
         // Illegal moves
         // Not a piece
-        testIllegalMove("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        testIllegalMove(Util.START_POS,
                 moveFromSquares("d3", "d4", false, false));
         // Can't move after game already ended
         testIllegalMove("rnb1kbnr/pppp1ppp/4p3/8/5PPq/8/PPPPP2P/RNBQKBNR w KQkq - 0 1",
@@ -597,7 +594,7 @@ class BoardTest {
         // Can't undo last move if no move was made
         MailboxBoard board = new MailboxBoard();
         assertFalse(board.undoLastMove());
-        assertEquals("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", board.toFEN());
+        assertEquals(Util.START_POS, board.toFEN());
     }
 
     /**
@@ -645,9 +642,9 @@ class BoardTest {
     @Test
     public void testGetLegalMoves() throws MalformedFENException, IllegalBoardException {
         // Starting position
-        assertLegalCount("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 20);
-        assertLegalCount("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "a1", 0);
-        assertLegalCount("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "a2", 2);
+        assertLegalCount(Util.START_POS, 20);
+        assertLegalCount(Util.START_POS, "a1", 0);
+        assertLegalCount(Util.START_POS, "a2", 2);
         // Two Kings (and two pawns to avoid insufficient material)
         assertLegalCount("8/7p/2k4P/8/8/5K2/8/8 w - - 0 1", 8);
         assertLegalCount("8/7p/2k4P/8/8/5K2/8/8 b - - 0 1", 8);
@@ -841,7 +838,7 @@ class BoardTest {
     @Test
     public void testGetWinner() throws MalformedFENException, IllegalBoardException {
         // Starting position
-        assertWinner("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 'u');
+        assertWinner(Util.START_POS, 'u');
         // Winner-unknown positions
         assertWinner("r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3", 'u');
         assertWinner("4k3/8/8/8/8/8/8/4KBN1 w - - 0 1", 'u');
@@ -949,6 +946,7 @@ class BoardTest {
      * Postcondition: board is unchanged
      */
     private long countLeafPos(MailboxBoard board, int depth, HashMap<String, Long> memo) {
+//        Board copy = board.clone();
         String key = board + " " + depth;
         if (memo.containsKey(key)) {
             return memo.get(key);
@@ -965,6 +963,7 @@ class BoardTest {
                 count += countLeafPos(board, depth - 1, memo);
                 board.undoLastMove();
             }
+//            assert copy.toFEN().equals(board.toFEN());
         }
         memo.put(key, count);
         return count;

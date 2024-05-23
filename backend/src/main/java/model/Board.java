@@ -1,31 +1,322 @@
 package model;
 
-import java.util.Set;
+import java.util.*;
 
-public interface Board {
-    Board clone();
+/**
+ * This abstract class represents the board, and is inherited by MailboxBoard and BitmapBoard,
+ * two different representations of the pieces. Common fields and methods are factored out in this class.
+ * Methods that depend on the specific representation of the pieces are declared protected abstract
+ * and will be overridden by the subclasses.
+ */
+
+public abstract class Board {
+    // Representation Invariant: Board state is always legal at the end of a public method.
+    // This means that there is one king on both sides, no pawns are on the first or last rank,
+    // and the side to move cannot capture the opponent's king.
+    // Note that we allow the number of pieces to be arbitrary,
+    // and we don't care about whether a position is reachable from the starting position.
+
+    // Representation Invariant: The winner variable is always accurate at the end of a public method.
+
+    // pieces[i][j] is the piece at rank (i + 1), file ('a' + j)
+    // For example, pieces[0][0] is the piece at a1, pieces[3][4] is the piece at d3.
+    // It is 0 if there is no piece at that square
+
+    public Board(String fen) throws MalformedFENException, IllegalBoardException {
+        parseFen(fen);
+        checkBoardLegality();
+        this.pgn = new PGN(fullMove, whiteToMove, getResult());
+        this.history = new ArrayList<>();
+        this.posFreq = new HashMap<>();
+        posFreq.put(getUnclockedFEN(), 1);
+        updateWinner();
+    }
+
+    public Board() {
+        try {
+            parseFen(Util.START_POS);
+            checkBoardLegality();
+            this.pgn = new PGN(1, true, "*");
+            this.history = new ArrayList<>();
+            this.posFreq = new HashMap<>();
+            posFreq.put(getUnclockedFEN(), 1);
+            updateWinner();
+        } catch (Exception e) {
+            assert false;
+        }
+    }
+
+    public Board(Board other) {
+        try {
+            parseFen(other.toFEN());
+            checkBoardLegality();
+            this.winner = other.winner;
+            this.pgn = new PGN(other.pgn);
+            this.history = new ArrayList<>(other.history);
+            this.posFreq = new HashMap<>(other.posFreq);
+        } catch (Exception e) {
+            assert false;
+        }
+    }
+
+    protected boolean whiteToMove;
+    protected boolean whiteCastleK = false, whiteCastleQ = false, blackCastleK = false, blackCastleQ = false;
+    // en passant target squares - for white it is x3, for black it is x6, where x is in [a...h]
+    // The value is '-' if there are no en passant target squares for that color.
+    protected char enPassantWhite = '-', enPassantBlack = '-';
+    protected int halfMove;
+    protected int fullMove;
+
+    protected Map<String, Integer> posFreq;  // Position frequency: How many times has a position occurred
+    // Maps the FEN string (except the halfMove and fullMove fields) to the number of times the position occurred
+
+    // w: white, b: black, d: draw, u: unknown
+    protected char winner = 'u';
+
+    protected PGN pgn;
+
+    protected List<String> history;  // history positions stored in FEN form
+
+    // When running perft, set this to true. Otherwise, don't touch it!
+    public boolean PERFT = false;
+
+    @Override
+    public abstract Board clone();
 
     /**
      * @return the FEN string representing the current board state
      */
-    String toFEN();
+    public String toFEN() {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(piecesToFEN());
+
+        // Remove last slash
+        sb.delete(sb.length() - 1, sb.length());
+
+        // Active color
+        sb.append(' ');
+        sb.append(whiteToMove ? 'w' : 'b');
+
+        // Castling
+        sb.append(' ');
+        if (!whiteCastleK && !whiteCastleQ && !blackCastleK && !blackCastleQ) {
+            sb.append('-');
+        } else {
+            if (whiteCastleK) {
+                sb.append('K');
+            }
+            if (whiteCastleQ) {
+                sb.append('Q');
+            }
+            if (blackCastleK) {
+                sb.append('k');
+            }
+            if (blackCastleQ) {
+                sb.append('q');
+            }
+        }
+
+        // En passant
+        sb.append(' ');
+        if (enPassantWhite == '-' && enPassantBlack == '-') {
+            sb.append('-');
+        } else {
+            if (enPassantBlack == '-') {
+                sb.append(enPassantWhite);
+                sb.append(3);
+            } else {
+                sb.append(enPassantBlack);
+                sb.append(6);
+            }
+        }
+
+        // Halfmove
+        sb.append(' ');
+        sb.append(halfMove);
+
+        // Fullmove
+        sb.append(' ');
+        sb.append(fullMove);
+
+        return sb.toString();
+    }
 
     /**
      * @return return the FEN string representing the current board state
      * without the halfMove and fullMove fields
      */
-    String getUnclockedFEN();
+    protected String getUnclockedFEN() {
+        // Find index of second-to-last space
+        String fen = this.toFEN();
+        int idx = fen.lastIndexOf(' ');
+        idx = fen.substring(0, idx).lastIndexOf(' ');
+        return fen.substring(0, idx);
+    }
+
+    /**
+     * @return the first field of the FEN string generated using piece placement information.
+     */
+    protected abstract String piecesToFEN();
 
     /**
      * @return the PGN of this game.
      */
-    String toPGN();
+    public String toPGN() {
+        return pgn.toString();
+    }
 
     /**
      * @return A readable depiction of the board state, used for debugging
      */
     @Override
-    String toString();
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+
+
+        if (whiteToMove) {
+            sb.append("White to move\n");
+        } else {
+            sb.append("Black to move\n");
+        }
+
+        sb.append("White O-O: ").append(whiteCastleK).append("\n");
+        sb.append("White O-O-O: ").append(whiteCastleQ).append("\n");
+        sb.append("Black O-O: ").append(blackCastleK).append("\n");
+        sb.append("Black O-O-O: ").append(blackCastleQ).append("\n");
+
+        sb.append("White en passant target square: ").append(enPassantWhite == '-' ? '-' : enPassantWhite + "3");
+        sb.append("\n");
+        sb.append("Black en passant target square: ").append(enPassantBlack == '-' ? '-' : enPassantBlack + "6");
+        sb.append("\n");
+
+        sb.append("Halfmove clock: ").append(halfMove).append("\n");
+        sb.append("Fullmove number: ").append(fullMove).append("\n");
+
+        return sb.toString();
+    }
+
+    /**
+     * @return A readable depiction of the pieces, used for debugging
+     */
+    protected abstract String piecesToString();
+
+    /**
+     * Parses the FEN string and updates the board states accordingly.
+     * Note that the resulting board state may be illegal.
+     *
+     * @throws MalformedFENException if the FEN is malformed.
+     */
+    protected void parseFen(String fen) throws MalformedFENException {
+        fen = fen.strip();
+        String[] fields = fen.split(" ");
+        if (fields.length != 6) {
+            throw new MalformedFENException("Number of fields in FEN is not 6");
+        }
+
+        // Piece placement
+        String[] placement = fields[0].split("/");
+        parsePiecePlacement(placement);
+
+        // Active color
+        if (fields[1].length() != 1) {
+            throw new MalformedFENException("Active color field does not have length 1");
+        }
+        if (fields[1].charAt(0) == 'w') {
+            whiteToMove = true;
+        } else if (fields[1].charAt(0) == 'b') {
+            whiteToMove = false;
+        } else {
+            throw new MalformedFENException("Unknown character in active color field: " + fields[1].charAt(0));
+        }
+
+        // Castling
+        parseCastling(fields[2]);
+
+        // En passant
+        parseEnPassant(fields[3]);
+
+        // Halfmove
+        try {
+            halfMove = Integer.parseInt(fields[4]);
+            if (halfMove < 0) {
+                throw new MalformedFENException("Halfmove field is negative: " + halfMove);
+            }
+        } catch (NumberFormatException e) {
+            throw new MalformedFENException("Halfmove field is not an integer: " + fields[4]);
+        }
+
+        // Fullmove
+        try {
+            fullMove = Integer.parseInt(fields[5]);
+            if (fullMove <= 0) {
+                throw new MalformedFENException("Fullmove field is not positive: " + fullMove);
+            }
+        } catch (NumberFormatException e) {
+            throw new MalformedFENException("Fullmove field is not an integer: " + fields[5]);
+        }
+    }
+
+    /**
+     * Parses the castling field and updates the castling right variables.
+     *
+     * @throws MalformedFENException if the FEN is malformed. In this case, the board state can be illegal.
+     */
+    private void parseCastling(String castling) throws MalformedFENException {
+        whiteCastleK = false;
+        whiteCastleQ = false;
+        blackCastleK = false;
+        blackCastleQ = false;
+        if (!(castling.length() == 1 && castling.charAt(0) == '-')) {
+            Set<Character> seen = new HashSet<>();
+            for (int i = 0; i < castling.length(); i++) {
+                char c = castling.charAt(i);
+                if (seen.contains(c)) {
+                    throw new MalformedFENException("Duplicate character in castling field: " + c);
+                }
+                seen.add(c);
+                switch (castling.charAt(i)) {
+                    case 'K':
+                        whiteCastleK = true;
+                        break;
+                    case 'Q':
+                        whiteCastleQ = true;
+                        break;
+                    case 'k':
+                        blackCastleK = true;
+                        break;
+                    case 'q':
+                        blackCastleQ = true;
+                        break;
+                    default:
+                        throw new MalformedFENException("Unknown character in castling field: " + castling.charAt(i));
+                }
+            }
+        }
+    }
+
+    /**
+     * Parses the en passant field and updates the en passant variables.
+     * <p>
+     * Requires: The pieces field and whiteToMove field have already been set based on the FEN.
+     *
+     * @throws MalformedFENException if the FEN is malformed. In this case, the board state can be illegal.
+     */
+    protected abstract void parseEnPassant(String enPassant) throws MalformedFENException;
+
+    /**
+     * Parses the piece placement array and updates the pieces variable.
+     *
+     * @throws MalformedFENException if the FEN is malformed. In this case, the board state can be illegal.
+     */
+    protected abstract void parsePiecePlacement(String[] placement) throws MalformedFENException;
+
+    /**
+     * Checks whether the board state is legal.
+     *
+     * @throws IllegalBoardException if the board state is illegal.
+     */
+    protected abstract void checkBoardLegality() throws IllegalBoardException;
 
     /**
      * If the move is legal, make the move by updating the board state (including the winner) and return true.
@@ -35,7 +326,14 @@ public interface Board {
      *
      * @return whether the move is legal
      */
-    boolean move(Move move);
+    public abstract boolean move(Move move);
+
+    /**
+     * @return the set of squares that white or black attacks.
+     * A square is said to be "attacked" by white if putting a black king there would result in
+     * the black king being in check.
+     */
+    protected abstract Set<List<Integer>> attacks(boolean white);
 
     /**
      * Undo the last move and restore the board to the same state as the one before the move.
@@ -43,12 +341,38 @@ public interface Board {
      *
      * @return false if the board state is already the initial state, true otherwise.
      */
-    boolean undoLastMove();
+    public boolean undoLastMove() {
+        if (history.isEmpty()) {
+            return false;
+        }
+        String prevFEN = history.removeLast();
+
+        // Update posFreq
+        if (!PERFT) {
+            String unclockedFEN = getUnclockedFEN();
+            assert posFreq.containsKey(unclockedFEN) && posFreq.get(unclockedFEN) > 0 :
+                    String.format("unclockedFEN: %s\n posFreq: %s\n", unclockedFEN, posFreq);
+            posFreq.put(unclockedFEN, posFreq.get(unclockedFEN) - 1);
+        }
+
+        try {
+            parseFen(prevFEN);
+//            checkBoardLegality();  // Sanity check, TODO: Can be removed after fully tested
+        } catch (MalformedFENException e) {
+            assert false;
+//        } catch (IllegalBoardException e) {
+//            e.printStackTrace();
+//            assert false;
+        }
+        pgn.undoLastMove();
+        winner = 'u';
+        return true;
+    }
 
     /**
      * @return the set of legal moves in the current position
      */
-    Set<Move> getLegalMoves();
+    public abstract Set<Move> getLegalMoves();
 
     /**
      * @return the set of legal moves for the piece at position {row, col}.
@@ -56,22 +380,42 @@ public interface Board {
      * Requires: There is a piece at {row, col} and the color of the piece is the same
      * as the current player
      */
-    Set<Move> getLegalMoves(int row, int col);
+    public abstract Set<Move> getLegalMoves(int row, int col);
 
     /**
      * Only checks whether move is legal or not, does not change the board state.
      *
      * @return whether the move is legal
      */
-    boolean isLegal(Move move);
+    public abstract boolean isLegal(Move move);
 
     /**
      * @return true if the side to move is currently in check, false otherwise
      */
-    boolean isInCheck();
+    public abstract boolean isInCheck();
 
     /**
      * @return the winner of the game.
      */
-    char getWinner();
+    public abstract char getWinner();
+
+    /**
+     * Check if the game ended and update the winner variable.
+     *
+     * @return true if the winner has changed, false otherwise.
+     */
+    protected abstract boolean updateWinner();
+
+    /**
+     * @return the result of the game (1-0 or 1/2-1/2 or 0-1 or *)
+     */
+    public String getResult() {
+        return switch (winner) {
+            case 'u' -> "*";
+            case 'w' -> "1-0";
+            case 'd' -> "1/2-1/2";
+            case 'b' -> "0-1";
+            default -> throw new IllegalStateException("Unexpected value for winner: " + winner);
+        };
+    }
 }

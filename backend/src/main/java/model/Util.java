@@ -4,6 +4,10 @@ package model;
  * A class for global constants and utilities.
  */
 public class Util {
+    public static final String START_POS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+    public static final char[] PIECE_NAMES = {'p', 'n', 'b', 'r', 'q', 'k', 'P', 'N', 'B', 'R', 'Q', 'K'};
+
     /**
      * @return true if input is in [0...7], false otherwise
      */
