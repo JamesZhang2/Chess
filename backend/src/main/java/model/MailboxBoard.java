@@ -39,40 +39,15 @@ public class MailboxBoard extends Board {
     }
 
     @Override
-    protected String piecesToFEN() {
-        StringBuilder sb = new StringBuilder();
-        for (int r = 7; r >= 0; r--) {
-            int blanks = 0;
-            for (int c = 0; c < 8; c++) {
-                if (pieces[r][c] == 0) {
-                    blanks++;
-                } else {
-                    if (blanks > 0) {
-                        sb.append(blanks);
-                    }
-                    blanks = 0;
-                    sb.append(pieces[r][c]);
-                }
+    protected char[][] getPieces() {
+        // need a deep copy
+        char[][] copy = new char[8][8];
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                copy[i][j] = pieces[i][j];
             }
-            if (blanks > 0) {
-                sb.append(blanks);
-            }
-            sb.append('/');
         }
-        // Remove last slash
-        return sb.substring(0, sb.length() - 1);
-    }
-
-    @Override
-    protected String piecesToString() {
-        StringBuilder sb = new StringBuilder();
-        for (int r = 7; r >= 0; r--) {
-            for (int c = 0; c < 8; c++) {
-                sb.append(pieces[r][c] == 0 ? '.' : pieces[r][c]);
-            }
-            sb.append("\n");
-        }
-        return sb.toString();
+        return copy;
     }
 
     /**
@@ -129,40 +104,17 @@ public class MailboxBoard extends Board {
 
     @Override
     protected void parseEnPassant(String enPassant) throws MalformedFENException {
-        enPassantWhite = '-';
-        enPassantBlack = '-';
-        if (enPassant.length() == 1) {
-            if (enPassant.charAt(0) != '-') {
-                throw new MalformedFENException("Malformed en passant field: " + enPassant);
+        // Also checks that there is a pawn on the board for the enPassant state to be possible
+        super.parseEnPassant(enPassant);
+        if (enPassant.length() == 2) {
+            if (enPassant.charAt(1) == '3' && pieces[3][enPassantWhite - 'a'] != 'P') {
+                throw new MalformedFENException("Impossible en passant state: " + enPassant +
+                        " (No white pawn was found at " + enPassantWhite + "4)");
             }
-        } else if (enPassant.length() == 2) {
-            if (enPassant.charAt(0) < 'a' || enPassant.charAt(0) > 'h') {
-                throw new MalformedFENException("Unknown file in en passant field: " + enPassant.charAt(0));
+            if (enPassant.charAt(1) == '6' && pieces[4][enPassantBlack - 'a'] != 'p') {
+                throw new MalformedFENException("Impossible en passant state: " + enPassant +
+                        " (No black pawn was found at " + enPassantBlack + "5)");
             }
-
-            if (enPassant.charAt(1) == '3') {
-                enPassantWhite = enPassant.charAt(0);
-                if (whiteToMove) {
-                    throw new MalformedFENException("Impossible en passant state: White didn't make the last move, but en passant field is " + enPassant);
-                }
-                if (pieces[3][enPassantWhite - 'a'] != 'P') {
-                    throw new MalformedFENException("Impossible en passant state: " + enPassant +
-                            " (No white pawn was found at " + enPassantWhite + "4)");
-                }
-            } else if (enPassant.charAt(1) == '6') {
-                enPassantBlack = enPassant.charAt(0);
-                if (!whiteToMove) {
-                    throw new MalformedFENException("Impossible en passant state: Black didn't make the last move, but en passant field is " + enPassant);
-                }
-                if (pieces[4][enPassantBlack - 'a'] != 'p') {
-                    throw new MalformedFENException("Impossible en passant state: " + enPassant +
-                            " (No black pawn was found at " + enPassantBlack + "5)");
-                }
-            } else {
-                throw new MalformedFENException("Rank in en passant field must be 3 or 6");
-            }
-        } else {
-            throw new MalformedFENException("Malformed en passant field: " + enPassant);
         }
     }
 

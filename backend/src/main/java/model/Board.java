@@ -155,7 +155,30 @@ public abstract class Board {
     /**
      * @return the first field of the FEN string generated using piece placement information.
      */
-    protected abstract String piecesToFEN();
+    protected String piecesToFEN() {
+        char[][] pieces = getPieces();
+        StringBuilder sb = new StringBuilder();
+        for (int r = 7; r >= 0; r--) {
+            int blanks = 0;
+            for (int c = 0; c < 8; c++) {
+                if (pieces[r][c] == 0) {
+                    blanks++;
+                } else {
+                    if (blanks > 0) {
+                        sb.append(blanks);
+                    }
+                    blanks = 0;
+                    sb.append(pieces[r][c]);
+                }
+            }
+            if (blanks > 0) {
+                sb.append(blanks);
+            }
+            sb.append('/');
+        }
+        // Remove last slash
+        return sb.substring(0, sb.length() - 1);
+    }
 
     /**
      * @return the PGN of this game.
@@ -196,9 +219,25 @@ public abstract class Board {
     }
 
     /**
+     * @return an 8x8 array of pieces as in the mailbox representation.
+     * Modifying the returned array should not change the board state
+     */
+    protected abstract char[][] getPieces();
+
+    /**
      * @return A readable depiction of the pieces, used for debugging
      */
-    protected abstract String piecesToString();
+    protected String piecesToString() {
+        char[][] pieces = getPieces();
+        StringBuilder sb = new StringBuilder();
+        for (int r = 7; r >= 0; r--) {
+            for (int c = 0; c < 8; c++) {
+                sb.append(pieces[r][c] == 0 ? '.' : pieces[r][c]);
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
 
     /**
      * Parses the FEN string and updates the board states accordingly.
@@ -301,7 +340,35 @@ public abstract class Board {
      *
      * @throws MalformedFENException if the FEN is malformed. In this case, the board state can be illegal.
      */
-    protected abstract void parseEnPassant(String enPassant) throws MalformedFENException;
+    protected void parseEnPassant(String enPassant) throws MalformedFENException {
+        enPassantWhite = '-';
+        enPassantBlack = '-';
+        if (enPassant.length() == 1) {
+            if (enPassant.charAt(0) != '-') {
+                throw new MalformedFENException("Malformed en passant field: " + enPassant);
+            }
+        } else if (enPassant.length() == 2) {
+            if (enPassant.charAt(0) < 'a' || enPassant.charAt(0) > 'h') {
+                throw new MalformedFENException("Unknown file in en passant field: " + enPassant.charAt(0));
+            }
+
+            if (enPassant.charAt(1) == '3') {
+                enPassantWhite = enPassant.charAt(0);
+                if (whiteToMove) {
+                    throw new MalformedFENException("Impossible en passant state: White didn't make the last move, but en passant field is " + enPassant);
+                }
+            } else if (enPassant.charAt(1) == '6') {
+                enPassantBlack = enPassant.charAt(0);
+                if (!whiteToMove) {
+                    throw new MalformedFENException("Impossible en passant state: Black didn't make the last move, but en passant field is " + enPassant);
+                }
+            } else {
+                throw new MalformedFENException("Rank in en passant field must be 3 or 6");
+            }
+        } else {
+            throw new MalformedFENException("Malformed en passant field: " + enPassant);
+        }
+    }
 
     /**
      * Parses the piece placement array and updates the pieces variable.
