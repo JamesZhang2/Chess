@@ -61,8 +61,8 @@ public class MailboxBoard extends Board {
             throw new MalformedFENException("Number of rows in piece placement field is not 8");
         }
         for (int row = 0; row < 8; row++) {
-            // row is the index of the row in the FEN string
-            // row 0 corresponds to rank 8, which is index 7 for pieces
+            // Since FEN goes from the top of the board to the bottom,
+            // row i for pieces corresponds to index (7 - i) of the placement string
             String rowStr = placement[7 - row];
             int col = 0;
             for (int i = 0; i < rowStr.length(); i++) {
@@ -88,6 +88,7 @@ public class MailboxBoard extends Board {
                         if (curChar == valid) {
                             pieces[row][col++] = curChar;
                             found = true;
+                            break;
                         }
                     }
                     if (!found) {

@@ -63,6 +63,7 @@ public abstract class Board {
             posFreq.put(getUnclockedFEN(), 1);
             updateWinner();
         } catch (Exception e) {
+            e.printStackTrace();  // TODO Delete
             assert false;
         }
     }

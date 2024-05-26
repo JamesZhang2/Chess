@@ -16,7 +16,7 @@ public class BitmapBoard extends Board {
     // Bitmaps
     // Least significant bit represents a1, second least significant bit represents b1, and so on,
     // Most significant bit represents h8
-    long[] bitmaps = new long['z' + 1];  // for example, bitmaps['P'] is the bitmap for the white pawn
+    long[] bitmaps;  // for example, bitmaps['P'] is the bitmap for the white pawn
 
     /**
      * Create board from FEN
@@ -73,50 +73,45 @@ public class BitmapBoard extends Board {
      * @throws MalformedFENException if the FEN is malformed. In this case, the board state can be illegal.
      */
     protected void parsePiecePlacement(String[] placement) throws MalformedFENException {
-        // TODO
-//        if (placement.length != 8) {
-//            throw new MalformedFENException("Number of rows in piece placement field is not 8");
-//        }
-//        for (int row = 0; row < 8; row++) {
-//            // row is the index of the row in the FEN string
-//            // row 0 corresponds to rank 8, which is index 7 for pieces
-//            String rowStr = placement[7 - row];
-//            int col = 0;
-//            for (int i = 0; i < rowStr.length(); i++) {
-//                if (col >= 8) {
-//                    throw new MalformedFENException("Number of pieces and blanks in rank "
-//                            + (8 - row) + " is greater than 8");
-//                }
-//                char curChar = rowStr.charAt(i);
-//                if (curChar >= '1' && curChar <= '8') {
-//                    // curChar represents a series of blanks
-//                    int blanks = curChar - '0';
-//                    if (col + blanks > 8) {
-//                        throw new MalformedFENException("Number of pieces and blanks in rank "
-//                                + (8 - row) + " is greater than 8");
-//                    }
-//                    for (int j = 0; j < blanks; j++) {
-//                        pieces[row][col++] = 0;
-//                    }
-//                } else {
-//                    // curChar may represent a piece
-//                    boolean found = false;
-//                    for (char valid : Util.PIECE_NAMES) {
-//                        if (curChar == valid) {
-//                            pieces[row][col++] = curChar;
-//                            found = true;
-//                        }
-//                    }
-//                    if (!found) {
-//                        throw new MalformedFENException("Unknown piece name: " + curChar);
-//                    }
-//                }
-//            }
-//            if (col != 8) {
-//                throw new MalformedFENException("Number of pieces and blanks in rank "
-//                        + (8 - row) + " is less than 8");
-//            }
-//        }
+        bitmaps = new long['z' + 1];
+        if (placement.length != 8) {
+            throw new MalformedFENException("Number of rows in piece placement field is not 8");
+        }
+        for (int row = 0; row < 8; row++) {
+            // Since FEN goes from the top of the board to the bottom,
+            // row i for pieces corresponds to index (7 - i) of the placement string
+            String rowStr = placement[7 - row];
+            int col = 0;
+            for (int i = 0; i < rowStr.length(); i++) {
+                if (col >= 8) {
+                    throw new MalformedFENException("Number of pieces and blanks in rank "
+                            + (8 - row) + " is greater than 8");
+                }
+                char curChar = rowStr.charAt(i);
+                if (curChar >= '1' && curChar <= '8') {
+                    // curChar represents a series of blanks
+                    col += (curChar - '0');
+                } else {
+                    // curChar may represent a piece
+                    boolean found = false;
+                    for (char valid : Util.PIECE_NAMES) {
+                        if (curChar == valid) {
+                            bitmaps[curChar] = Util.setBit(bitmaps[curChar], row, col);
+                            found = true;
+                            col++;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        throw new MalformedFENException("Unknown piece name: " + curChar);
+                    }
+                }
+            }
+            if (col != 8) {
+                throw new MalformedFENException("Number of pieces and blanks in rank "
+                        + (8 - row) + " is less than 8");
+            }
+        }
     }
 
     @Override
@@ -128,7 +123,7 @@ public class BitmapBoard extends Board {
                 throw new MalformedFENException("Impossible en passant state: " + enPassant +
                         " (No white pawn was found at " + enPassantWhite + "4)");
             }
-            if (enPassant.charAt(1) == '3' && !Util.getBit(bitmaps['p'], 4, enPassantBlack - 'a')) {
+            if (enPassant.charAt(1) == '6' && !Util.getBit(bitmaps['p'], 4, enPassantBlack - 'a')) {
                 throw new MalformedFENException("Impossible en passant state: " + enPassant +
                         " (No black pawn was found at " + enPassantBlack + "5)");
             }
@@ -137,45 +132,37 @@ public class BitmapBoard extends Board {
 
     @Override
     protected void checkBoardLegality() throws IllegalBoardException {
-        // TODO
-//        boolean whiteKing = false;
-//        boolean blackKing = false;
-//
-//        // Check number of kings
-//        for (int r = 0; r < 8; r++) {
-//            for (int c = 0; c < 8; c++) {
-//                if (pieces[r][c] != 0) {
-//                    if (pieces[r][c] == 'K') {
-//                        if (whiteKing) {
-//                            throw new IllegalBoardException("More than one white kings on the board");
-//                        }
-//                        whiteKing = true;
-//                    } else if (pieces[r][c] == 'k') {
-//                        if (blackKing) {
-//                            throw new IllegalBoardException("More than one black kings on the board");
-//                        }
-//                        blackKing = true;
-//                    }
-//                }
-//            }
-//        }
-//
-//        if (!whiteKing) {
-//            throw new IllegalBoardException("No white kings on the board");
-//        }
-//        if (!blackKing) {
-//            throw new IllegalBoardException("No black kings on the board");
-//        }
-//
-//        // Check pawns on first or last rank
-//        for (int c = 0; c < 8; c++) {
-//            if (pieces[0][c] == 'p' || pieces[0][c] == 'P') {
-//                throw new IllegalBoardException("There is a pawn on rank 1");
-//            }
-//            if (pieces[7][c] == 'p' || pieces[7][c] == 'P') {
-//                throw new IllegalBoardException("There is a pawn on rank 8");
-//            }
-//        }
+        boolean whiteKing = false;
+        boolean blackKing = false;
+
+        // Check number of kings
+        if (Util.popCount(bitmaps['K']) > 1) {
+            throw new IllegalBoardException("More than one white kings on the board");
+        }
+        if (Util.popCount(bitmaps['k']) > 1) {
+            throw new IllegalBoardException("More than one black kings on the board");
+
+        }
+        if (Util.popCount(bitmaps['K']) == 0) {
+            throw new IllegalBoardException("No white kings on the board");
+        }
+        if (Util.popCount(bitmaps['k']) == 0) {
+            throw new IllegalBoardException("No black kings on the board");
+        }
+
+        // Check pawns on first or last rank
+        if ((bitmaps['P'] & Util.RANK_1) != 0) {
+            throw new IllegalBoardException("There is a white pawn on rank 1");
+        }
+        if ((bitmaps['p'] & Util.RANK_1) != 0) {
+            throw new IllegalBoardException("There is a black pawn on rank 1");
+        }
+        if ((bitmaps['P'] & Util.RANK_8) != 0) {
+            throw new IllegalBoardException("There is a white pawn on rank 8");
+        }
+        if ((bitmaps['p'] & Util.RANK_8) != 0) {
+            throw new IllegalBoardException("There is a black pawn on rank 8");
+        }
 
         // TODO Uncomment
         // Check whether the player not playing is in check
@@ -678,7 +665,7 @@ public class BitmapBoard extends Board {
 
     @Override
     protected boolean updateWinner() {
-        throw new UnsupportedOperationException("Unimplemented");  // TODO
+        return false;  // TODO
 
 //        // Early exit to speed up performance
 //        boolean hasLegalMoves = false;
