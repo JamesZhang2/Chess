@@ -1,6 +1,6 @@
 package controller;
 
-import model.Board;
+import model.MailboxBoard;
 import model.Player;
 
 /**
@@ -8,7 +8,7 @@ import model.Player;
  * Handles resign, offer draw, accept draw, and decline draw.
  */
 public class GameController {
-    private Board board;
+    private MailboxBoard board;
     private Player playerWhite, playerBlack;
 
     public void startGame() {
