@@ -63,7 +63,6 @@ public abstract class Board {
             posFreq.put(getUnclockedFEN(), 1);
             updateWinner();
         } catch (Exception e) {
-            e.printStackTrace();  // TODO Delete
             assert false;
         }
     }
@@ -594,12 +593,12 @@ public abstract class Board {
 
         // Sanity check
         // TODO: Can be removed after fully tested
-        try {
-            checkBoardLegality();
-        } catch (IllegalBoardException e) {
-            e.printStackTrace();
-            assert false;
-        }
+//        try {
+//            checkBoardLegality();
+//        } catch (IllegalBoardException e) {
+//            e.printStackTrace();
+//            assert false;
+//        }
         return true;
     }
 

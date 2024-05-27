@@ -1,8 +1,6 @@
 package model;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -552,7 +550,7 @@ public class BitmapBoard extends Board {
     private void tryRegOrProm(int startRow, int startCol, char pieceType,
                               int endRow, int endCol, boolean isPromotion, Set<Move> legalMoves) {
         // piece type at (endRow, endCol) or 0 if it's empty
-        char enemyType = getPieceAt(endRow, endCol);  // TODO This is quite inefficient
+        char enemyType = getPieceAt(endRow, endCol);
         boolean isCapture = (enemyType != 0);
         bitmaps[pieceType] = Util.clearBit(bitmaps[pieceType], startRow, startCol);
         bitmaps[pieceType] = Util.setBit(bitmaps[pieceType], endRow, endCol);
