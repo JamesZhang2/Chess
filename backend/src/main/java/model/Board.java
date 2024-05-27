@@ -386,6 +386,11 @@ public abstract class Board {
     protected abstract void checkBoardLegality() throws IllegalBoardException;
 
     /**
+     * @return the piece at (row, col), or 0 if there is no piece there
+     */
+    public abstract char getPieceAt(int row, int col);
+
+    /**
      * If the move is legal, make the move by updating the board state (including the winner) and return true.
      * Otherwise, return false and don't change the board state.
      * <p>

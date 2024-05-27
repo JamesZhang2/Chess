@@ -476,6 +476,7 @@ public class MailboxBoard extends Board {
             }
             if (pieceTypeUpper == 'P') {
                 // Pawns can only capture diagonally (which is what they attack)
+                // so if there isn't a piece diagonal to the pawn, it's not a legal move
                 if (pieces[endRow][endCol] == 0 || endRow == 0 || endRow == 7) {
                     // Will handle pawn capture promotions separately below
                     continue;
@@ -820,6 +821,11 @@ public class MailboxBoard extends Board {
             }
         }
         return false;
+    }
+
+    @Override
+    public char getPieceAt(int row, int col) {
+        return pieces[row][col];
     }
 
     /**
