@@ -544,58 +544,17 @@ public class MailboxBoard extends Board {
     }
 
     @Override
-    protected boolean updateWinner() {
-        // Early exit to speed up performance
-        boolean hasLegalMoves = false;
+    protected boolean hasLegalMoves() {
         for (List<Integer> coord : getPieceCoords(whiteToMove)) {
             if (!getLegalMoves(coord.get(0), coord.get(1)).isEmpty()) {
-                hasLegalMoves = true;
-                break;
-            }
-        }
-        if (!hasLegalMoves) {
-            if (isInCheck()) {
-                // Checkmate
-                winner = whiteToMove ? 'b' : 'w';
-            } else {
-                // Stalemate
-                winner = 'd';
-            }
-            return true;
-        }
-
-        // Insufficient material
-        if (insufficientMaterial()) {
-            winner = 'd';
-            return true;
-        }
-
-        // Fifty-move rule
-        if (halfMove >= 100) {
-            winner = 'd';
-            return true;
-        }
-
-        if (!PERFT) {
-            // Threefold repetition
-            for (String key : posFreq.keySet()) {
-                if (posFreq.get(key) >= 3) {
-                    winner = 'd';
-                    return true;
-                }
+                return true;
             }
         }
         return false;
     }
 
-    /**
-     * Check if the players have insufficient material to win the game.
-     * Insufficient material means K vs. K, or KN vs. K, or KB vs. K,
-     * or KB vs. KB where bishops are of the same color
-     *
-     * @return true if the players have insufficient material, false otherwise.
-     */
-    private boolean insufficientMaterial() {
+    @Override
+    protected boolean insufficientMaterial() {
         Set<List<Integer>> whitePieces = getPieceCoords(true);
         Set<List<Integer>> blackPieces = getPieceCoords(false);
         Set<List<Integer>> allPieces = new HashSet<>(whitePieces);

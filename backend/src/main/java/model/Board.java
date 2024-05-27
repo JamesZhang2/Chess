@@ -672,7 +672,56 @@ public abstract class Board {
      *
      * @return true if the winner has changed, false otherwise.
      */
-    protected abstract boolean updateWinner();
+    protected boolean updateWinner() {
+        if (!hasLegalMoves()) {
+            if (isInCheck()) {
+                // Checkmate
+                winner = whiteToMove ? 'b' : 'w';
+            } else {
+                // Stalemate
+                winner = 'd';
+            }
+            return true;
+        }
+
+        // Insufficient material
+        if (insufficientMaterial()) {
+            winner = 'd';
+            return true;
+        }
+
+        // Fifty-move rule
+        if (halfMove >= 100) {
+            winner = 'd';
+            return true;
+        }
+
+        if (!PERFT) {
+            // Threefold repetition
+            for (String key : posFreq.keySet()) {
+                if (posFreq.get(key) >= 3) {
+                    winner = 'd';
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if the players have insufficient material to win the game.
+     * Insufficient material means K vs. K, or KN vs. K, or KB vs. K,
+     * or KB vs. KB where bishops are of the same color
+     *
+     * @return true if the players have insufficient material, false otherwise.
+     */
+    protected abstract boolean insufficientMaterial();
+
+    /**
+     * @return whether the current player has legal moves
+     * Should use early exit to speed up performance
+     */
+    protected abstract boolean hasLegalMoves();
 
     /**
      * @return the result of the game (1-0 or 1/2-1/2 or 0-1 or *)

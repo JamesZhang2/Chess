@@ -600,96 +600,52 @@ public class BitmapBoard extends Board {
     }
 
     @Override
-    protected boolean updateWinner() {
-        return false;  // TODO
-
-//        // Early exit to speed up performance
-//        boolean hasLegalMoves = false;
-//        for (List<Integer> coord : getPieceCoords(whiteToMove)) {
-//            if (!getLegalMoves(coord.get(0), coord.get(1)).isEmpty()) {
-//                hasLegalMoves = true;
-//                break;
-//            }
-//        }
-//        if (!hasLegalMoves) {
-//            if (isInCheck()) {
-//                // Checkmate
-//                winner = whiteToMove ? 'b' : 'w';
-//            } else {
-//                // Stalemate
-//                winner = 'd';
-//            }
-//            return true;
-//        }
-
-//        // Insufficient material
-//        if (insufficientMaterial()) {
-//            winner = 'd';
-//            return true;
-//        }
-
-//        // Fifty-move rule
-//        if (halfMove >= 100) {
-//            winner = 'd';
-//            return true;
-//        }
-
-//        if (!PERFT) {
-//            // Threefold repetition
-//            for (String key : posFreq.keySet()) {
-//                if (posFreq.get(key) >= 3) {
-//                    winner = 'd';
-//                    return true;
-//                }
-//            }
-//        }
-//        return false;
+    protected boolean hasLegalMoves() {
+        HashSet<Move> acc = new HashSet<>();
+        long friendly = getFriendlyPieces(whiteToMove);
+        long enemy = getEnemyPieces(whiteToMove);
+        long enemyAttacks = attacks(!whiteToMove);
+        for (char type : whiteToMove ? Util.WHITE_PIECE_NAMES : Util.BLACK_PIECE_NAMES) {
+            long bitmap = bitmaps[type];
+            while (bitmap != 0) {
+                int idx = Util.getLS1BIdx(bitmap);
+                accLegalMoves(idx, type, friendly, enemy, enemyAttacks, acc);
+                if (!acc.isEmpty()) {
+                    return true;
+                }
+                bitmap = Util.resetLS1B(bitmap);
+            }
+        }
+        return false;
     }
 
-    /**
-     * Check if the players have insufficient material to win the game.
-     * Insufficient material means K vs. K, or KN vs. K, or KB vs. K,
-     * or KB vs. KB where bishops are of the same color
-     *
-     * @return true if the players have insufficient material, false otherwise.
-     */
-    private boolean insufficientMaterial() {
-        throw new UnsupportedOperationException("Unimplemented");  // TODO
-//        Set<List<Integer>> whitePieces = getPieceCoords(true);
-//        Set<List<Integer>> blackPieces = getPieceCoords(false);
-//        Set<List<Integer>> allPieces = new HashSet<>(whitePieces);
-//        allPieces.addAll(blackPieces);
-//        if (allPieces.size() == 2) {
-//            // K vs. K
-//            return true;
-//        } else if (allPieces.size() == 3) {
-//            // K vs. KN or K vs. KB
-//            for (List<Integer> piecePos : allPieces) {
-//                char pieceTypeUpper = Util.toUpperCase(pieces[piecePos.get(0)][piecePos.get(1)]);
-//                if (pieceTypeUpper == 'R' || pieceTypeUpper == 'Q' || pieceTypeUpper == 'P') {
-//                    return false;
-//                }
-//            }
-//            return true;
-//        } else if (whitePieces.size() == 2 && blackPieces.size() == 2) {
-//            // KB vs. KB
-//            int bishopCoordSum = -1;  // sum of row and col of one bishop
-//            for (List<Integer> piecePos : allPieces) {
-//                char pieceTypeUpper = Util.toUpperCase(pieces[piecePos.get(0)][piecePos.get(1)]);
-//                if (pieceTypeUpper == 'K') {
-//                    continue;
-//                }
-//                if (pieceTypeUpper != 'B') {
-//                    return false;
-//                }
-//                if (bishopCoordSum == -1) {
-//                    bishopCoordSum = piecePos.get(0) + piecePos.get(1);
-//                } else {
-//                    return (bishopCoordSum + piecePos.get(0) + piecePos.get(1)) % 2 == 0;
-//                }
-//            }
-//        }
-//        return false;
+    @Override
+    protected boolean insufficientMaterial() {
+        int numWhitePieces = Util.popCount(getFriendlyPieces(true));
+        int numBlackPieces = Util.popCount(getFriendlyPieces(false));
+        int numPieces = numWhitePieces + numBlackPieces;
+        if (numPieces == 2) {
+            // K vs. K
+            return true;
+        } else if (numPieces == 3) {
+            char[] unwantedTypes = {'P', 'R', 'Q', 'p', 'r', 'q'};
+            // K vs. KN or K vs. KB
+            for (char type : unwantedTypes) {
+                if (bitmaps[type] != 0) {
+                    return false;
+                }
+            }
+            return true;
+        } else if (numWhitePieces == 2 && numBlackPieces == 2) {
+            // KB vs. KB
+            if (bitmaps['B'] == 0 || bitmaps['b'] == 0) {
+                return false;
+            }
+            int whiteBIdx = Util.getLS1BIdx(bitmaps['B']);
+            int blackBIdx = Util.getLS1BIdx(bitmaps['b']);
+            return (whiteBIdx / 8 + whiteBIdx % 8) % 2 == (blackBIdx / 8 + blackBIdx % 8) % 2;
+        }
+        return false;
     }
 
     @Override
