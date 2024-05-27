@@ -132,7 +132,7 @@ abstract class BoardTest {
 
     @Test
     public void testInCheck() throws IllegalBoardException, MalformedFENException {
-        // Also tests the private model.Board.attacks method
+        // Also tests the private attacks method
         String[] inCheckFENs = {
                 // Queen
                 "4k3/8/8/8/4K1q1/8/8/8 w - - 0 1",
@@ -192,7 +192,7 @@ abstract class BoardTest {
         };
         for (String fen : inCheckFENs) {
             Board board = createBoard(fen);
-            assert board.isInCheck();
+            assert board.isInCheck() : "Should be in check but program thinks it's not in check:\n" + board;
         }
 
         String[] notInCheckFENs = {
@@ -235,7 +235,7 @@ abstract class BoardTest {
         };
         for (String fen : notInCheckFENs) {
             Board board = createBoard(fen);
-            assert !board.isInCheck();
+            assert !board.isInCheck() :  "Should not be in check but program thinks it's in check:\n" + board;
         }
     }
 

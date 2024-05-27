@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Represents a legal board state using the bitmap (or bitboard) representation.
@@ -389,7 +391,7 @@ public class BitmapBoard extends Board {
             attacked |= attacks(idx, pieceType, allPieces);
             bitmap = Util.resetLS1B(bitmap);
         }
-        return 0;
+        return attacked;
     }
 
     /**
@@ -399,29 +401,68 @@ public class BitmapBoard extends Board {
      * @return the bitmap of squares that is attacked by the piece at idx
      */
     private long attacks(int idx, char pieceType, long allPieces) {
-        // TODO
         long attacked = 0;
         switch (pieceType) {
             case 'p':
-                break;
+                return Lookup.BLACK_PAWN_ATTACK[idx];
             case 'P':
-                break;
+                return Lookup.WHITE_PAWN_ATTACK[idx];
             case 'N', 'n':
-                break;
-            case 'B', 'b':
-                break;
-            case 'R', 'r':
-                break;
-            case 'Q', 'q':
-                break;
+                return Lookup.KNIGHT_ATTACK[idx];
             case 'K', 'k':
-                if (idx >= 8) {
-                    // not rank 1
+                return Lookup.KING_ATTACK[idx];
+            case 'R', 'r', 'Q', 'q':
+                // north
+                attacked |= getAttackInDir(idx, 8, i -> i / 8 <= 7, allPieces);
+                // south
+                attacked |= getAttackInDir(idx, -8, i -> i >= 0, allPieces);
+                // east
+                // i % 8 == 0 means that we have wrapped around and reached the a file a rank higher
+                attacked |= getAttackInDir(idx, 1, i -> i % 8 != 0, allPieces);
+                // west
+                // Note that (-1) % 8 == -1 so +8 is necessary
+                attacked |= getAttackInDir(idx, -1, i -> (i + 8) % 8 != 7, allPieces);
+                if (pieceType == 'R' || pieceType == 'r') {
+                    return attacked;
                 }
+                // Queen falls through to the bishop branch
+            case 'B', 'b':
+                // northeast
+                attacked |= getAttackInDir(idx, 9, i -> (i % 8 != 0) && (i / 8 <= 7), allPieces);
+                // southeast
+                attacked |= getAttackInDir(idx, -7, i -> (i % 8 != 0) && (i >= 0), allPieces);
+                // southwest
+                // Here (i + 8) % 8 is unnecessary since we also check that i is non-negative
+                attacked |= getAttackInDir(idx, -9, i -> (i % 8 != 7) && (i >= 0), allPieces);
+                // northwest
+                attacked |= getAttackInDir(idx, 7, i -> (i % 8 != 7) && (i / 8 <= 7), allPieces);
+                return attacked;
             default:
                 assert false;
         }
         return 0;
+    }
+
+    /**
+     * Get attacks in a specific direction
+     * @param idx index of piece to generate attacks for
+     * @param step the amount to add in each loop iteration; represents the direction
+     * @param condition condition on the index to stay in the loop
+     * @param allPieces the bitmap of all pieces on the board
+     * @return the bitmap of attacks of the piece at idx in the direction indicated by step
+     */
+    private long getAttackInDir(int idx, int step, Predicate<Integer> condition, long allPieces) {
+        long attacked = 0;
+        // Note that the square that the piece is on is not considered attacked by the piece
+        for (int i = idx + step; condition.test(i); i += step) {
+            assert i >= 0 : i;
+            attacked |= (1L << i);
+            if (Util.getBit(allPieces, i)) {
+                // found blocking piece
+                return attacked;
+            }
+        }
+        return attacked;
     }
 
     /**
@@ -714,34 +755,7 @@ public class BitmapBoard extends Board {
      * @return true if white/black is in check (determined by the parameter white), false otherwise
      */
     private boolean isInCheck(boolean white) {
-        throw new UnsupportedOperationException("Unimplemented");  // TODO
-//        List<Integer> kingPos = getKingPos(white);
-//        for (List<Integer> opponent : getPieceCoords(!white)) {
-//            if (attacks(opponent.get(0), opponent.get(1)).contains(kingPos)) {
-//                return true;
-//            }
-//        }
-//        return false;
-    }
-
-    /**
-     * @return the position of the white/black king (determined by the parameter white)
-     * Since we assume the rep invariant is true, there is only one king of each color.
-     */
-    private List<Integer> getKingPos(boolean white) {
-        throw new UnsupportedOperationException("Unimplemented");  // TODO
-//        for (int r = 0; r < 8; r++) {
-//            for (int c = 0; c < 8; c++) {
-//                if (pieces[r][c] == (white ? 'K' : 'k')) {
-//                    List<Integer> ans = new ArrayList<>();
-//                    ans.add(r);
-//                    ans.add(c);
-//                    return ans;
-//                }
-//            }
-//        }
-//        assert false;
-//        return new ArrayList<>();
+        return (attacks(!white) & bitmaps[white ? 'K' : 'k']) != 0;
     }
 
     @Override

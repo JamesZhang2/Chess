@@ -1,4 +1,5 @@
 import model.*;
+import org.junit.jupiter.api.Test;
 
 class BitmapBoardTest extends BoardTest{
     @Override
