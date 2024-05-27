@@ -18,7 +18,6 @@ public class Move {
     public final Type moveType;
 
     // For castling, these fields are the starting and ending positions of the king.
-    // For resign and draw, these fields are -1, and they should never be queried.
     private final int startRow, startCol, endRow, endCol;
 
     // K: white castles kingside, Q: white castles queenside,

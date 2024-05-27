@@ -149,6 +149,7 @@ public class Util {
         return count;
     }
 
+
     /**
      * Turn the bitmap into a human-readable string, respecting the little-endian mapping
      * from bitmaps to boards
@@ -160,7 +161,7 @@ public class Util {
         for (int i = 0; i < 8; i++) {
             StringBuilder sb2 = new StringBuilder();
             for (int j = 0; j < 8; j++) {
-                sb2.append(bitmap & 1);
+                sb2.append((bitmap & 1) == 1 ? '1' : '.');
                 bitmap >>>= 1;
             }
             sb2.append('\n');

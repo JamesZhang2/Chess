@@ -211,21 +211,21 @@ class UtilTest {
 
     @Test
     void testBitmapToString() {
-        assertEquals("00000000\n00000000\n00000000\n00000000\n00000000\n00000000\n00000000\n00000000\n",
+        assertEquals("........\n........\n........\n........\n........\n........\n........\n........\n",
                 Util.bitmapToString(0L));
-        assertEquals("00000000\n00000000\n00000000\n00000000\n00000000\n00000000\n00000000\n10000000\n",
+        assertEquals("........\n........\n........\n........\n........\n........\n........\n1.......\n",
                 Util.bitmapToString(1L));
-        assertEquals("00000000\n00000000\n00000000\n00000000\n00000000\n00000000\n00000000\n00000001\n",
+        assertEquals("........\n........\n........\n........\n........\n........\n........\n.......1\n",
                 Util.bitmapToString(0x80L));
-        assertEquals("00000000\n00000000\n00000000\n00000000\n00000000\n00000000\n00000000\n11111111\n",
+        assertEquals("........\n........\n........\n........\n........\n........\n........\n11111111\n",
                 Util.bitmapToString(Util.RANK_1));
-        assertEquals("11111111\n00000000\n00000000\n00000000\n00000000\n00000000\n00000000\n00000000\n",
+        assertEquals("11111111\n........\n........\n........\n........\n........\n........\n........\n",
                 Util.bitmapToString(Util.RANK_8));
-        assertEquals("10000000\n10000000\n10000000\n10000000\n10000000\n10000000\n10000000\n10000000\n",
+        assertEquals("1.......\n1.......\n1.......\n1.......\n1.......\n1.......\n1.......\n1.......\n",
                 Util.bitmapToString(Util.A_FILE));
-        assertEquals("00000001\n00000001\n00000001\n00000001\n00000001\n00000001\n00000001\n00000001\n",
+        assertEquals(".......1\n.......1\n.......1\n.......1\n.......1\n.......1\n.......1\n.......1\n",
                 Util.bitmapToString(Util.H_FILE));
-        assertEquals("10001100\n10000010\n10011010\n01100100\n11001010\n00011010\n11101001\n11001001\n",
+        assertEquals("1...11..\n1.....1.\n1..11.1.\n.11..1..\n11..1.1.\n...11.1.\n111.1..1\n11..1..1\n",
                 Util.bitmapToString(0x3141592653589793L));
         System.out.println("Rank 1:");
         Util.printBitmap(Util.RANK_1);

@@ -396,13 +396,6 @@ public abstract class Board {
     public abstract boolean move(Move move);
 
     /**
-     * @return the set of squares that white or black attacks.
-     * A square is said to be "attacked" by white if putting a black king there would result in
-     * the black king being in check.
-     */
-    protected abstract Set<List<Integer>> attacks(boolean white);
-
-    /**
      * Undo the last move and restore the board to the same state as the one before the move.
      * If the current board state is already the initial state (when the board was loaded), do nothing.
      *

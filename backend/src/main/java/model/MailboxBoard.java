@@ -378,8 +378,12 @@ public class MailboxBoard extends Board {
         return coords;
     }
 
-    @Override
-    protected Set<List<Integer>> attacks(boolean white) {
+    /**
+     * @return the set of squares that white or black attacks.
+     * A square is said to be "attacked" by white if putting a black king there would result in
+     * the black king being in check.
+     */
+    private Set<List<Integer>> attacks(boolean white) {
         Set<List<Integer>> attacked = new HashSet<>();
         for (List<Integer> coord : getPieceCoords(white)) {
             attacked.addAll(attacks(coord.get(0), coord.get(1)));

@@ -141,7 +141,6 @@ public class BitmapBoard extends Board {
         }
         if (Util.popCount(bitmaps['k']) > 1) {
             throw new IllegalBoardException("More than one black kings on the board");
-
         }
         if (Util.popCount(bitmaps['K']) == 0) {
             throw new IllegalBoardException("No white kings on the board");
@@ -363,14 +362,101 @@ public class BitmapBoard extends Board {
 //        return true;
     }
 
-    @Override
-    protected Set<List<Integer>> attacks(boolean white) {
-        throw new UnsupportedOperationException("Unimplemented");  // TODO
-//        Set<List<Integer>> attacked = new HashSet<>();
-//        for (List<Integer> coord : getPieceCoords(white)) {
-//            attacked.addAll(attacks(coord.get(0), coord.get(1)));
-//        }
-//        return attacked;
+    /**
+     * @return the bitmap of squares that white or black attacks.
+     * A square is said to be "attacked" by white if putting a black king there would result in
+     * the black king being in check.
+     */
+    private long attacks(boolean white) {
+        long allPieces = getAllPieces();
+        long attacked = 0;
+        for (char pieceType: (white ? Util.WHITE_PIECE_NAMES : Util.BLACK_PIECE_NAMES)) {
+            attacked |= attacks(bitmaps[pieceType], pieceType, allPieces);
+        }
+        return attacked;
+    }
+
+    /**
+     * @param bitmap the bitmap of a certain type of piece
+     * @param pieceType the type of piece (case-sensitive to represent white or black)
+     * @param allPieces the bitmap for all pieces on the board
+     * @return the bitmap of squares that is attacked by the pieces with type pieceType
+     */
+    private long attacks(long bitmap, char pieceType, long allPieces) {
+        long attacked = 0;
+        while (bitmap != 0) {
+            int idx = Util.getLS1BIdx(bitmap);
+            attacked |= attacks(idx, pieceType, allPieces);
+            bitmap = Util.resetLS1B(bitmap);
+        }
+        return 0;
+    }
+
+    /**
+     * @param idx the index of a piece
+     * @param pieceType the type of piece (case-sensitive to represent white or black)
+     * @param allPieces the bitmap for all pieces on the board
+     * @return the bitmap of squares that is attacked by the piece at idx
+     */
+    private long attacks(int idx, char pieceType, long allPieces) {
+        // TODO
+        long attacked = 0;
+        switch (pieceType) {
+            case 'p':
+                break;
+            case 'P':
+                break;
+            case 'N', 'n':
+                break;
+            case 'B', 'b':
+                break;
+            case 'R', 'r':
+                break;
+            case 'Q', 'q':
+                break;
+            case 'K', 'k':
+                if (idx >= 8) {
+                    // not rank 1
+                }
+            default:
+                assert false;
+        }
+        return 0;
+    }
+
+    /**
+     * @param white if true, then we have the white pieces. Otherwise, we have the black pieces.
+     * @return the bitmap for friendly pieces
+     */
+    private long getFriendlyPieces(boolean white) {
+        long friendlyPieces = 0;
+        for (char pieceType : (white ? Util.WHITE_PIECE_NAMES : Util.BLACK_PIECE_NAMES)) {
+            friendlyPieces |= bitmaps[pieceType];
+        }
+        return friendlyPieces;
+    }
+
+    /**
+     * @param white if true, then we have the white pieces. Otherwise, we have the black pieces.
+     * @return the bitmap for friendly pieces
+     */
+    private long getEnemyPieces(boolean white) {
+        long enemyPieces = 0;
+        for (char pieceType : (white ? Util.BLACK_PIECE_NAMES : Util.WHITE_PIECE_NAMES)) {
+            enemyPieces |= bitmaps[pieceType];
+        }
+        return enemyPieces;
+    }
+
+    /**
+     * @return the bitmap for all pieces
+     */
+    private long getAllPieces() {
+        long pieces = 0;
+        for (char pieceType : Util.PIECE_NAMES) {
+            pieces |= bitmaps[pieceType];
+        }
+        return pieces;
     }
 
     @Override
