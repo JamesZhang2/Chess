@@ -133,9 +133,6 @@ public class BitmapBoard extends Board {
 
     @Override
     protected void checkBoardLegality() throws IllegalBoardException {
-        boolean whiteKing = false;
-        boolean blackKing = false;
-
         // Check number of kings
         if (Util.popCount(bitmaps['K']) > 1) {
             throw new IllegalBoardException("More than one white kings on the board");
@@ -169,197 +166,15 @@ public class BitmapBoard extends Board {
             String opponent = whiteToMove ? "Black" : "White";
             throw new IllegalBoardException(opponent + " is in check but it's not their move");
         }
-    }
 
-    @Override
-    public boolean move(Move move) {
-        throw new UnsupportedOperationException("Unimplemented");  // TODO
-//        // Can simply check if move is in the set of all legal moves,
-//        // but checking a specific piece would be more efficient.
-//        int startRow = move.getStartRow();
-//        int startCol = move.getStartCol();
-//        int endRow = move.getEndRow();
-//        int endCol = move.getEndCol();
-//        char curPiece = pieces[startRow][startCol];
-//        char enemyPiece = pieces[endRow][endCol];  // May be 0
-//        if (curPiece == 0 || (curPiece <= 'Z' != whiteToMove)) {
-//            // Can only move pieces of your color
-//            return false;
-//        }
-//        if (enemyPiece != 0 && ((int) enemyPiece - 'a') * ((int) curPiece - 'a') > 0) {
-//            // Can only take enemy pieces
-//            return false;
-//        }
-//        if (!PERFT) {
-//            // All moves tried in perft must be legal, since we iterate through all the legal moves
-//            Set<Move> pieceLegalMoves = getLegalMoves(startRow, startCol);
-//            if (!pieceLegalMoves.contains(move)) {
-//                return false;
-//            }
-//        }
-//        if (getWinner() != 'u') {
-//            // Game already ended
-//            return false;
-//        }
-//
-//        // Move must be legal, make the move by changing board state
-//        // Take a snapshot of the current state (in FEN form) and put it in history
-//        history.add(this.toFEN());
-//
-//        // For now, we're using a verbose version of the Standard Algebraic Notation for the PGN
-//        // For every non-pawn move, we include the entire starting square regardless of ambiguity
-//        // TODO: Simplify SAN
-//
-//        StringBuilder pgnMove = new StringBuilder();
-//        // Reset en passant state, will be changed below if pawn just moved two squares
-//        enPassantWhite = enPassantBlack = '-';
-//
-//        // Remove castling rights if necessary
-//        if (curPiece == 'K') {
-//            whiteCastleK = false;
-//            whiteCastleQ = false;
-//        } else if (curPiece == 'k') {
-//            blackCastleK = false;
-//            blackCastleQ = false;
-//        } else if (curPiece == 'R') {
-//            if (startRow == 0 && startCol == 0) {
-//                whiteCastleQ = false;
-//            } else if (startRow == 0 && startCol == 7) {
-//                whiteCastleK = false;
-//            }
-//        } else if (curPiece == 'r') {
-//            if (startRow == 7 && startCol == 0) {
-//                blackCastleQ = false;
-//            } else if (startRow == 7 && startCol == 7) {
-//                blackCastleK = false;
-//            }
-//        }
-//        if (enemyPiece == 'R') {
-//            if (endRow == 0 && endCol == 0) {
-//                whiteCastleQ = false;
-//            } else if (endRow == 0 && endCol == 7) {
-//                whiteCastleK = false;
-//            }
-//        } else if (enemyPiece == 'r') {
-//            if (endRow == 7 && endCol == 0) {
-//                blackCastleQ = false;
-//            } else if (endRow == 7 && endCol == 7) {
-//                blackCastleK = false;
-//            }
-//        }
-//
-//        switch (move.moveType) {
-//            case REGULAR:
-//                if (curPiece != 'P' && curPiece != 'p') {
-//                    pgnMove.append(curPiece > 'a' ? (char) (curPiece - 'a' + 'A') : curPiece);
-//                    pgnMove.append(toSquare(startRow, startCol));
-//                    if (move.getIsCapture()) {
-//                        halfMove = 0;
-//                        pgnMove.append("x");
-//                    } else {
-//                        halfMove++;
-//                    }
-//                } else {
-//                    // Is a pawn move
-//                    halfMove = 0;
-//                    if (move.getIsCapture()) {
-//                        pgnMove.append((char) (startCol + 'a'));
-//                        pgnMove.append("x");
-//                    }
-//                    if (endRow - startRow == 2) {
-//                        enPassantWhite = (char) (startCol + 'a');
-//                    }
-//                    if (endRow - startRow == -2) {
-//                        enPassantBlack = (char) (startCol + 'a');
-//                    }
-//                }
-//                pgnMove.append(toSquare(endRow, endCol));
-//
-//                // Update pieces
-//                pieces[endRow][endCol] = curPiece;
-//                pieces[startRow][startCol] = 0;
-//                break;
-//
-//            case CASTLING:
-//                pgnMove.append(move.getCastleType() == 'K' || move.getCastleType() == 'k' ? "O-O" : "O-O-O");
-//                halfMove++;
-//
-//                // Update pieces
-//                pieces[endRow][endCol] = curPiece;
-//                pieces[startRow][startCol] = 0;
-//                // Move the rook
-//                int rookRow = (move.getCastleType() == 'K' || move.getCastleType() == 'Q') ? 0 : 7;
-//                int rookStartCol = (move.getCastleType() == 'K' || move.getCastleType() == 'k') ? 7 : 0;
-//                int rookEndCol = (move.getCastleType() == 'K' || move.getCastleType() == 'k') ? 5 : 3;
-//                pieces[rookRow][rookEndCol] = pieces[rookRow][rookStartCol];
-//                pieces[rookRow][rookStartCol] = 0;
-//                break;
-//
-//            case EN_PASSANT:
-//                pgnMove.append((char) (startCol + 'a'));
-//                pgnMove.append("x");
-//                pgnMove.append(toSquare(endRow, endCol));
-//                halfMove = 0;
-//
-//                // Update pieces
-//                pieces[endRow][endCol] = curPiece;
-//                pieces[startRow][startCol] = 0;
-//                // Remove the enemy pawn
-//                pieces[startRow][endCol] = 0;
-//                break;
-//
-//            case PROMOTION:
-//                if (move.getIsCapture()) {
-//                    pgnMove.append((char) (startCol + 'a'));
-//                    pgnMove.append("x");
-//                }
-//                pgnMove.append(toSquare(endRow, endCol));
-//                pgnMove.append("=");
-//                pgnMove.append(Character.toUpperCase(move.getPromotionType()));
-//                halfMove = 0;
-//
-//                // Update pieces
-//                pieces[startRow][startCol] = 0;
-//                // ending square becomes promoted piece
-//                pieces[endRow][endCol] = move.getPromotionType();
-//                break;
-//
-//            default:
-//                assert false;
-//        }
-//
-//        if (!whiteToMove) {
-//            fullMove++;
-//        }
-//        whiteToMove = !whiteToMove;
-//
-//        boolean changed = updateWinner();
-//
-//        if (isInCheck()) {
-//            if (changed) {
-//                // Must be checkmate
-//                pgnMove.append("#");
-//            } else {
-//                pgnMove.append("+");
-//            }
-//        }
-//        pgn.addMove(pgnMove.toString());
-//
-//        // Update posFreq
-//        if (!PERFT) {
-//            String unclockedFEN = getUnclockedFEN();
-//            posFreq.put(unclockedFEN, posFreq.getOrDefault(unclockedFEN, 0) + 1);
-//        }
-//
-//        // Sanity check
-//        // TODO: Can be removed after fully tested
-////        try {
-////            checkBoardLegality();
-////        } catch (IllegalBoardException e) {
-////            e.printStackTrace();
-////            assert false;
-////        }
-//        return true;
+        // Check whether the bitmap representation is conflicting (i.e. if there are two pieces on the same square)
+        long bitmap = 0;
+        for (char pieceType : Util.PIECE_NAMES) {
+            if ((bitmap & bitmaps[pieceType]) != 0) {
+                throw new IllegalBoardException("Two pieces are on the same square");
+            }
+            bitmap = bitmap | bitmaps[pieceType];
+        }
     }
 
     /**
@@ -504,43 +319,43 @@ public class BitmapBoard extends Board {
         long enemyAttacks = attacks(!whiteToMove);
         Set<Move> legalMoves = new HashSet<>();
         for (char pieceType : whiteToMove ? Util.WHITE_PIECE_NAMES : Util.BLACK_PIECE_NAMES) {
-            legalMoves.addAll(getLegalMoves(bitmaps[pieceType], pieceType, friendly, enemy, enemyAttacks));
+            accLegalMoves(bitmaps[pieceType], pieceType, friendly, enemy, enemyAttacks, legalMoves);
         }
         return legalMoves;
     }
 
     /**
-     * @return the set of legal moves of a certain piece type
+     * Add the set of legal moves of a certain piece type to legalMoves
      * @param bitmap the bitmap of the pieceType
      * @param pieceType the type of piece (case-sensitive to represent white or black)
      * @param friendly the bitmap of friendly pieces
      * @param enemy the bitmap of enemy pieces
      * @param enemyAttacks the bitmap of enemy attacks
+     * @param legalMoves accumulator
      */
-    private Set<Move> getLegalMoves(long bitmap, char pieceType, long friendly, long enemy, long enemyAttacks) {
-        // TODO Change getLegalMoves to accLegalMoves (with accumulator) to avoid new and addAll
-        Set<Move> legalMoves = new HashSet<>();
+    private void accLegalMoves(long bitmap, char pieceType, long friendly, long enemy, long enemyAttacks,
+                               Set<Move> legalMoves) {
         while (bitmap != 0) {
             int ls1b = Util.getLS1BIdx(bitmap);
-            legalMoves.addAll(getLegalMoves(ls1b, pieceType, friendly, enemy, enemyAttacks));
+            accLegalMoves(ls1b, pieceType, friendly, enemy, enemyAttacks, legalMoves);
             bitmap = Util.resetLS1B(bitmap);
         }
-        return legalMoves;
     }
 
     /**
-     * @return the set of legal moves for the piece at idx.
+     * Add the set of legal moves for the piece at idx to legalMoves.
      * @param idx the index of the piece
      * @param pieceType the type of piece (case-sensitive to represent white or black)
      * @param friendly the bitmap of friendly pieces
      * @param enemy the bitmap of enemy pieces
      * @param enemyAttacks the bitmap of enemy attacks
+     * @param legalMoves accumulator
      * <p>
      * Requires: There is a piece at idx and the color of the piece is the same
      * as the current player
      */
-    private Set<Move> getLegalMoves(int idx, char pieceType, long friendly, long enemy, long enemyAttacks) {
-        Set<Move> legalMoves = new HashSet<>();
+    private void accLegalMoves(int idx, char pieceType, long friendly, long enemy, long enemyAttacks,
+                               Set<Move> legalMoves) {
         assert Util.getBit(bitmaps[pieceType], idx) && (pieceType <= 'Z') == whiteToMove;
         long allPieces = friendly | enemy;
         long attacks = attacks(idx, pieceType, allPieces);  // candidate target squares
@@ -651,12 +466,10 @@ public class BitmapBoard extends Board {
                 assert Util.getBit(bitmaps['r'], 7, 0);
                 // 0xE << 56: b8, c8, d8; 0x1C << 56: c8, d8, e8
                 if ((allPieces & (0xEL << 56)) == 0 && (enemyAttacks & (0x1CL << 56)) == 0) {
-                    legalMoves.add(new Move('Q'));
+                    legalMoves.add(new Move('q'));
                 }
             }
         }
-
-        return legalMoves;
     }
 
     @Override
@@ -666,7 +479,9 @@ public class BitmapBoard extends Board {
         long enemyAttacks = attacks(!whiteToMove);
         char pieceType = getPieceAt(row, col);
         assert pieceType != 0 && (pieceType <= 'Z') == whiteToMove;
-        return getLegalMoves(row * 8 + col, pieceType, friendly, enemy, enemyAttacks);
+        Set<Move> legalMoves = new HashSet<>();
+        accLegalMoves(row * 8 + col, pieceType, friendly, enemy, enemyAttacks, legalMoves);
+        return legalMoves;
     }
 
     /**
@@ -887,10 +702,13 @@ public class BitmapBoard extends Board {
         return 0;
     }
 
-    /**
-     * @return the chessboard notation for the square at {row, col}. (for example: a1, e4)
-     */
-    private String toSquare(int row, int col) {
-        return "" + ('a' + col) + (row + 1);
+    @Override
+    protected void setPiece(int row, int col, char pieceType) {
+        bitmaps[pieceType] = Util.setBit(bitmaps[pieceType], row, col);
+    }
+
+    @Override
+    protected void removePiece(int row, int col, char pieceType) {
+        bitmaps[pieceType] = Util.clearBit(bitmaps[pieceType], row, col);
     }
 }

@@ -391,6 +391,16 @@ public abstract class Board {
     public abstract char getPieceAt(int row, int col);
 
     /**
+     * Place a piece of pieceType at (row, col)
+     */
+    protected abstract void setPiece(int row, int col, char pieceType);
+
+    /**
+     * Remove a piece of pieceType at (row, col)
+     */
+    protected abstract void removePiece(int row, int col, char pieceType);
+
+    /**
      * If the move is legal, make the move by updating the board state (including the winner) and return true.
      * Otherwise, return false and don't change the board state.
      * <p>
@@ -398,7 +408,200 @@ public abstract class Board {
      *
      * @return whether the move is legal
      */
-    public abstract boolean move(Move move);
+    public boolean move(Move move) {
+        // Can simply check if move is in the set of all legal moves,
+        // but checking a specific piece would be more efficient.
+        int startRow = move.getStartRow();
+        int startCol = move.getStartCol();
+        int endRow = move.getEndRow();
+        int endCol = move.getEndCol();
+        char curPiece = getPieceAt(startRow, startCol);
+        char enemyPiece = getPieceAt(endRow, endCol);  // May be 0
+        if (curPiece == 0 || (curPiece <= 'Z' != whiteToMove)) {
+            // Can only move pieces of your color
+            return false;
+        }
+        if (enemyPiece != 0 && ((int) enemyPiece - 'a') * ((int) curPiece - 'a') > 0) {
+            // Can only take enemy pieces
+            return false;
+        }
+        if (!PERFT) {
+            // All moves tried in perft must be legal, since we iterate through all the legal moves
+            Set<Move> pieceLegalMoves = getLegalMoves(startRow, startCol);
+            if (!pieceLegalMoves.contains(move)) {
+                return false;
+            }
+        }
+        if (getWinner() != 'u') {
+            // Game already ended
+            return false;
+        }
+
+        // Move must be legal, make the move by changing board state
+        // Take a snapshot of the current state (in FEN form) and put it in history
+        history.add(this.toFEN());
+
+        // For now, we're using a verbose version of the Standard Algebraic Notation for the PGN
+        // For every non-pawn move, we include the entire starting square regardless of ambiguity
+        // TODO: Simplify SAN
+
+        StringBuilder pgnMove = new StringBuilder();
+        // Reset en passant state, will be changed below if pawn just moved two squares
+        enPassantWhite = enPassantBlack = '-';
+
+        // Remove castling rights if necessary
+        if (curPiece == 'K') {
+            whiteCastleK = false;
+            whiteCastleQ = false;
+        } else if (curPiece == 'k') {
+            blackCastleK = false;
+            blackCastleQ = false;
+        } else if (curPiece == 'R') {
+            if (startRow == 0 && startCol == 0) {
+                whiteCastleQ = false;
+            } else if (startRow == 0 && startCol == 7) {
+                whiteCastleK = false;
+            }
+        } else if (curPiece == 'r') {
+            if (startRow == 7 && startCol == 0) {
+                blackCastleQ = false;
+            } else if (startRow == 7 && startCol == 7) {
+                blackCastleK = false;
+            }
+        }
+        if (enemyPiece == 'R') {
+            if (endRow == 0 && endCol == 0) {
+                whiteCastleQ = false;
+            } else if (endRow == 0 && endCol == 7) {
+                whiteCastleK = false;
+            }
+        } else if (enemyPiece == 'r') {
+            if (endRow == 7 && endCol == 0) {
+                blackCastleQ = false;
+            } else if (endRow == 7 && endCol == 7) {
+                blackCastleK = false;
+            }
+        }
+
+        switch (move.moveType) {
+            case REGULAR:
+                if (curPiece != 'P' && curPiece != 'p') {
+                    pgnMove.append(curPiece > 'a' ? (char) (curPiece - 'a' + 'A') : curPiece);
+                    pgnMove.append(toSquare(startRow, startCol));
+                    if (move.getIsCapture()) {
+                        halfMove = 0;
+                        pgnMove.append("x");
+                    } else {
+                        halfMove++;
+                    }
+                } else {
+                    // Is a pawn move
+                    halfMove = 0;
+                    if (move.getIsCapture()) {
+                        pgnMove.append((char) (startCol + 'a'));
+                        pgnMove.append("x");
+                    }
+                    if (endRow - startRow == 2) {
+                        enPassantWhite = (char) (startCol + 'a');
+                    }
+                    if (endRow - startRow == -2) {
+                        enPassantBlack = (char) (startCol + 'a');
+                    }
+                }
+                pgnMove.append(toSquare(endRow, endCol));
+
+                // Update pieces
+                if (enemyPiece != 0) {
+                    removePiece(endRow, endCol, enemyPiece);
+                }
+                setPiece(endRow, endCol, curPiece);
+                removePiece(startRow, startCol, curPiece);
+                break;
+
+            case CASTLING:
+                pgnMove.append(move.getCastleType() == 'K' || move.getCastleType() == 'k' ? "O-O" : "O-O-O");
+                halfMove++;
+
+                // Update pieces
+                setPiece(endRow, endCol, curPiece);
+                removePiece(startRow, startCol, curPiece);
+                // Move the rook
+                int rookRow = (move.getCastleType() == 'K' || move.getCastleType() == 'Q') ? 0 : 7;
+                int rookStartCol = (move.getCastleType() == 'K' || move.getCastleType() == 'k') ? 7 : 0;
+                int rookEndCol = (move.getCastleType() == 'K' || move.getCastleType() == 'k') ? 5 : 3;
+                setPiece(rookRow, rookEndCol, whiteToMove ? 'R' : 'r');
+                removePiece(rookRow, rookStartCol, whiteToMove ? 'R' : 'r');
+                break;
+
+            case EN_PASSANT:
+                pgnMove.append((char) (startCol + 'a'));
+                pgnMove.append("x");
+                pgnMove.append(toSquare(endRow, endCol));
+                halfMove = 0;
+
+                // Update pieces
+                setPiece(endRow, endCol, curPiece);
+                removePiece(startRow, startCol, curPiece);
+                // Remove the enemy pawn
+                removePiece(startRow, endCol, curPiece == 'P' ? 'p' : 'P');
+                break;
+
+            case PROMOTION:
+                if (move.getIsCapture()) {
+                    pgnMove.append((char) (startCol + 'a'));
+                    pgnMove.append("x");
+                }
+                pgnMove.append(toSquare(endRow, endCol));
+                pgnMove.append("=");
+                pgnMove.append(Character.toUpperCase(move.getPromotionType()));
+                halfMove = 0;
+
+                // Update pieces
+                if (enemyPiece != 0) {
+                    removePiece(endRow, endCol, enemyPiece);
+                }
+                removePiece(startRow, startCol, whiteToMove ? 'P' : 'p');
+                // ending square becomes promoted piece
+                setPiece(endRow, endCol, move.getPromotionType());
+                break;
+
+            default:
+                assert false;
+        }
+
+        if (!whiteToMove) {
+            fullMove++;
+        }
+        whiteToMove = !whiteToMove;
+
+        boolean changed = updateWinner();
+
+        if (isInCheck()) {
+            if (changed) {
+                // Must be checkmate
+                pgnMove.append("#");
+            } else {
+                pgnMove.append("+");
+            }
+        }
+        pgn.addMove(pgnMove.toString());
+
+        // Update posFreq
+        if (!PERFT) {
+            String unclockedFEN = getUnclockedFEN();
+            posFreq.put(unclockedFEN, posFreq.getOrDefault(unclockedFEN, 0) + 1);
+        }
+
+        // Sanity check
+        // TODO: Can be removed after fully tested
+        try {
+            checkBoardLegality();
+        } catch (IllegalBoardException e) {
+            e.printStackTrace();
+            assert false;
+        }
+        return true;
+    }
 
     /**
      * Undo the last move and restore the board to the same state as the one before the move.
@@ -482,5 +685,12 @@ public abstract class Board {
             case 'b' -> "0-1";
             default -> throw new IllegalStateException("Unexpected value for winner: " + winner);
         };
+    }
+
+    /**
+     * @return the chessboard notation for the square at {row, col}. (for example: a1, e4)
+     */
+    private String toSquare(int row, int col) {
+        return "" + ('a' + col) + (row + 1);
     }
 }
