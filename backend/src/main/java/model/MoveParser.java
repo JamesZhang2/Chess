@@ -21,15 +21,19 @@ public class MoveParser {
      * <p>
      *
      * @return the move parsed from the input string, given the current board state
-     * @throws IllegalMoveException   if the input represents a malformed or illegal move
+     * @throws MalformedMoveException if the input represents a malformed move
+     * @throws IllegalMoveException   if the input represents an illegal move
      * @throws AmbiguousMoveException if the input represents an ambiguous move
+     *                                <p>
+     *                                Postcondition: The board is unchanged
      */
     public static Move parse(String input, Board board)
             throws MalformedMoveException, IllegalMoveException, AmbiguousMoveException {
         // leading and trailing whitespace is ignored
         input = input.strip();
         String regex = "^((?<pawnQuiet>[a-h][1-8])|" +
-                "(?<regular>([KQRBN]|[a-h])(?<startFile>[a-h]?)(?<startRank>[1-8]?)(?<capture>x?)[a-h][1-8])|" +
+                "(?<pawnCapture>[a-h]x[a-h][1-8])|" +
+                "(?<regular>[KQRBN](?<startFile>[a-h]?)(?<startRank>[1-8]?)(?<capture>x?)[a-h][1-8])|" +
                 "(?<prom>[a-h][18]=[QRBN])|" +
                 "(?<promCapture>[a-h]x[a-h][18]=[QRBN])|" +
                 "(?<castleK>O-O|0-0)|" +
@@ -40,13 +44,14 @@ public class MoveParser {
             throw new MalformedMoveException("Malformed move: " + input);
         }
         String pawnQuiet = matcher.group("pawnQuiet");
+        String pawnCapture = matcher.group("pawnCapture");
         String regular = matcher.group("regular");
         String prom = matcher.group("prom");
         String promCapture = matcher.group("promCapture");
         boolean isCheck = !matcher.group("check").isEmpty();
         boolean isMate = !matcher.group("mate").isEmpty();
 
-        Move proposedMove;
+        Move proposedMove = null;
         if (!matcher.group("castleK").isEmpty()) {
             proposedMove = new Move('K');
         } else if (!matcher.group("castleQ").isEmpty()) {
@@ -63,14 +68,14 @@ public class MoveParser {
             int endCol = promCapture.charAt(2) - 'a';
             int endRow = promCapture.charAt(3) - '1';
             int startRow = endRow == 0 ? 1 : 6;
-            char promotion = endRow == 0 ? (char)(promCapture.charAt(5) - 'A' + 'a') : promCapture.charAt(5);
+            char promotion = endRow == 0 ? (char) (promCapture.charAt(5) - 'A' + 'a') : promCapture.charAt(5);
             proposedMove = new Move(startRow, startCol, endRow, endCol, promotion, true);
         } else if (!pawnQuiet.isEmpty()) {
             int startCol = pawnQuiet.charAt(0) - 'a';
             int endCol = startCol;
             int endRow = pawnQuiet.charAt(1) - '1';
             int startRow;
-            int advance = board.whiteToMove ? 1 : -1;
+            int advance = board.whiteToMove() ? 1 : -1;
             if (board.getPieceAt(startCol, endRow - advance) == 0) {
                 // only possibility is pawn pushing 2 squares
                 startRow = endRow - 2 * advance;
@@ -78,10 +83,57 @@ public class MoveParser {
                 startRow = endRow - advance;
             }
             proposedMove = new Move(startRow, startCol, endRow, endCol, false, false);
+        } else if (!pawnCapture.isEmpty()) {
+            int startCol = pawnCapture.charAt(0) - 'a';
+            int endCol = pawnCapture.charAt(2) - 'a';
+            int endRow = pawnCapture.charAt(3) - '1';
+            int startRow = board.whiteToMove() ? endRow - 1 : endRow + 1;
+            boolean enPassant = false;
+            if (board.getPieceAt(endRow, endCol) == 0) {
+                // can only be en passant
+                enPassant = true;
+            }
+            proposedMove = new Move(startRow, startCol, endRow, endCol, enPassant, true);
         } else if (!regular.isEmpty()) {
-            // TODO
+            // Need to check for ambiguity
+            Set<Move> legalMoves = board.getLegalMoves();
+            char pieceType = board.whiteToMove() ? regular.charAt(0) : (char)(regular.charAt(0) - 'A' + 'a');
+            int endRow = regular.charAt(regular.length() - 1) - '1';
+            int endCol = regular.charAt(regular.length() - 2) - 'a';
+            boolean isCapture = !matcher.group("capture").isEmpty();
+            String startFile = matcher.group("startFile");
+            String startRank = matcher.group("startRank");
+            // We use -1 for "unspecified"
+            int startRow = startFile.isEmpty() ? -1 : startFile.charAt(0) - 'a';
+            int startCol = startRank.isEmpty() ? -1 : startRank.charAt(0) - '1';
+
+            // TODO Iterate through all legal moves
+            if (proposedMove == null) {
+                throw new IllegalMoveException("Illegal move: " + input);
+            }
         } else {
             assert false;
         }
+
+        if (!board.isLegal(proposedMove)) {
+            throw new IllegalMoveException("Illegal move: " + input);
+        }
+
+        assert proposedMove != null;
+        boolean success = board.move(proposedMove);
+        assert success;
+        if (isMate && (board.getWinner() == 'u' || board.getWinner() == 'd')) {
+            // Note that it's impossible for white to make the last move and the winner to be black (and vice versa)
+            // so we only need to check for undetermined and draw
+            board.undoLastMove();
+            throw new IllegalMoveException("Move " + input + " claims to be checkmate but it isn't");
+        }
+        if (isCheck && !board.isInCheck()) {
+            board.undoLastMove();
+            throw new IllegalMoveException("Move " + input + " claims to be check but it isn't");
+        }
+        board.undoLastMove();
+
+        return proposedMove;
     }
 }

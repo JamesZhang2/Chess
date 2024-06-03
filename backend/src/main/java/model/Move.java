@@ -128,8 +128,24 @@ public class Move {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Move move = (Move) o;
-        return startRow == move.startRow && startCol == move.startCol && endRow == move.endRow && endCol == move.endCol
-                && castleType == move.castleType && promotionType == move.promotionType && moveType == move.moveType;
+        if (moveType != move.moveType) {
+            return false;
+        }
+        switch (moveType) {
+            case REGULAR, EN_PASSANT:
+                return startRow == move.startRow && startCol == move.startCol
+                        && endRow == move.endRow && endCol == move.endCol && isCapture == move.isCapture;
+            case CASTLING:
+                return startRow == move.startRow && startCol == move.startCol
+                        && endRow == move.endRow && endCol == move.endCol;
+            case PROMOTION:
+                return startRow == move.startRow && startCol == move.startCol
+                        && endRow == move.endRow && endCol == move.endCol
+                        && isCapture == move.isCapture && promotionType == move.promotionType;
+            default:
+                assert false;
+                return false;
+        }
     }
 
     @Override

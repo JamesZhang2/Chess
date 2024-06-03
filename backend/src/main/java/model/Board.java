@@ -723,6 +723,13 @@ public abstract class Board {
     protected abstract boolean hasLegalMoves();
 
     /**
+     * @return true if it's white to move, false otherwise
+     */
+    public boolean whiteToMove() {
+        return whiteToMove;
+    }
+
+    /**
      * @return the result of the game (1-0 or 1/2-1/2 or 0-1 or *)
      */
     public String getResult() {
