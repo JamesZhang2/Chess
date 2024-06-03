@@ -1,9 +1,8 @@
 import { useState } from "react";
 import "./App.css";
-import axios from "axios";
-import Board from "./Board.jsx";
 import Login from "./Login.jsx";
 import Home from "./Home.jsx";
+import Game from "./Game.jsx";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 function App() {
@@ -12,6 +11,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/home" element={<Home />} />
+        <Route path="/game" element={<Game />} />
       </Routes>
     </BrowserRouter>
   );

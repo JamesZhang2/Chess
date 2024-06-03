@@ -28,4 +28,12 @@ public class Controller {
         System.out.println(body.get("text"));
         return new ResponseEntity<>("Received!", HttpStatus.OK);
     }
+
+    @CrossOrigin(origins = "http://localhost:5173")
+    @PostMapping("/login")
+    public ResponseEntity<String> login(@RequestBody Map<String, String> body) {
+        System.out.println("Username: " + body.get("login_username"));
+        System.out.println("Password: " + body.get("login_password"));
+        return new ResponseEntity<>("Received!", HttpStatus.OK);
+    }
 }
