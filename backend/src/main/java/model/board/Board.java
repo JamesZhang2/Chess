@@ -1,4 +1,8 @@
-package model;
+package model.board;
+
+import model.move.Move;
+import model.move.PGN;
+import model.Util;
 
 import java.util.*;
 
@@ -194,7 +198,7 @@ public abstract class Board {
     public String toString() {
         StringBuilder sb = new StringBuilder();
 
-        sb.append(piecesToString());
+        sb.append(piecesToString(false));
 
         if (whiteToMove) {
             sb.append("White to move\n");
@@ -225,16 +229,27 @@ public abstract class Board {
     protected abstract char[][] getPieces();
 
     /**
-     * @return A readable depiction of the pieces, used for debugging
+     * @param flipped if true, then we're viewing the board from black's perspective
+     *                if false, then we're viewing the board from white's perspective
+     * @return A readable depiction of the pieces
      */
-    protected String piecesToString() {
+    public String piecesToString(boolean flipped) {
         char[][] pieces = getPieces();
         StringBuilder sb = new StringBuilder();
-        for (int r = 7; r >= 0; r--) {
-            for (int c = 0; c < 8; c++) {
-                sb.append(pieces[r][c] == 0 ? '.' : pieces[r][c]);
+        if (flipped) {
+            for (int r = 0; r < 8; r++) {
+                for (int c = 7; c >= 0; c--) {
+                    sb.append(pieces[r][c] == 0 ? '.' : pieces[r][c]);
+                }
+                sb.append("\n");
             }
-            sb.append("\n");
+        } else {
+            for (int r = 7; r >= 0; r--) {
+                for (int c = 0; c < 8; c++) {
+                    sb.append(pieces[r][c] == 0 ? '.' : pieces[r][c]);
+                }
+                sb.append("\n");
+            }
         }
         return sb.toString();
     }
@@ -664,7 +679,33 @@ public abstract class Board {
     /**
      * @return the winner of the game.
      */
-    public abstract char getWinner();
+    public char getWinner() {
+        return winner;
+    }
+
+    /**
+     * Have the current player resign the game and return true if the current winner is unknown,
+     * do nothing and return false otherwise.
+     */
+    public boolean resign() {
+        if (this.winner == 'u') {
+            this.winner = whiteToMove ? 'b' : 'w';
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Have the two players agree to a draw and return true if the current winner is unknown,
+     * do nothing and return false otherwise.
+     */
+    public boolean drawByAgreement() {
+        if (this.winner == 'u') {
+            this.winner = 'd';
+            return true;
+        }
+        return false;
+    }
 
     /**
      * Check if the game ended and update the winner variable.

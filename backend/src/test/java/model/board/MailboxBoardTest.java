@@ -1,4 +1,4 @@
-package model;
+package model.board;
 
 class MailboxBoardTest extends BoardTest{
     @Override

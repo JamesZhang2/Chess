@@ -1,4 +1,6 @@
-package model;
+package model.board;
+
+import model.Util;
 
 /**
  * A class for computing and storing lookup tables for Bitmap boards.

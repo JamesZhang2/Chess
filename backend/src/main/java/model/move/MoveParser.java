@@ -1,6 +1,7 @@
-package model;
+package model.move;
 
-import java.util.Set;
+import model.board.Board;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 

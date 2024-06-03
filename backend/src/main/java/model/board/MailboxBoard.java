@@ -1,4 +1,7 @@
-package model;
+package model.board;
+
+import model.move.Move;
+import model.Util;
 
 import java.util.*;
 
@@ -536,11 +539,6 @@ public class MailboxBoard extends Board {
         }
         assert false;
         return new ArrayList<>();
-    }
-
-    @Override
-    public char getWinner() {
-        return winner;
     }
 
     @Override

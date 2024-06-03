@@ -1,4 +1,4 @@
-package model;
+package model.move;
 
 /**
  * Thrown when the move parsed by the move parser is ambiguous.
