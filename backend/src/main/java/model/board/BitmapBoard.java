@@ -1,4 +1,7 @@
-package model;
+package model.board;
+
+import model.move.Move;
+import model.Util;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -590,11 +593,6 @@ public class BitmapBoard extends Board {
      */
     private boolean isInCheck(boolean white) {
         return (attacks(!white) & bitmaps[white ? 'K' : 'k']) != 0;
-    }
-
-    @Override
-    public char getWinner() {
-        return winner;
     }
 
     @Override

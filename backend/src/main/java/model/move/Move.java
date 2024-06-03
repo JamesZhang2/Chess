@@ -1,4 +1,6 @@
-package model;
+package model.move;
+
+import model.Util;
 
 import java.util.Objects;
 
@@ -22,10 +24,12 @@ public class Move {
 
     // K: white castles kingside, Q: white castles queenside,
     // k: black castles kingside, q: black castles queenside.
-    private char castleType;
+    // 0 if the move is not a castling move
+    private final char castleType;
 
     // QRBN for white, qrbn for black
-    private char promotionType;
+    // 0 if the move is not a promotion
+    private final char promotionType;
 
     private final boolean isCapture;
 
@@ -41,6 +45,8 @@ public class Move {
         this.endRow = endRow;
         this.endCol = endCol;
         this.isCapture = isCapture;
+        this.castleType = 0;
+        this.promotionType = 0;
     }
 
     /**
@@ -67,6 +73,7 @@ public class Move {
         this.castleType = castleType;
         // Castling can't be a capture
         this.isCapture = false;
+        this.promotionType = 0;
     }
 
     /**
@@ -91,6 +98,7 @@ public class Move {
         }
         this.promotionType = promotion;
         this.isCapture = isCapture;
+        this.castleType = 0;
     }
 
     /**
@@ -103,11 +111,8 @@ public class Move {
         endRow = move.endRow;
         endCol = move.endCol;
         isCapture = move.isCapture;
-        if (move.moveType == Type.CASTLING) {
-            castleType = move.castleType;
-        } else if (move.moveType == Type.PROMOTION) {
-            promotionType = move.promotionType;
-        }
+        castleType = move.castleType;
+        promotionType = move.promotionType;
     }
 
     public int getStartRow() {
@@ -177,10 +182,10 @@ public class Move {
                 return (castleType == 'K' || castleType == 'k') ? "O-O" : "O-O-O";
             case REGULAR, EN_PASSANT, PROMOTION:
                 StringBuilder sb = new StringBuilder();
-                sb.append((char)(startCol + 'a'));
+                sb.append((char) (startCol + 'a'));
                 sb.append(startRow + 1);
                 sb.append(isCapture ? 'x' : '-');
-                sb.append((char)(endCol + 'a'));
+                sb.append((char) (endCol + 'a'));
                 sb.append(endRow + 1);
                 if (moveType == Type.PROMOTION) {
                     sb.append('=').append(promotionType);

@@ -1,4 +1,4 @@
-package model;
+package model.board;
 
 class BitmapBoardTest extends BoardTest{
     @Override

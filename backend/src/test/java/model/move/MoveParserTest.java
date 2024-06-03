@@ -1,5 +1,8 @@
-package model;
+package model.move;
 
+import model.Util;
+import model.board.*;
+import model.move.*;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

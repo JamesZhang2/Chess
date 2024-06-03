@@ -1,4 +1,4 @@
-package model;
+package model.board;
 
 /**
  * Thrown when the board state is illegal.

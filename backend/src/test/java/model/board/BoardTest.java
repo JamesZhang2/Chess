@@ -1,6 +1,10 @@
-package model;
+package model.board;
 
-import model.*;
+import model.Util;
+import model.board.Board;
+import model.board.IllegalBoardException;
+import model.board.MalformedFENException;
+import model.move.Move;
 import org.junit.jupiter.api.Test;
 
 import java.io.*;
