@@ -1,0 +1,15 @@
+body {
+    font-size: 18px;
+}
+
+.home-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.vs-human-container,
+.vs-ai-container {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+}

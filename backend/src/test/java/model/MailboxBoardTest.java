@@ -1,14 +1,13 @@
-import model.*;
-import org.junit.jupiter.api.Test;
+package model;
 
-class BitmapBoardTest extends BoardTest{
+class MailboxBoardTest extends BoardTest{
     @Override
     protected Board createBoard() {
-        return new BitmapBoard();
+        return new MailboxBoard();
     }
 
     @Override
     protected Board createBoard(String fen) throws IllegalBoardException, MalformedFENException {
-        return new BitmapBoard(fen);
+        return new MailboxBoard(fen);
     }
 }

@@ -149,6 +149,36 @@ public class Util {
         return count;
     }
 
+    /**
+     * Turns a square (like f3) into coordinates in {row, col} form (like [2, 5]).
+     */
+    public static int[] squareToCoords(String square) {
+        int row = square.charAt(1) - '1';
+        int col = square.charAt(0) - 'a';
+        return new int[]{row, col};
+    }
+
+    /**
+     * Convenience method for constructing regular and en passant moves
+     *
+     * @return the move constructed from the given fields
+     */
+    public static Move moveFromSquares(String from, String to, boolean isEnPassant, boolean isCapture) {
+        int[] startCoord = squareToCoords(from);
+        int[] endCoord = squareToCoords(to);
+        return new Move(startCoord[0], startCoord[1], endCoord[0], endCoord[1], isEnPassant, isCapture);
+    }
+
+    /**
+     * Convenience method for constructing promotion moves
+     *
+     * @return the move constructed from the given fields
+     */
+    public static Move moveFromSquares(String from, String to, char promotion, boolean isCapture) {
+        int[] startCoord = squareToCoords(from);
+        int[] endCoord = squareToCoords(to);
+        return new Move(startCoord[0], startCoord[1], endCoord[0], endCoord[1], promotion, isCapture);
+    }
 
     /**
      * Turn the bitmap into a human-readable string, respecting the little-endian mapping
