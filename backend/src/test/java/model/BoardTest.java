@@ -1,3 +1,5 @@
+package model;
+
 import model.*;
 import org.junit.jupiter.api.Test;
 
@@ -275,149 +277,124 @@ abstract class BoardTest {
         assertEquals(fen, board.toFEN(), msg);
     }
 
-    /**
-     * Turns a square (like f3) into coordinates in {row, col} form (like [2, 5]).
-     */
-    private int[] squareToCoords(String square) {
-        int row = square.charAt(1) - '1';
-        int col = square.charAt(0) - 'a';
-        return new int[]{row, col};
-    }
-
-    /**
-     * Convenience method for constructing moves
-     *
-     * @return the move constructed from the given fields
-     */
-    private Move moveFromSquares(String from, String to, boolean isEnPassant, boolean isCapture) {
-        int[] startCoord = squareToCoords(from);
-        int[] endCoord = squareToCoords(to);
-        return new Move(startCoord[0], startCoord[1], endCoord[0], endCoord[1], isEnPassant, isCapture);
-    }
-
-    private Move moveFromSquares(String from, String to, char promotion, boolean isCapture) {
-        int[] startCoord = squareToCoords(from);
-        int[] endCoord = squareToCoords(to);
-        return new Move(startCoord[0], startCoord[1], endCoord[0], endCoord[1], promotion, isCapture);
-    }
 
     @Test
     public void testMove() throws MalformedFENException, IllegalBoardException {
         // Legal moves
         // Stafford Gambit line
         testLegalMove(Util.START_POS,
-                moveFromSquares("e2", "e4", false, false),
+                Util.moveFromSquares("e2", "e4", false, false),
                 "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
         testLegalMove("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
-                moveFromSquares("e7", "e5", false, false),
+                Util.moveFromSquares("e7", "e5", false, false),
                 "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2");
         testLegalMove("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2",
-                moveFromSquares("g1", "f3", false, false),
+                Util.moveFromSquares("g1", "f3", false, false),
                 "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2");
         testLegalMove("rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
-                moveFromSquares("g8", "f6", false, false),
+                Util.moveFromSquares("g8", "f6", false, false),
                 "rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3");
         testLegalMove("rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
-                moveFromSquares("f3", "e5", false, true),
+                Util.moveFromSquares("f3", "e5", false, true),
                 "rnbqkb1r/pppp1ppp/5n2/4N3/4P3/8/PPPP1PPP/RNBQKB1R b KQkq - 0 3");
         testLegalMove("rnbqkb1r/pppp1ppp/5n2/4N3/4P3/8/PPPP1PPP/RNBQKB1R b KQkq - 0 3",
-                moveFromSquares("b8", "c6", false, false),
+                Util.moveFromSquares("b8", "c6", false, false),
                 "r1bqkb1r/pppp1ppp/2n2n2/4N3/4P3/8/PPPP1PPP/RNBQKB1R w KQkq - 1 4");
         testLegalMove("r1bqkb1r/pppp1ppp/2n2n2/4N3/4P3/8/PPPP1PPP/RNBQKB1R w KQkq - 1 4",
-                moveFromSquares("e5", "c6", false, true),
+                Util.moveFromSquares("e5", "c6", false, true),
                 "r1bqkb1r/pppp1ppp/2N2n2/8/4P3/8/PPPP1PPP/RNBQKB1R b KQkq - 0 4");
         testLegalMove("r1bqkb1r/pppp1ppp/2N2n2/8/4P3/8/PPPP1PPP/RNBQKB1R b KQkq - 0 4",
-                moveFromSquares("d7", "c6", false, true),
+                Util.moveFromSquares("d7", "c6", false, true),
                 "r1bqkb1r/ppp2ppp/2p2n2/8/4P3/8/PPPP1PPP/RNBQKB1R w KQkq - 0 5");
         // A few moves later (white has fallen into the trap)
         testLegalMove("r1bqk2r/ppp2ppp/2p5/2b5/2B1P1n1/2N5/PPPP1PPP/R1BQK2R w KQkq - 4 7",
                 new Move('K'),
                 "r1bqk2r/ppp2ppp/2p5/2b5/2B1P1n1/2N5/PPPP1PPP/R1BQ1RK1 b kq - 5 7");
         testLegalMove("r1bqk2r/ppp2ppp/2p5/2b5/2B1P1n1/2N5/PPPP1PPP/R1BQ1RK1 b kq - 5 7",
-                moveFromSquares("d8", "h4", false, false),
+                Util.moveFromSquares("d8", "h4", false, false),
                 "r1b1k2r/ppp2ppp/2p5/2b5/2B1P1nq/2N5/PPPP1PPP/R1BQ1RK1 w kq - 6 8");
 
         // Queen moves
         testLegalMove("4k3/8/8/8/8/6Q1/8/4K3 w - - 0 1",
-                moveFromSquares("g3", "d6", false, false),
+                Util.moveFromSquares("g3", "d6", false, false),
                 "4k3/8/3Q4/8/8/8/8/4K3 b - - 1 1");
         testLegalMove("8/3k4/8/3N1q2/8/2K5/8/8 b - - 15 20",
-                moveFromSquares("f5", "d5", false, true),
+                Util.moveFromSquares("f5", "d5", false, true),
                 "8/3k4/8/3q4/8/2K5/8/8 w - - 0 21");
         testLegalMove("4k3/8/8/q7/6Q1/8/8/4K3 w - - 0 1",
-                moveFromSquares("g4", "b4", false, false),
+                Util.moveFromSquares("g4", "b4", false, false),
                 "4k3/8/8/q7/1Q6/8/8/4K3 b - - 1 1");
 
         // Rook moves
         testLegalMove("4k3/8/8/8/6R1/8/8/4K3 w - - 0 21",
-                moveFromSquares("g4", "g8", false, false),
+                Util.moveFromSquares("g4", "g8", false, false),
                 "4k1R1/8/8/8/8/8/8/4K3 b - - 1 21");
         testLegalMove("4k3/8/8/2r3P1/8/8/8/4K3 b - - 1 21",
-                moveFromSquares("c5", "g5", false, true),
+                Util.moveFromSquares("c5", "g5", false, true),
                 "4k3/8/8/6r1/8/8/8/4K3 w - - 0 22");
         testLegalMove("4k3/8/4Q1r1/8/8/8/8/4K3 b - - 1 1",
-                moveFromSquares("g6", "e6", false, true),
+                Util.moveFromSquares("g6", "e6", false, true),
                 "4k3/8/4r3/8/8/8/8/4K3 w - - 0 2");
         // Moving rook removes castling rights
         testLegalMove("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 22",
-                moveFromSquares("a1", "b1", false, false),
+                Util.moveFromSquares("a1", "b1", false, false),
                 "r3k2r/8/8/8/8/8/8/1R2K2R b Kkq - 1 22");
         testLegalMove("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 22",
-                moveFromSquares("h1", "g1", false, false),
+                Util.moveFromSquares("h1", "g1", false, false),
                 "r3k2r/8/8/8/8/8/8/R3K1R1 b Qkq - 1 22");
         testLegalMove("r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 7 22",
-                moveFromSquares("a8", "a2", false, false),
+                Util.moveFromSquares("a8", "a2", false, false),
                 "4k2r/8/8/8/8/8/r7/R3K2R w KQk - 8 23");
         testLegalMove("r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 7 22",
-                moveFromSquares("h8", "f8", false, false),
+                Util.moveFromSquares("h8", "f8", false, false),
                 "r3kr2/8/8/8/8/8/8/R3K2R w KQq - 8 23");
         // Capturing rook removes castling rights
         testLegalMove("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 22",
-                moveFromSquares("a1", "a8", false, true),
+                Util.moveFromSquares("a1", "a8", false, true),
                 "R3k2r/8/8/8/8/8/8/4K2R b Kk - 0 22");
         testLegalMove("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 22",
-                moveFromSquares("h1", "h8", false, true),
+                Util.moveFromSquares("h1", "h8", false, true),
                 "r3k2R/8/8/8/8/8/8/R3K3 b Qq - 0 22");
         testLegalMove("r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 7 22",
-                moveFromSquares("a8", "a1", false, true),
+                Util.moveFromSquares("a8", "a1", false, true),
                 "4k2r/8/8/8/8/8/8/r3K2R w Kk - 0 23");
         testLegalMove("r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 7 22",
-                moveFromSquares("h8", "h1", false, true),
+                Util.moveFromSquares("h8", "h1", false, true),
                 "r3k3/8/8/8/8/8/8/R3K2r w Qq - 0 23");
         // Moving a rook back does not give back castling rights
         testLegalMove("r3k2r/p6p/8/8/8/8/P6P/R3K1R1 w Qkq - 7 22",
-                moveFromSquares("g1", "h1", false, false),
+                Util.moveFromSquares("g1", "h1", false, false),
                 "r3k2r/p6p/8/8/8/8/P6P/R3K2R b Qkq - 8 22");
 
         // Bishop moves
         testLegalMove("4k2q/8/8/8/8/8/1B6/4K3 w - - 0 1",
-                moveFromSquares("b2", "h8", false, true),
+                Util.moveFromSquares("b2", "h8", false, true),
                 "4k2B/8/8/8/8/8/8/4K3 b - - 0 1");
         testLegalMove("8/8/7k/6b1/8/8/8/2QK4 b - - 0 1",
-                moveFromSquares("g5", "f4", false, false),
+                Util.moveFromSquares("g5", "f4", false, false),
                 "8/8/7k/8/5b2/8/8/2QK4 w - - 1 2");
 
         // Knight moves
         testLegalMove("4k3/8/5p2/8/6N1/8/8/4K3 w - - 0 1",
-                moveFromSquares("g4", "f6", false, true),
+                Util.moveFromSquares("g4", "f6", false, true),
                 "4k3/8/5N2/8/8/8/8/4K3 b - - 0 1");
         testLegalMove("4k3/8/6pp/6pn/6pp/8/8/4K3 b - - 0 1",
-                moveFromSquares("h5", "f4", false, false),
+                Util.moveFromSquares("h5", "f4", false, false),
                 "4k3/8/6pp/6p1/5npp/8/8/4K3 w - - 1 2");
 
         // King moves
         testLegalMove("8/8/2k5/8/7P/5K2/8/8 w - - 0 1",
-                moveFromSquares("f3", "e4", false, false),
+                Util.moveFromSquares("f3", "e4", false, false),
                 "8/8/2k5/8/4K2P/8/8/8 b - - 1 1");
         testLegalMove("8/8/2k5/8/4K2P/8/8/8 b - - 1 1",
-                moveFromSquares("c6", "d7", false, false),
+                Util.moveFromSquares("c6", "d7", false, false),
                 "8/3k4/8/8/4K2P/8/8/8 w - - 2 2");
         // Moving out of check
         testLegalMove("8/8/8/4k3/8/4K2r/8/8 w - - 0 1",
-                moveFromSquares("e3", "f2", false, false),
+                Util.moveFromSquares("e3", "f2", false, false),
                 "8/8/8/4k3/8/7r/5K2/8 b - - 1 1");
         testLegalMove("8/8/8/4kQ2/8/8/5K2/8 b - - 1 1",
-                moveFromSquares("e5", "f5", false, true),
+                Util.moveFromSquares("e5", "f5", false, true),
                 "8/8/8/5k2/8/8/5K2/8 w - - 0 2");
         // Castling
         testLegalMove("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
@@ -434,145 +411,145 @@ abstract class BoardTest {
                 "2kr3r/8/8/8/8/8/8/R3K2R w KQ - 2 2");
         // Moving king removes castling rights
         testLegalMove("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
-                moveFromSquares("e1", "e2", false, false),
+                Util.moveFromSquares("e1", "e2", false, false),
                 "r3k2r/8/8/8/8/8/4K3/R6R b kq - 1 1");
         testLegalMove("r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 1 1",
-                moveFromSquares("e8", "e7", false, false),
+                Util.moveFromSquares("e8", "e7", false, false),
                 "r6r/4k3/8/8/8/8/8/R3K2R w KQ - 2 2");
 
         // Pawn moves
         // Pawn move should reset halfmove counter
         testLegalMove("8/8/8/4k3/2P5/4K3/8/8 w - - 49 40",
-                moveFromSquares("c4", "c5", false, false),
+                Util.moveFromSquares("c4", "c5", false, false),
                 "8/8/8/2P1k3/8/4K3/8/8 b - - 0 40");
         testLegalMove("8/8/8/4k3/8/4K1p1/8/8 b - - 0 1",
-                moveFromSquares("g3", "g2", false, false),
+                Util.moveFromSquares("g3", "g2", false, false),
                 "8/8/8/4k3/8/4K3/6p1/8 w - - 0 2");
         testLegalMove("8/3PK1k1/8/8/8/8/8/8 w - - 99 80",
                 new Move(6, 3, 7, 3, 'Q', false),
                 "3Q4/4K1k1/8/8/8/8/8/8 b - - 0 80");
         // Pawn captures
         testLegalMove("8/7b/6P1/4k3/8/4K3/8/8 w - - 0 2",
-                moveFromSquares("g6", "h7", false, true),
+                Util.moveFromSquares("g6", "h7", false, true),
                 "8/7P/8/4k3/8/4K3/8/8 b - - 0 2");
         testLegalMove("8/8/8/4k3/8/4K1p1/5Q2/8 b - - 49 40",
-                moveFromSquares("g3", "f2", false, true),
+                Util.moveFromSquares("g3", "f2", false, true),
                 "8/8/8/4k3/8/4K3/5p2/8 w - - 0 41");
         // Moving two squares from starting square changes en passant state
         testLegalMove("8/8/8/4k3/2p5/4K3/1P6/8 w - - 49 41",
-                moveFromSquares("b2", "b4", false, false),
+                Util.moveFromSquares("b2", "b4", false, false),
                 "8/8/8/4k3/1Pp5/4K3/8/8 b - b3 0 41");
         testLegalMove("4k3/p7/8/1P6/8/8/8/4K3 b - - 0 1",
-                moveFromSquares("a7", "a5", false, false),
+                Util.moveFromSquares("a7", "a5", false, false),
                 "4k3/8/8/pP6/8/8/8/4K3 w - a6 0 2");
         // Promotions
         testLegalMove("4k3/P7/8/8/8/8/8/4K3 w - - 49 2",
-                moveFromSquares("a7", "a8", 'Q', false),
+                Util.moveFromSquares("a7", "a8", 'Q', false),
                 "Q3k3/8/8/8/8/8/8/4K3 b - - 0 2");
         testLegalMove("4k3/P7/8/8/8/8/8/4K3 w - - 49 2",
-                moveFromSquares("a7", "a8", 'R', false),
+                Util.moveFromSquares("a7", "a8", 'R', false),
                 "R3k3/8/8/8/8/8/8/4K3 b - - 0 2");
         testLegalMove("4k3/P7/8/8/8/8/8/4K3 w - - 49 2",
-                moveFromSquares("a7", "a8", 'B', false),
+                Util.moveFromSquares("a7", "a8", 'B', false),
                 "B3k3/8/8/8/8/8/8/4K3 b - - 0 2");
         testLegalMove("4k3/P7/8/8/8/8/8/4K3 w - - 49 2",
-                moveFromSquares("a7", "a8", 'N', false),
+                Util.moveFromSquares("a7", "a8", 'N', false),
                 "N3k3/8/8/8/8/8/8/4K3 b - - 0 2");
         testLegalMove("4k3/8/8/8/8/8/2p5/4K3 b - - 49 2",
-                moveFromSquares("c2", "c1", 'q', false),
+                Util.moveFromSquares("c2", "c1", 'q', false),
                 "4k3/8/8/8/8/8/8/2q1K3 w - - 0 3");
         testLegalMove("4k3/8/8/8/8/8/2p5/4K3 b - - 49 2",
-                moveFromSquares("c2", "c1", 'r', false),
+                Util.moveFromSquares("c2", "c1", 'r', false),
                 "4k3/8/8/8/8/8/8/2r1K3 w - - 0 3");
         testLegalMove("4k3/8/8/8/8/8/2p5/4K3 b - - 49 2",
-                moveFromSquares("c2", "c1", 'b', false),
+                Util.moveFromSquares("c2", "c1", 'b', false),
                 "4k3/8/8/8/8/8/8/2b1K3 w - - 0 3");
         testLegalMove("4k3/8/8/8/8/8/2p5/4K3 b - - 49 2",
-                moveFromSquares("c2", "c1", 'n', false),
+                Util.moveFromSquares("c2", "c1", 'n', false),
                 "4k3/8/8/8/8/8/8/2n1K3 w - - 0 3");
         testLegalMove("3qk3/2P5/8/8/8/8/8/4K3 w - - 0 3",
-                moveFromSquares("c7", "d8", 'N', true),
+                Util.moveFromSquares("c7", "d8", 'N', true),
                 "3Nk3/8/8/8/8/8/8/4K3 b - - 0 3");
         testLegalMove("4k3/8/8/8/8/8/1p6/B3K3 b - - 0 3",
-                moveFromSquares("b2", "a1", 'r', true),
+                Util.moveFromSquares("b2", "a1", 'r', true),
                 "4k3/8/8/8/8/8/8/r3K3 w - - 0 4");
         // En passant
         testLegalMove("rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 4",
-                moveFromSquares("e5", "f6", true, true),
+                Util.moveFromSquares("e5", "f6", true, true),
                 "rnbqkbnr/ppp1p1pp/5P2/3p4/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 4");
         testLegalMove("rnbqkbnr/ppp1pppp/8/8/2PpPP2/8/PP1P2PP/RNBQKBNR b KQkq c3 0 6",
-                moveFromSquares("d4", "c3", true, true),
+                Util.moveFromSquares("d4", "c3", true, true),
                 "rnbqkbnr/ppp1pppp/8/8/4PP2/2p5/PP1P2PP/RNBQKBNR w KQkq - 0 7");
         testLegalMove("8/8/8/1k1pP3/4K3/8/8/8 w - d6 0 2",
-                moveFromSquares("e5", "d6", true, true),
+                Util.moveFromSquares("e5", "d6", true, true),
                 "8/8/3P4/1k6/4K3/8/8/8 b - - 0 2");
         testLegalMove("8/8/8/6k1/5Pp1/4K3/8/8 b - f3 0 1",
-                moveFromSquares("g4", "f3", true, true),
+                Util.moveFromSquares("g4", "f3", true, true),
                 "8/8/8/6k1/8/4Kp2/8/8 w - - 0 2");
 
         // Illegal moves
         // Not a piece
         testIllegalMove(Util.START_POS,
-                moveFromSquares("d3", "d4", false, false));
+                Util.moveFromSquares("d3", "d4", false, false));
         // Can't move after game already ended
         testIllegalMove("rnb1kbnr/pppp1ppp/4p3/8/5PPq/8/PPPPP2P/RNBQKBNR w KQkq - 0 1",
-                moveFromSquares("g1", "f3", false, false));
+                Util.moveFromSquares("g1", "f3", false, false));
         testIllegalMove("8/4k3/4b3/4K3/8/8/8/8 w - - 0 1",
-                moveFromSquares("e5", "e4", false, false));
+                Util.moveFromSquares("e5", "e4", false, false));
         testIllegalMove("8/8/8/8/8/6k1/2R5/6K1 w - - 100 70",
-                moveFromSquares("c2", "c3", false, false));
+                Util.moveFromSquares("c2", "c3", false, false));
         // Incorrect piece movement
         testIllegalMove("4k3/8/8/8/8/8/7Q/4K3 w - - 0 1",
-                moveFromSquares("h2", "a5", false, false));
+                Util.moveFromSquares("h2", "a5", false, false));
         testIllegalMove("4k3/8/8/8/1R6/8/8/4K3 w - - 0 1",
-                moveFromSquares("b4", "c5", false, false));
+                Util.moveFromSquares("b4", "c5", false, false));
         testIllegalMove("4k3/8/6b1/8/8/8/8/4K3 b - - 0 1",
-                moveFromSquares("g6", "g2", false, false));
+                Util.moveFromSquares("g6", "g2", false, false));
         testIllegalMove("4k2n/8/8/8/8/8/8/4K3 b - - 0 1",
-                moveFromSquares("h8", "g7", false, false));
+                Util.moveFromSquares("h8", "g7", false, false));
         testIllegalMove("4k3/8/8/8/8/8/8/4K3 w - - 0 1",
-                moveFromSquares("e1", "c1", false, false));
+                Util.moveFromSquares("e1", "c1", false, false));
         testIllegalMove("4k3/8/8/8/8/6P1/8/4K3 w - - 0 1",
-                moveFromSquares("g3", "g5", false, false));
+                Util.moveFromSquares("g3", "g5", false, false));
         // Piece blocked
         testIllegalMove("4k3/8/8/8/8/6B1/7Q/4K3 w - - 0 1",
-                moveFromSquares("h2", "f4", false, false));
+                Util.moveFromSquares("h2", "f4", false, false));
         testIllegalMove("4k3/8/8/6b1/6R1/8/8/4K3 w - - 0 1",
-                moveFromSquares("g4", "g6", false, false));
+                Util.moveFromSquares("g4", "g6", false, false));
         testIllegalMove("4k3/8/8/6b1/5p2/8/8/4K3 b - - 0 1",
-                moveFromSquares("g5", "d2", false, false));
+                Util.moveFromSquares("g5", "d2", false, false));
         testIllegalMove("4k3/8/8/8/8/8/4B3/4K3 w - - 0 1",
-                moveFromSquares("e1", "e2", false, false));
+                Util.moveFromSquares("e1", "e2", false, false));
         testIllegalMove("4k3/4P3/8/8/8/8/8/4K3 w - - 0 1",
-                moveFromSquares("e7", "e8", 'Q', false));
+                Util.moveFromSquares("e7", "e8", 'Q', false));
         // Not a capture
         testIllegalMove("4kb2/8/8/8/8/6R1/8/4K3 w - - 0 1",
-                moveFromSquares("g3", "g5", false, true));
+                Util.moveFromSquares("g3", "g5", false, true));
         testIllegalMove("4kb2/8/8/8/8/6R1/8/4K3 b - - 0 1",
-                moveFromSquares("f8", "c5", false, true));
+                Util.moveFromSquares("f8", "c5", false, true));
         // Not an en passant
         testIllegalMove("4k3/8/5p2/6P1/8/8/8/4K3 w - - 0 1",
-                moveFromSquares("g5", "f6", true, true));
+                Util.moveFromSquares("g5", "f6", true, true));
         testIllegalMove("4k3/8/8/8/6p1/7P/8/4K3 b - - 0 1",
-                moveFromSquares("g4", "h3", true, true));
+                Util.moveFromSquares("g4", "h3", true, true));
         // Wrong side to move
         testIllegalMove("4kb2/8/8/8/8/6R1/8/4K3 b - - 0 1",
-                moveFromSquares("g3", "g5", false, false));
+                Util.moveFromSquares("g3", "g5", false, false));
         testIllegalMove("4kb2/8/8/8/8/6R1/8/4K3 w - - 0 1",
-                moveFromSquares("e8", "d8", false, false));
+                Util.moveFromSquares("e8", "d8", false, false));
         // Move results in check
         testIllegalMove("4k3/4b3/8/8/8/4R3/8/4K3 b - - 0 1",
-                moveFromSquares("e7", "d6", false, false));
+                Util.moveFromSquares("e7", "d6", false, false));
         testIllegalMove("4k3/8/8/8/7q/8/5R2/4K3 w - - 0 1",
-                moveFromSquares("f2", "e2", false, false));
+                Util.moveFromSquares("f2", "e2", false, false));
         testIllegalMove("4k3/7R/8/8/8/8/8/4K3 b - - 0 1",
-                moveFromSquares("e8", "d7", false, false));
+                Util.moveFromSquares("e8", "d7", false, false));
         testIllegalMove("4k3/8/8/8/8/6b1/5p2/4K3 w - - 0 1",
-                moveFromSquares("e1", "f2", false, true));
+                Util.moveFromSquares("e1", "f2", false, true));
         testIllegalMove("8/r5PK/k7/8/8/8/8/8 w - - 0 1",
-                moveFromSquares("g7", "g8", 'Q', false));
+                Util.moveFromSquares("g7", "g8", 'Q', false));
         testIllegalMove("8/8/8/8/k1pP2RK/8/8/8 b - d3 0 1",
-                moveFromSquares("c4", "d3", true, true));
+                Util.moveFromSquares("c4", "d3", true, true));
         // Illegal Castling
         testIllegalMove("4k3/8/4r3/8/8/8/8/4K2R w K - 0 1",
                 new Move('K'));
@@ -588,13 +565,13 @@ abstract class BoardTest {
                 new Move('q'));
         // Illegal En passant
         testIllegalMove("4k3/8/8/5pP1/8/8/8/4K3 w - - 0 2",
-                moveFromSquares("g5", "f6", true, true));
+                Util.moveFromSquares("g5", "f6", true, true));
         testIllegalMove("4k3/8/8/5nP1/8/8/8/4K3 w - - 0 2",
-                moveFromSquares("g5", "f6", true, true));
+                Util.moveFromSquares("g5", "f6", true, true));
         testIllegalMove("4k3/8/8/8/6Pp/8/8/4K3 b - - 0 2",
-                moveFromSquares("h4", "g3", true, true));
+                Util.moveFromSquares("h4", "g3", true, true));
         testIllegalMove("4k3/8/8/4P1p1/8/8/8/4K3 w - g6 0 3",
-                moveFromSquares("e5", "g6", true, true));
+                Util.moveFromSquares("e5", "g6", true, true));
 
         // Can't undo last move if no move was made
         Board board = createBoard();
@@ -629,7 +606,7 @@ abstract class BoardTest {
     private void assertLegalCount(String fen, String square, int expected)
             throws MalformedFENException, IllegalBoardException {
         Board board = createBoard(fen);
-        int[] coord = squareToCoords(square);
+        int[] coord = Util.squareToCoords(square);
         Set<Move> legalMoves = board.getLegalMoves(coord[0], coord[1]);
         if (printMoves) {
             System.out.println(board);
@@ -860,15 +837,15 @@ abstract class BoardTest {
         assertWinner("rnbqkbnr/pppp3p/6p1/4pp1K/8/8/PPPPPPPP/RNBQ1BNR w kq - 0 1", 'b');
         // White has mate in 1
         assertWinnerAfterMove("7k/5Q2/5K2/8/8/8/8/8 w - - 0 1",
-                moveFromSquares("f7", "g7", false, false), 'w');
+                Util.moveFromSquares("f7", "g7", false, false), 'w');
         // Black has mate in 1
         assertWinnerAfterMove("rnb1kb1r/ppppqppp/8/4n3/8/2P5/PP1PPPPP/RNBQKBNR b KQkq - 0 1",
-                moveFromSquares("e5", "d3", false, false), 'b');
+                Util.moveFromSquares("e5", "d3", false, false), 'b');
         // Capture mate
         assertWinnerAfterMove("rnbq1rk1/pppppppp/8/8/8/1P4Q1/PBPPPPPP/RN3RK1 w - - 0 1",
-                moveFromSquares("g3", "g7", false, true), 'w');
+                Util.moveFromSquares("g3", "g7", false, true), 'w');
         assertWinnerAfterMove("7k/6p1/5P2/3PK3/4P3/5q2/8/8 b - - 0 1",
-                moveFromSquares("f3", "f6", false, true), 'b');
+                Util.moveFromSquares("f3", "f6", false, true), 'b');
         // Promotion mate
         assertWinnerAfterMove("rnb1k2r/ppppppPp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
                 new Move(6, 6, 7, 7, 'R', true), 'w');
@@ -880,7 +857,7 @@ abstract class BoardTest {
                 new Move(6, 6, 7, 7, 'B', true), 'u');
         // En passant mate
         assertWinnerAfterMove("3bkr2/4pp2/8/1pP5/B7/8/8/4K3 w - b6 0 2",
-                moveFromSquares("c5", "b6", true, true), 'w');
+                Util.moveFromSquares("c5", "b6", true, true), 'w');
 
         // Stalemate
         assertWinner("4k3/4P3/4K3/8/8/8/8/8 b - - 0 1", 'd');
@@ -895,25 +872,25 @@ abstract class BoardTest {
         // Two bishops of different colors is not a draw
         assertWinner("8/8/5k2/2BK4/6b1/8/8/8 w - - 0 1", 'u');
         assertWinnerAfterMove("K1k5/B7/4b3/8/8/8/8/8 b - - 0 1",
-                moveFromSquares("e6", "d5", false, false), 'b');
+                Util.moveFromSquares("e6", "d5", false, false), 'b');
         // Fifty-move rule
         assertWinner("8/8/8/4K1k1/8/8/7q/8 w - - 100 80", 'd');
         assertWinner("8/8/8/4K1k1/8/8/2q5/8 w - - 120 80", 'd');
         assertWinnerAfterMove("8/5K2/5R2/8/7k/8/8/8 w - - 99 60",
-                moveFromSquares("f6", "g6", false, false), 'd');
+                Util.moveFromSquares("f6", "g6", false, false), 'd');
         assertWinnerAfterMove("8/8/3N4/3K2k1/3N4/8/8/8 w - - 99 80",
-                moveFromSquares("d5", "e5", false, false), 'd');
+                Util.moveFromSquares("d5", "e5", false, false), 'd');
         assertWinnerAfterMove("q7/8/8/4K1k1/8/8/8/8 b - - 99 80",
-                moveFromSquares("a8", "e8", false, false), 'd');
+                Util.moveFromSquares("a8", "e8", false, false), 'd');
         // Threefold repetition
         boolean legal = true;
         Board board = createBoard();
-        legal &= board.move(moveFromSquares("g1", "f3", false, false));
+        legal &= board.move(Util.moveFromSquares("g1", "f3", false, false));
         for (int i = 0; i < 2; i++) {
-            legal &= board.move(moveFromSquares("g8", "f6", false, false));
-            legal &= board.move(moveFromSquares("f3", "g1", false, false));
-            legal &= board.move(moveFromSquares("f6", "g8", false, false));
-            legal &= board.move(moveFromSquares("g1", "f3", false, false));
+            legal &= board.move(Util.moveFromSquares("g8", "f6", false, false));
+            legal &= board.move(Util.moveFromSquares("f3", "g1", false, false));
+            legal &= board.move(Util.moveFromSquares("f6", "g8", false, false));
+            legal &= board.move(Util.moveFromSquares("g1", "f3", false, false));
         }
         assert legal;
         assertEquals('d', board.getWinner());
@@ -925,7 +902,7 @@ abstract class BoardTest {
                 new Move(6, 6, 7, 6, 'Q', false), 'd');
         // Checkmate overrides fifty-move rule
         assertWinnerAfterMove("4k3/7R/4K3/8/8/8/8/8 w - - 99 60",
-                moveFromSquares("h7", "h8", false, false), 'w');
+                Util.moveFromSquares("h7", "h8", false, false), 'w');
     }
 
     private void perft(String perftStr) throws IllegalBoardException, MalformedFENException {
