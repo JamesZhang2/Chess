@@ -198,7 +198,7 @@ public abstract class Board {
     public String toString() {
         StringBuilder sb = new StringBuilder();
 
-        sb.append(piecesToString(false));
+        sb.append(piecesToString(false, false));
 
         if (whiteToMove) {
             sb.append("White to move\n");
@@ -231,24 +231,37 @@ public abstract class Board {
     /**
      * @param flipped if true, then we're viewing the board from black's perspective
      *                if false, then we're viewing the board from white's perspective
+     * @param showCoords if true, the coordinates (1-8, a-h) are shown
      * @return A readable depiction of the pieces
      */
-    public String piecesToString(boolean flipped) {
+    public String piecesToString(boolean flipped, boolean showCoords) {
         char[][] pieces = getPieces();
         StringBuilder sb = new StringBuilder();
         if (flipped) {
             for (int r = 0; r < 8; r++) {
+                if (showCoords) {
+                    sb.append(r + 1).append(' ');
+                }
                 for (int c = 7; c >= 0; c--) {
                     sb.append(pieces[r][c] == 0 ? '.' : pieces[r][c]);
                 }
                 sb.append("\n");
             }
+            if (showCoords) {
+                sb.append("  hgfedcba");
+            }
         } else {
             for (int r = 7; r >= 0; r--) {
+                if (showCoords) {
+                    sb.append(r + 1).append(' ');
+                }
                 for (int c = 0; c < 8; c++) {
                     sb.append(pieces[r][c] == 0 ? '.' : pieces[r][c]);
                 }
                 sb.append("\n");
+            }
+            if (showCoords) {
+                sb.append("  abcdefgh");
             }
         }
         return sb.toString();

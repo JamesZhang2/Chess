@@ -14,7 +14,7 @@ public class HumanCLIPlayer extends Player {
 
     @Override
     public Action play(Board board) {
-        System.out.println(board.piecesToString(!isWhite));
+        System.out.println(board.piecesToString(!isWhite, true));
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         Move move = null;
         while (move == null) {
@@ -48,7 +48,7 @@ public class HumanCLIPlayer extends Player {
 
     @Override
     public boolean considerDraw(Board board) {
-        System.out.println(board.piecesToString(!isWhite));
+        System.out.println(board.piecesToString(!isWhite, true));
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         while (true) {
             System.out.print("Your opponent offers a draw. Accept draw? (Y/N) ");
@@ -70,28 +70,28 @@ public class HumanCLIPlayer extends Player {
     @Override
     public void init(Board board) {
         System.out.println("Initial board:");
-        System.out.println(board.piecesToString(!isWhite));
+        System.out.println(board.piecesToString(!isWhite, true));
         printHelp();
     }
 
     @Override
     public void win(Board board) {
         System.out.println("Final board:");
-        System.out.println(board.piecesToString(!isWhite));
+        System.out.println(board.piecesToString(!isWhite, true));
         System.out.println("You won!");
     }
 
     @Override
     public void draw(Board board) {
         System.out.println("Final board:");
-        System.out.println(board.piecesToString(!isWhite));
+        System.out.println(board.piecesToString(!isWhite, true));
         System.out.println("You drew!");
     }
 
     @Override
     public void lose(Board board) {
         System.out.println("Final board:");
-        System.out.println(board.piecesToString(!isWhite));
+        System.out.println(board.piecesToString(!isWhite, true));
         System.out.println("You lost!");
     }
 
