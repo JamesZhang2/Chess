@@ -240,14 +240,4 @@ class UtilTest {
         System.out.println("h file:");
         Util.printBitmap(Util.H_FILE);
     }
-
-    @Test
-    void test() {
-        Pattern p = Pattern.compile("(?<a>a?)|(?<b>b)");
-        Matcher m = p.matcher("");
-        if (m.matches()) {
-            System.out.println(m.group("a"));
-            System.out.println(m.group("b"));
-        }
-    }
 }

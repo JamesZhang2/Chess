@@ -107,8 +107,8 @@ public class MoveParser {
             String startFile = matcher.group("startFile");
             String startRank = matcher.group("startRank");
             // We use -1 for "unspecified"
-            int startRow = startFile.isEmpty() ? -1 : startFile.charAt(0) - 'a';
-            int startCol = startRank.isEmpty() ? -1 : startRank.charAt(0) - '1';
+            int startRow = startRank.isEmpty() ? -1 : startRank.charAt(0) - '1';
+            int startCol = startFile.isEmpty() ? -1 : startFile.charAt(0) - 'a';
 
             // Iterate through all legal moves
             for (Move move : board.getLegalMoves()) {
