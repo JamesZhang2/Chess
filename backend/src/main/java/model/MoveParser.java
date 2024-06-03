@@ -135,8 +135,6 @@ public class MoveParser {
         }
 
         if (!board.isLegal(proposedMove)) {
-            System.out.println(proposedMove);
-            System.out.println(board.getLegalMoves());
             throw new IllegalMoveException("Illegal move: " + input);
         }
 

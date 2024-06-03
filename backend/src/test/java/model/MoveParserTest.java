@@ -156,18 +156,124 @@ class MoveParserTest {
                 "Bb5xc6", new BitmapBoard("k3r1r1/1b1b4/2P2Q2/rb1b4/Q4Q1Q/r7/8/3K4 b - - 0 2"));
         assertParseEquals(Util.moveFromSquares("d5", "c6", false, true),
                 "Bd5xc6", new BitmapBoard("k3r1r1/1b1b4/2P2Q2/rb1b4/Q4Q1Q/r7/8/3K4 b - - 0 2"));
+        // Seemingly ambiguous, but not actually ambiguous since the bishop on e2 is pinned
+        assertParseEquals(Util.moveFromSquares("e4", "d3", false, false),
+                "Bd3", new BitmapBoard("4k3/8/8/8/4B3/4q3/4B3/4K3 w - - 0 1"));
+
+        // Malformed moves
+        String[] malformedMoves = {
+                "a9",
+                "i2",
+                "axb",
+                "dxe+",
+                "Qxa",
+                "Qc9",
+                "Rd0",
+                "Rx2",
+                "BA1",
+                "BN",
+                "ab3",
+                "g10",
+                "Kb11",
+                "bg1",
+                "xg2",
+                "o-o",
+                "0-O",
+                "Q3+",
+                "ab1b4",
+                "Nb11a1",
+                "N9a2",
+                "a3=Q",
+                "i9=R+",
+                "B4aa4",
+                "B3xg",
+                "aa2xb3",
+                "Qa0b3#",
+                "Ne56#"
+        };
+        for (String input : malformedMoves) {
+            assertThrows(MalformedMoveException.class, () -> MoveParser.parse(input, new MailboxBoard()));
+        }
+
+        // Illegal moves
+        Board board1w = new MailboxBoard("4k3/1p1pn1pR/2Q1R3/2qBKP1r/7p/6B1/7b/8 w - - 0 1");
+        Board board1b = new MailboxBoard("4k3/1p1pn1pR/2Q1R3/2qBKP1r/7p/6B1/7b/8 b - - 0 1");
+        Board board2 = new MailboxBoard("4k3/1p1pn2R/2Q1R3/2qBKPpr/7p/6B1/7b/8 w - g6 0 2");
+        String[] illegal1White = {
+                "Bc4",
+                "Qc4",
+                "Qd8+",
+                "Qxe6",
+                "Kxe6",
+                "Kf6",
+                "f6",
+                "Bxh4",
+                "Bf2",
+                "f8=Q+",
+                "Rxg7+",
+                "Qc8#"
+        };
+        String[] illegal1Black = {
+                "dxe6",
+                "Bf4",
+                "Rxh4",
+                "Nxc6+",
+                "Ng6",
+                "Rh8"
+        };
+
+        for (String input : illegal1White) {
+            assertThrows(IllegalMoveException.class, () -> MoveParser.parse(input, board1w), input);
+        }
+        for (String input : illegal1Black) {
+            assertThrows(IllegalMoveException.class, () -> MoveParser.parse(input, board1b), input);
+        }
+        assertThrows(IllegalMoveException.class, () -> MoveParser.parse("fxg6", board2), "fxg6");
+
+
+        // Ambiguous moves
+        Board board3w = new BitmapBoard("k3r1r1/1b1b4/2P2Q2/rb1b4/Q4Q1Q/r7/8/3K4 w - - 0 2");
+        Board board3b = new BitmapBoard("k3r1r1/1b1b4/2P2Q2/rb1b4/Q4Q1Q/r7/8/3K4 b - - 0 2");
+        String[] ambiguous3White = {
+                "Qc4",
+                "Qd4",
+                "Qfd4",
+                "Q4d4",
+                "Qg5",
+                "Qfg5",
+                "Qfh6",
+                "Q4h6",
+                "Qf2"
+        };
+        String[] ambiguous3Black = {
+                "Rf8",
+                "R8f8",
+                "Rxa4",
+                "Raxa4",
+                "Bxc6",
+                "B5xc6",
+                "B7xc6",
+                "Bbxc6",
+                "Bdxc6"
+        };
+        for (String input : ambiguous3White) {
+            assertThrows(AmbiguousMoveException.class, () -> MoveParser.parse(input, board3w), input);
+        }
+        for (String input : ambiguous3Black) {
+            assertThrows(AmbiguousMoveException.class, () -> MoveParser.parse(input, board3b), input);
+        }
+        Board board4 = new MailboxBoard("8/3N1N2/2N3k1/8/2N3N1/3N1N2/8/4K3 w - - 0 1");
+        String[] ambiguous4 = {
+                "Ne5+",
+                "Nce5+",
+                "Nde5+",
+                "Nfe5+",
+                "N3e5+",
+                "N4e5+",
+                "N7e5+"
+        };
+        for (String input : ambiguous4) {
+            assertThrows(AmbiguousMoveException.class, () -> MoveParser.parse(input, board4), input);
+        }
     }
-    /*
-     * Don't match:
-     * a9
-     * i2
-     * Qxa
-     * g11
-     * xa
-     * axb
-     * axc+
-     * O-0
-     * O-O-
-     * aa1
-     */
 }
