@@ -1,6 +1,8 @@
 package model;
 
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * A class for parsing Standard Algebraic Notation (SAN) into Move objects
@@ -15,70 +17,71 @@ public class MoveParser {
      * Checks (+) and checkmates (#) do not have to be present, but they must be correct if present,
      * and they must be at the end
      * En passant target square is the square that the pawn moved to, not the square of the enemy pawn
+     * The e.p. notation is not supported
      * <p>
+     *
      * @return the move parsed from the input string, given the current board state
-     * @throws IllegalMoveException if the input represents a malformed or illegal move
+     * @throws IllegalMoveException   if the input represents a malformed or illegal move
      * @throws AmbiguousMoveException if the input represents an ambiguous move
      */
-    public static Move parse(String input, Board board) throws IllegalMoveException, AmbiguousMoveException {
+    public static Move parse(String input, Board board)
+            throws MalformedMoveException, IllegalMoveException, AmbiguousMoveException {
         // leading and trailing whitespace is ignored
         input = input.strip();
-        if (input.length() < 2) {
-            throw new IllegalMoveException("Malformed move: " + input);
+        String regex = "^((?<pawnQuiet>[a-h][1-8])|" +
+                "(?<regular>([KQRBN]|[a-h])(?<startFile>[a-h]?)(?<startRank>[1-8]?)(?<capture>x?)[a-h][1-8])|" +
+                "(?<prom>[a-h][18]=[QRBN])|" +
+                "(?<promCapture>[a-h]x[a-h][18]=[QRBN])|" +
+                "(?<castleK>O-O|0-0)|" +
+                "(?<castleQ>O-O-O|0-0-0))(?<check>\\+?)(?<mate>#?)$";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(input);
+        if (!matcher.matches()) {
+            throw new MalformedMoveException("Malformed move: " + input);
         }
-
-        // Take note of + or # and remove them
-        int plusIdx = input.indexOf('+');
-        int hashIdx = input.indexOf('#');
-        boolean isCheck = false, isMate = false;
-        if (plusIdx >= 0) {
-            if (plusIdx == input.length() - 1) {
-                isCheck = true;
-                input = input.substring(0, input.length() - 1);
-            } else {
-                throw new IllegalMoveException("Malformed move: " + input);
-            }
-        }
-        if (hashIdx >= 0) {
-            if (hashIdx == input.length() - 1) {
-                isMate = true;
-                input = input.substring(0, input.length() - 1);
-            } else {
-                throw new IllegalMoveException("Malformed move: " + input);
-            }
-        }
+        String pawnQuiet = matcher.group("pawnQuiet");
+        String regular = matcher.group("regular");
+        String prom = matcher.group("prom");
+        String promCapture = matcher.group("promCapture");
+        boolean isCheck = !matcher.group("check").isEmpty();
+        boolean isMate = !matcher.group("mate").isEmpty();
 
         Move proposedMove;
-        if (input.equals("O-O") || input.equals("0-0")) {
+        if (!matcher.group("castleK").isEmpty()) {
             proposedMove = new Move('K');
-        } else if (input.equals("O-O-O") || input.equals("0-0-0")) {
+        } else if (!matcher.group("castleQ").isEmpty()) {
             proposedMove = new Move('Q');
-        }
-
-        char startFile, startRank, endFile, endRank;
-        int xIdx = input.indexOf('x');
-        boolean isCapture = (xIdx >= 0);
-        if (isCapture) {
-            if (xIdx >= input.length() - 2) {
-                // need at least two more chars after x
-                throw new IllegalMoveException("Malformed move: " + input);
+        } else if (!prom.isEmpty()) {
+            int startCol = prom.charAt(0) - 'a';
+            int endCol = startCol;
+            int endRow = prom.charAt(1) - '1';
+            int startRow = endRow == 0 ? 1 : 6;
+            char promotion = endRow == 0 ? (char) (prom.charAt(3) - 'A' + 'a') : prom.charAt(3);
+            proposedMove = new Move(startRow, startCol, endRow, endCol, promotion, false);
+        } else if (!promCapture.isEmpty()) {
+            int startCol = promCapture.charAt(0) - 'a';
+            int endCol = promCapture.charAt(2) - 'a';
+            int endRow = promCapture.charAt(3) - '1';
+            int startRow = endRow == 0 ? 1 : 6;
+            char promotion = endRow == 0 ? (char)(promCapture.charAt(5) - 'A' + 'a') : promCapture.charAt(5);
+            proposedMove = new Move(startRow, startCol, endRow, endCol, promotion, true);
+        } else if (!pawnQuiet.isEmpty()) {
+            int startCol = pawnQuiet.charAt(0) - 'a';
+            int endCol = startCol;
+            int endRow = pawnQuiet.charAt(1) - '1';
+            int startRow;
+            int advance = board.whiteToMove ? 1 : -1;
+            if (board.getPieceAt(startCol, endRow - advance) == 0) {
+                // only possibility is pawn pushing 2 squares
+                startRow = endRow - 2 * advance;
+            } else {
+                startRow = endRow - advance;
             }
+            proposedMove = new Move(startRow, startCol, endRow, endCol, false, false);
+        } else if (!regular.isEmpty()) {
+            // TODO
+        } else {
+            assert false;
         }
-
-
-        int eqIdx = input.indexOf('=');
-        if (eqIdx >= 0) {
-            // Maybe promotion
-            if (eqIdx != input.length() - 2) {
-                throw new IllegalMoveException("Malformed move: " + input);
-            }
-            char proposedProm = input.charAt(input.length() - 1);
-            if (proposedProm != 'Q' && proposedProm != 'R' && proposedProm != 'B' && proposedProm != 'N') {
-                throw new IllegalMoveException("Unknown promotion type: " + proposedProm);
-            }
-        }
-
-        Set<Move> legalMoves = board.getLegalMoves();
-        return null;
     }
 }
