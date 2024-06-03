@@ -43,6 +43,10 @@ public class MoveParser {
         if (!matcher.matches()) {
             throw new MalformedMoveException("Malformed move: " + input);
         }
+
+        // Note that if an | branch is unmatched, matcher.group returns null;
+        // but if an optional field (with ?) is not present, matcher.group returns the empty string
+        // since the empty string matches "(...)?"
         String pawnQuiet = matcher.group("pawnQuiet");
         String pawnCapture = matcher.group("pawnCapture");
         String regular = matcher.group("regular");
@@ -52,38 +56,38 @@ public class MoveParser {
         boolean isMate = !matcher.group("mate").isEmpty();
 
         Move proposedMove = null;
-        if (!matcher.group("castleK").isEmpty()) {
-            proposedMove = new Move('K');
-        } else if (!matcher.group("castleQ").isEmpty()) {
-            proposedMove = new Move('Q');
-        } else if (!prom.isEmpty()) {
+        if (matcher.group("castleK") != null) {
+            proposedMove = new Move(board.whiteToMove() ? 'K' : 'k');
+        } else if (matcher.group("castleQ") != null) {
+            proposedMove = new Move(board.whiteToMove() ? 'Q' : 'q');
+        } else if (prom != null) {
             int startCol = prom.charAt(0) - 'a';
             int endCol = startCol;
             int endRow = prom.charAt(1) - '1';
             int startRow = endRow == 0 ? 1 : 6;
             char promotion = endRow == 0 ? (char) (prom.charAt(3) - 'A' + 'a') : prom.charAt(3);
             proposedMove = new Move(startRow, startCol, endRow, endCol, promotion, false);
-        } else if (!promCapture.isEmpty()) {
+        } else if (promCapture != null) {
             int startCol = promCapture.charAt(0) - 'a';
             int endCol = promCapture.charAt(2) - 'a';
             int endRow = promCapture.charAt(3) - '1';
             int startRow = endRow == 0 ? 1 : 6;
             char promotion = endRow == 0 ? (char) (promCapture.charAt(5) - 'A' + 'a') : promCapture.charAt(5);
             proposedMove = new Move(startRow, startCol, endRow, endCol, promotion, true);
-        } else if (!pawnQuiet.isEmpty()) {
+        } else if (pawnQuiet != null) {
             int startCol = pawnQuiet.charAt(0) - 'a';
             int endCol = startCol;
             int endRow = pawnQuiet.charAt(1) - '1';
             int startRow;
             int advance = board.whiteToMove() ? 1 : -1;
-            if (board.getPieceAt(startCol, endRow - advance) == 0) {
+            if (board.getPieceAt(endRow - advance, startCol) == 0) {
                 // only possibility is pawn pushing 2 squares
                 startRow = endRow - 2 * advance;
             } else {
                 startRow = endRow - advance;
             }
             proposedMove = new Move(startRow, startCol, endRow, endCol, false, false);
-        } else if (!pawnCapture.isEmpty()) {
+        } else if (pawnCapture != null) {
             int startCol = pawnCapture.charAt(0) - 'a';
             int endCol = pawnCapture.charAt(2) - 'a';
             int endRow = pawnCapture.charAt(3) - '1';
@@ -94,9 +98,8 @@ public class MoveParser {
                 enPassant = true;
             }
             proposedMove = new Move(startRow, startCol, endRow, endCol, enPassant, true);
-        } else if (!regular.isEmpty()) {
+        } else if (regular != null) {
             // Need to check for ambiguity
-            Set<Move> legalMoves = board.getLegalMoves();
             char pieceType = board.whiteToMove() ? regular.charAt(0) : (char)(regular.charAt(0) - 'A' + 'a');
             int endRow = regular.charAt(regular.length() - 1) - '1';
             int endCol = regular.charAt(regular.length() - 2) - 'a';
@@ -107,7 +110,23 @@ public class MoveParser {
             int startRow = startFile.isEmpty() ? -1 : startFile.charAt(0) - 'a';
             int startCol = startRank.isEmpty() ? -1 : startRank.charAt(0) - '1';
 
-            // TODO Iterate through all legal moves
+            // Iterate through all legal moves
+            for (Move move : board.getLegalMoves()) {
+                if (move.moveType == Move.Type.REGULAR
+                && move.getEndRow() == endRow && move.getEndCol() == endCol
+                && (startRow == -1 || move.getStartRow() == startRow)
+                && (startCol == -1 || move.getStartCol() == startCol)
+                && board.getPieceAt(move.getStartRow(), move.getStartCol()) == pieceType
+                && move.getIsCapture() == isCapture) {
+                    // Found match
+                    if (proposedMove == null) {
+                        proposedMove = new Move(move);
+                    } else {
+                        // Multiple legal moves match the description
+                        throw new AmbiguousMoveException("Ambiguous move: " + input);
+                    }
+                }
+            }
             if (proposedMove == null) {
                 throw new IllegalMoveException("Illegal move: " + input);
             }
@@ -116,10 +135,11 @@ public class MoveParser {
         }
 
         if (!board.isLegal(proposedMove)) {
+            System.out.println(proposedMove);
+            System.out.println(board.getLegalMoves());
             throw new IllegalMoveException("Illegal move: " + input);
         }
 
-        assert proposedMove != null;
         boolean success = board.move(proposedMove);
         assert success;
         if (isMate && (board.getWinner() == 'u' || board.getWinner() == 'd')) {

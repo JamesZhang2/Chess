@@ -93,6 +93,23 @@ public class Move {
         this.isCapture = isCapture;
     }
 
+    /**
+     * Copy constructor
+     */
+    public Move(Move move) {
+        moveType = move.moveType;
+        startRow = move.startRow;
+        startCol = move.startCol;
+        endRow = move.endRow;
+        endCol = move.endCol;
+        isCapture = move.isCapture;
+        if (move.moveType == Type.CASTLING) {
+            castleType = move.castleType;
+        } else if (move.moveType == Type.PROMOTION) {
+            promotionType = move.promotionType;
+        }
+    }
+
     public int getStartRow() {
         return startRow;
     }
