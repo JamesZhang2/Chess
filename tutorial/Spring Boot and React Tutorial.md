@@ -30,10 +30,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class Controller {
-	@GetMapping("/")
-	public String index() {
-		return "Hello world!";
-	}
+    @GetMapping("/")
+    public String index() {
+        return "Hello world!";
+    }
 }
 ```
 
@@ -52,10 +52,12 @@ We can now build the frontend. For React, I'm going to use Vite, although you ca
 In the `Project` directory, run `npm create vite@latest`. Then follow the instructions to create a React project. Select `JavaScript` as the language (or `TypeScript` if you prefer). I called the project `frontend` for simplicity, but you can call it whatever you like.
 
 Now, run
-```
+
+```cmd
 cd frontend
 npm install
 ```
+
 to create the project. Run `code .` to open the project in VS Code. Run `npm run dev` to run the project. If you now go to `http://localhost:5173/` (the port may be different, look at the URL from your terminal), you should see the Vite and React logo with an h1 heading of Vite + React, along with a button that says "count is 0", together with some other text. Type `q` and Enter in the terminal to quit (or you can use `Ctrl + C`).
 
 ## Putting Backend and Frontend Together
@@ -137,7 +139,8 @@ One of the ways to circumvent this issue is to manually add an `Access-Control-A
 However, this only works for GET requests. For POST requests, it gets a little more complicated: Since POST requests are often "non-simple requests", the browser will first send a "preflight" OPTIONS request to verify that the server will accept the actual request. If the response signifies that the server will accept the actual request (with `Access-Control-Allow-Headers` and `Access-Control-Allow-Methods` that match the headers and methods of the actual request), then the actual request is sent.
 
 If you don't handle the preflight, the following error message is shown:
-```
+
+```text
 localhost/:1 Access to XMLHttpRequest at 'http://localhost:8080/addUser' from origin 'http://localhost:5173' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.
 ```
 
@@ -152,6 +155,8 @@ public ResponseEntity<String> hello() {
     return new ResponseEntity<>("Hello world!", HttpStatus.OK);
 }
 ```
+
+We can also add the `@CrossOrigin` annotation on the entire class which will enable CORS for every handler method. Note that we can use `@CrossOrigin(origins = "http://localhost")` to allow all ports from localhost and `@CrossOrigin(origins = "*")` to allow all sites.
 
 With this in mind, let's now look at POST requests.
 
@@ -178,6 +183,7 @@ axios.post('http://localhost:8080/addUser', {
 ```
 
 This sends a post request with the data
+
 ```json
 {
     "name": "Bob",
@@ -186,6 +192,7 @@ This sends a post request with the data
 ```
 
 On the backend side, we first need to create a User class:
+
 ```java
 // User.java
 package com.example.demo;  // Your package name here
@@ -224,40 +231,41 @@ Note that the fields in the request body are used to construct the new object, s
 ## Adding Spring Boot to Existing Java Project
 
 To add Spring Boot support to an existing Java project, update the `pom.xml` file by adding the following lines:
-```xml
-	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.2.1</version>
-		<relativePath/> <!-- lookup parent from repository -->
-	</parent>
-	
-	<dependencies>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter</artifactId>
-		</dependency>
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
+```xml
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.1</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+    
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-	</dependencies>
+    </dependencies>
 
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
-		</plugins>
-	</build>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 ```
 
 Also copy `mvnw`, `mvnw.cmd`, `.mvn` and `.gitignore` from a project generated by Spring Initializr to the existing project.
