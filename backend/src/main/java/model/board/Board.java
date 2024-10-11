@@ -226,7 +226,7 @@ public abstract class Board {
      * @return an 8x8 array of pieces as in the mailbox representation.
      * Modifying the returned array should not change the board state
      */
-    protected abstract char[][] getPieces();
+    public abstract char[][] getPieces();
 
     /**
      * @param flipped if true, then we're viewing the board from black's perspective

@@ -42,7 +42,7 @@ public class MailboxBoard extends Board {
     }
 
     @Override
-    protected char[][] getPieces() {
+    public char[][] getPieces() {
         // need a deep copy
         char[][] copy = new char[8][8];
         for (int i = 0; i < 8; i++) {
