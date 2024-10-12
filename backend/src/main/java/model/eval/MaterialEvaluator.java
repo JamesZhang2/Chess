@@ -5,12 +5,12 @@ import model.board.Board;
 /**
  * An evaluator based solely on material.
  */
-public class MaterialEval implements Evaluator {
-    private final double PAWN_VALUE = 1.0;
-    private final double KNIGHT_VALUE = 3.0;
-    private final double BISHOP_VALUE = 3.2;  // bishops are slightly better than knights
-    private final double ROOK_VALUE = 5.0;
-    private final double QUEEN_VALUE = 9.0;
+public class MaterialEvaluator implements Evaluator {
+    public static final double PAWN_VALUE = 1.0;
+    public static final double KNIGHT_VALUE = 3.0;
+    public static final double BISHOP_VALUE = 3.2;  // bishops are slightly better than knights
+    public static final double ROOK_VALUE = 5.0;
+    public static final double QUEEN_VALUE = 9.0;
 
     @Override
     public double evaluate(Board board) {
