@@ -21,6 +21,7 @@ public abstract class Player {
 
     /**
      * Respond to opponent's draw offer based on the current board
+     * It's still the opponent's turn to move.
      *
      * @return true if player accepts a draw, false if player rejects a draw
      */

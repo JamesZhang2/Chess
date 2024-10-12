@@ -10,6 +10,7 @@ import model.move.Move;
 public class MinimaxAIPlayer extends Player {
     private Evaluator evaluator;
     private final int MAX_DEPTH;
+    private final double DRAW_CUTOFF = 1.0;  // will draw as black if eval is greater than draw cutoff; mirrored for white
 
     // Whether to enable alpha-beta pruning. Usually it's always true. Can be set to false when debugging.
     private final boolean ENABLE_PRUNING = true;
@@ -46,6 +47,10 @@ public class MinimaxAIPlayer extends Player {
                 }
             }
             board.undoLastMove();
+        }
+        if (bestMove == null) {
+            // inescapable checkmate
+            return new Action(Action.Type.RESIGN);
         }
         return new Action(bestMove);
     }
@@ -84,6 +89,10 @@ public class MinimaxAIPlayer extends Player {
 
     @Override
     public boolean considerDraw(Board board) {
-        return false;
+        if (isWhite) {
+            return evaluate(board, MAX_DEPTH, false) < -DRAW_CUTOFF;
+        } else {
+            return evaluate(board, MAX_DEPTH, true) > DRAW_CUTOFF;
+        }
     }
 }

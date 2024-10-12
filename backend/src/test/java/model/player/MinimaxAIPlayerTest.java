@@ -96,7 +96,7 @@ class MinimaxAIPlayerTest {
             for (int i = 0; i < whitePuzzles1.length; i++) {
                 Board board = new BitmapBoard(whitePuzzles1[i]);
                 assertEquals(new Action(whiteSolutions1[i]), player.play(board), "Incorrect move for " + whitePuzzles1[i]);
-                System.out.printf("Player with depth %d Finished Puzzle %d\n", depth, i);
+//                System.out.printf("Player with depth %d Finished Puzzle %d\n", depth, i);
             }
         }
 
@@ -113,14 +113,13 @@ class MinimaxAIPlayerTest {
             assertEquals(new Action(whiteSolutions3[i]), whitePlayer3.play(board), "Incorrect move for " + whitePuzzles3[i]);
         }
 
-        MinimaxAIPlayer blackPlayer = new MinimaxAIPlayer(false, evaluator, 1);
         String[] blackPuzzles1 = {
                 "5r1k/8/8/8/8/8/7K/5Q2 b - - 0 1"
         };
         Move[] blackSolutions1 = {
                 Util.moveFromSquares("f8", "f1", false, true)
         };
-        for (int depth = 1; depth <= 2; depth++) {
+        for (int depth = 1; depth <= 3; depth++) {
             Player player = new MinimaxAIPlayer(false, evaluator, depth);
             for (int i = 0; i < blackPuzzles1.length; i++) {
                 Board board = new BitmapBoard(blackPuzzles1[i]);
