@@ -16,7 +16,7 @@ class MaterialEvaluatorTest extends EvaluatorTest {
     }
 
     @Test
-    public void testMaterialEvaluation() throws IllegalBoardException, MalformedFENException {
+    void testMaterialEvaluation() throws IllegalBoardException, MalformedFENException {
         Evaluator evaluator = new MaterialEvaluator();
         final double DELTA = 0.001;
         Board board1 = new BitmapBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");

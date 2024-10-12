@@ -10,8 +10,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 abstract class EvaluatorTest {
     protected abstract Evaluator getEvaluator();
+
     @Test
-    public void testCompletedGames() throws IllegalBoardException, MalformedFENException {
+    void testCompletedGames() throws IllegalBoardException, MalformedFENException {
         Evaluator evaluator = getEvaluator();
         final double DELTA = 0.001;
         String[] whiteWon = {

@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class MinimaxAIPlayerTest {
     @Test
-    public void mateIn1() throws IllegalBoardException, MalformedFENException {
+    void mateIn1() throws IllegalBoardException, MalformedFENException {
         // Based on the spec for Evaluator.evaluate,
         // Minimax AI player should always find mate in 1 with depth 1,
         // as long as the implementation of the evaluator is correct!
@@ -76,7 +76,7 @@ class MinimaxAIPlayerTest {
     }
 
     @Test
-    public void materialistic() throws IllegalBoardException, MalformedFENException {
+    void materialistic() throws IllegalBoardException, MalformedFENException {
         Evaluator evaluator = new MaterialEvaluator();
 
         String[] whitePuzzles1 = {
