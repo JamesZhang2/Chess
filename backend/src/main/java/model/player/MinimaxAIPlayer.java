@@ -59,7 +59,8 @@ public class MinimaxAIPlayer extends Player {
      * Postcondition: The state of the board is unchanged.
      */
     private double evaluate(Board board, int depth, boolean maximizing) {
-        if (depth == 0) {
+        if (depth == 0 || board.getWinner() != 'u') {
+            // no more depth or game has ended, leaf node
             return evaluator.evaluate(board);
         }
         double bestEval = maximizing ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;

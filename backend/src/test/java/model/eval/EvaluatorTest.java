@@ -29,7 +29,8 @@ abstract class EvaluatorTest {
                 "7K/8/8/8/8/8/8/k7 w - - 0 1",
                 "7K/7N/8/8/8/8/8/k7 w - - 0 1",
                 "8/3BK3/8/8/3kb3/8/8/8 w - - 0 1",
-                "6k1/8/6KQ/8/8/8/8/8 w - - 101 99"
+                "6k1/8/6KQ/8/8/8/8/8 w - - 101 99",
+                "5B2/8/8/8/8/8/2K5/k1N5 b - - 1 1"
         };
         for (String fen : whiteWon) {
             assertEquals(Double.POSITIVE_INFINITY, evaluator.evaluate(new BitmapBoard(fen)), DELTA);

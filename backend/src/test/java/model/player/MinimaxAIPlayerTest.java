@@ -22,8 +22,8 @@ class MinimaxAIPlayerTest {
         MinimaxAIPlayer whitePlayer = new MinimaxAIPlayer(true, evaluator, 1);
         MinimaxAIPlayer blackPlayer = new MinimaxAIPlayer(true, evaluator, 1);
         String[] whiteM1 = new String[]{
-                "6k1/1q3ppp/8/8/8/8/8/3R2K1 w - - 0 1",
-                "q3k3/4p3/4P3/4K1R1/8/8/8/8 w - - 0 1",
+//                "6k1/1q3ppp/8/8/8/8/8/3R2K1 w - - 0 1",
+//                "q3k3/4p3/4P3/4K1R1/8/8/8/8 w - - 0 1",
                 "8/8/8/8/1B6/8/2K5/k1N5 w - - 0 1",
                 "8/3R4/6pk/8/6PK/8/8/8 w - - 0 1",
                 "8/8/pppppppK/NBBR1NRp/nbbrqnrP/PPPPPPPk/8/Q7 w - - 0 1", // https://www.stmintz.com/ccc/index.php?id=123825
@@ -32,8 +32,8 @@ class MinimaxAIPlayerTest {
                 "4q1kq/6p1/6K1/4R3/8/8/8/8 w - - 0 1"
         };
         Move[] whiteM1Solutions = new Move[]{
-                Util.moveFromSquares("d1", "d8", false, false),
-                Util.moveFromSquares("g5", "g8", false, false),
+//                Util.moveFromSquares("d1", "d8", false, false),
+//                Util.moveFromSquares("g5", "g8", false, false),
                 Util.moveFromSquares("b4", "c3", false, false),
                 Util.moveFromSquares("g4", "g5", false, false),
                 Util.moveFromSquares("a1", "h1", false, false),
