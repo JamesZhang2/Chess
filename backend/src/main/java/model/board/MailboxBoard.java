@@ -212,7 +212,7 @@ public class MailboxBoard extends Board {
     private Set<List<Integer>> attacks(int row, int col) {
         assert pieces[row][col] != 0;
         Set<List<Integer>> ans = new HashSet<>();
-        char pieceTypeUpper = Util.toUpperCase(pieces[row][col]);
+        char pieceTypeUpper = Character.toUpperCase(pieces[row][col]);
 
         int[][] dirs = switch (pieceTypeUpper) {
             case 'Q', 'K' -> new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
@@ -278,7 +278,7 @@ public class MailboxBoard extends Board {
         Set<Move> legalMoves = new HashSet<>();
         assert pieces[row][col] != 0 && (pieces[row][col] <= 'Z') == whiteToMove;
         Set<List<Integer>> candidates = attacks(row, col);
-        char pieceTypeUpper = Util.toUpperCase(pieces[row][col]);
+        char pieceTypeUpper = Character.toUpperCase(pieces[row][col]);
 
         for (List<Integer> target : candidates) {
             int endRow = target.get(0);
@@ -563,7 +563,7 @@ public class MailboxBoard extends Board {
         } else if (allPieces.size() == 3) {
             // K vs. KN or K vs. KB
             for (List<Integer> piecePos : allPieces) {
-                char pieceTypeUpper = Util.toUpperCase(pieces[piecePos.get(0)][piecePos.get(1)]);
+                char pieceTypeUpper = Character.toUpperCase(pieces[piecePos.get(0)][piecePos.get(1)]);
                 if (pieceTypeUpper == 'R' || pieceTypeUpper == 'Q' || pieceTypeUpper == 'P') {
                     return false;
                 }
@@ -573,7 +573,7 @@ public class MailboxBoard extends Board {
             // KB vs. KB
             int bishopCoordSum = -1;  // sum of row and col of one bishop
             for (List<Integer> piecePos : allPieces) {
-                char pieceTypeUpper = Util.toUpperCase(pieces[piecePos.get(0)][piecePos.get(1)]);
+                char pieceTypeUpper = Character.toUpperCase(pieces[piecePos.get(0)][piecePos.get(1)]);
                 if (pieceTypeUpper == 'K') {
                     continue;
                 }

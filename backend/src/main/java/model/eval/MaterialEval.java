@@ -3,9 +3,9 @@ package model.eval;
 import model.board.Board;
 
 /**
- * An evaluation based solely on material.
+ * An evaluator based solely on material.
  */
-public class MaterialEval implements Evaluation {
+public class MaterialEval implements Evaluator {
     private final double PAWN_VALUE = 1.0;
     private final double KNIGHT_VALUE = 3.0;
     private final double BISHOP_VALUE = 3.2;  // bishops are slightly better than knights

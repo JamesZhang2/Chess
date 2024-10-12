@@ -5,7 +5,7 @@ import model.board.Board;
 /**
  * Interface for evaluating chess positions.
  */
-public interface Evaluation {
+public interface Evaluator {
     /**
      * Evaluates the position.
      * @param board The board to evaluate
@@ -16,6 +16,7 @@ public interface Evaluation {
      * If white won, the eval must be +infinity.
      * If black won, the eval must be -infinity.
      * If it's a draw, the eval must be 0.
+     * Postcondition: The state of the board is unchanged.
      */
     double evaluate(Board board);
 }

@@ -13,7 +13,9 @@ public abstract class Player {
     }
 
     /**
-     * @return an action based on the given board
+     * @return an action based on the given board.
+     * Note that the player is allowed to change the board,
+     * so the GameController must always make a copy of the board.
      */
     abstract public Action play(Board board);
 

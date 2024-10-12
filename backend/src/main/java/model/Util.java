@@ -38,14 +38,6 @@ public class Util {
     }
 
     /**
-     * Returns the upper case of c.
-     * Requires: c is either a lower-case or upper-case letter
-     */
-    public static char toUpperCase(char c) {
-        return c >= 'a' ? (char) (c - 'a' + 'A') : c;
-    }
-
-    /**
      * Return the bitmap where we set (row, col) to 1 and leave the other bits unchanged
      * Requires: row and col are in [0...7]
      */

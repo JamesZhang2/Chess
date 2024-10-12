@@ -3,10 +3,10 @@ package model.eval;
 import model.board.Board;
 
 /**
- * A trivial evaluation of the board:
+ * A trivial evaluator of the board:
  * If white won, return +infinity. If black won, return -infinity. Otherwise, return 0
  */
-public class TrivialEval implements Evaluation {
+public class TrivialEval implements Evaluator {
     @Override
     public double evaluate(Board board) {
         if (board.getWinner() == 'w') {
