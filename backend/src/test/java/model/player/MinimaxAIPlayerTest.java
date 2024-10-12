@@ -6,6 +6,7 @@ import model.board.Board;
 import model.board.IllegalBoardException;
 import model.board.MalformedFENException;
 import model.eval.Evaluator;
+import model.eval.MaterialEvaluator;
 import model.eval.TrivialEvaluator;
 import model.move.Move;
 import org.junit.jupiter.api.Test;
@@ -18,8 +19,11 @@ class MinimaxAIPlayerTest {
         // Based on the spec for Evaluator.evaluate,
         // Minimax AI player should always find mate in 1 with depth 1,
         // as long as the implementation of the evaluator is correct!
-        Evaluator evaluator = new TrivialEvaluator();
-        MinimaxAIPlayer whitePlayer = new MinimaxAIPlayer(true, evaluator, 1);
+        Evaluator[] evaluators = {
+                new TrivialEvaluator(),
+                new MaterialEvaluator()
+                // add more evaluators here...
+        };
         String[] whiteM1 = {
                 "6k1/1q3ppp/8/8/8/8/8/3R2K1 w - - 0 1",
                 "q3k3/4p3/4P3/4K1R1/8/8/8/8 w - - 0 1",
@@ -40,12 +44,14 @@ class MinimaxAIPlayerTest {
                 Util.moveFromSquares("d7", "c8", 'N', true),
                 Util.moveFromSquares("e5", "e8", false, true)
         };
-        for (int i = 0; i < whiteM1.length; i++) {
-            Board board = new BitmapBoard(whiteM1[i]);
-            assertEquals(new Action(whiteM1Solutions[i]), whitePlayer.play(board), "Didn't find mate for " + whiteM1[i]);
+        for (Evaluator evaluator : evaluators) {
+            MinimaxAIPlayer player = new MinimaxAIPlayer(true, evaluator, 1);
+            for (int i = 0; i < whiteM1.length; i++) {
+                Board board = new BitmapBoard(whiteM1[i]);
+                assertEquals(new Action(whiteM1Solutions[i]), player.play(board), "Didn't find mate for " + whiteM1[i]);
+            }
         }
 
-        MinimaxAIPlayer blackPlayer = new MinimaxAIPlayer(false, evaluator, 1);
         String[] blackM1 = {
                 "2r4k/8/8/8/8/8/5PPP/6KQ b - - 0 1",
                 "7k/5QRp/5P1R/8/8/3r4/4r3/6K1 b - - 0 1",
@@ -60,9 +66,67 @@ class MinimaxAIPlayerTest {
                 new Move('k'),
                 Util.moveFromSquares("e4", "f3", true, true)
         };
-        for (int i = 0; i < blackM1.length; i++) {
-            Board board = new BitmapBoard(blackM1[i]);
-            assertEquals(new Action(blackM1Solutions[i]), blackPlayer.play(board), "Didn't find mate for " + whiteM1[i]);
+        for (Evaluator evaluator : evaluators) {
+            MinimaxAIPlayer player = new MinimaxAIPlayer(false, evaluator, 1);
+            for (int i = 0; i < blackM1.length; i++) {
+                Board board = new BitmapBoard(blackM1[i]);
+                assertEquals(new Action(blackM1Solutions[i]), player.play(board), "Didn't find mate for " + blackM1[i]);
+            }
+        }
+    }
+
+    @Test
+    public void materialistic() throws IllegalBoardException, MalformedFENException {
+        Evaluator evaluator = new MaterialEvaluator();
+
+        String[] whitePuzzles1 = {
+                "4k1q1/8/8/8/4K1R1/8/8/8 w - - 0 1",
+                "4k2q/8/8/8/3BK3/3R4/8/8 w - - 0 1",
+                "4kq2/7p/6NK/7R/8/8/8/8 w - - 0 1",
+                "2r3qk/4N3/8/8/8/8/PP6/R6K w - - 0 1"
+        };
+        Move[] whiteSolutions1 = {
+                Util.moveFromSquares("g4", "g8", false, true),
+                Util.moveFromSquares("d4", "h8", false, true),
+                Util.moveFromSquares("g6", "f8", false, true),
+                Util.moveFromSquares("e7", "g8", false, true),
+        };
+        for (int depth = 1; depth <= 2; depth++) {
+            Player player = new MinimaxAIPlayer(true, evaluator, depth);
+            for (int i = 0; i < whitePuzzles1.length; i++) {
+                Board board = new BitmapBoard(whitePuzzles1[i]);
+                assertEquals(new Action(whiteSolutions1[i]), player.play(board), "Incorrect move for " + whitePuzzles1[i]);
+//                System.out.printf("Player with depth %d Finished Puzzle %d\n", depth, i);
+            }
+        }
+
+        String[] whitePuzzles3 = {
+                "3q3k/8/8/6N1/8/8/7P/7K w - - 0 1"
+        };
+        Move[] whiteSolutions3 = {
+                Util.moveFromSquares("g5", "f7", false, false)
+        };
+
+        Player whitePlayer3 = new MinimaxAIPlayer(true, evaluator, 3);
+        for (int i = 0; i < whitePuzzles3.length; i++) {
+            Board board = new BitmapBoard(whitePuzzles3[i]);
+            assertEquals(new Action(whiteSolutions3[i]), whitePlayer3.play(board), "Incorrect move for " + whitePuzzles3[i]);
+        }
+
+        MinimaxAIPlayer blackPlayer = new MinimaxAIPlayer(false, evaluator, 1);
+        String[] blackPuzzles1 = {
+                "5r1k/8/8/8/8/8/7K/5Q2 b - - 0 1"
+        };
+        Move[] blackSolutions1 = {
+                Util.moveFromSquares("f8", "f1", false, true)
+        };
+        for (int depth = 1; depth <= 2; depth++) {
+            Player player = new MinimaxAIPlayer(false, evaluator, depth);
+            for (int i = 0; i < blackPuzzles1.length; i++) {
+                Board board = new BitmapBoard(blackPuzzles1[i]);
+                assertEquals(new Action(blackSolutions1[i]), player.play(board), "Incorrect move for " + blackPuzzles1[i]);
+//                System.out.printf("Player with depth %d Finished Puzzle %d\n", depth, i);
+            }
         }
     }
 }
