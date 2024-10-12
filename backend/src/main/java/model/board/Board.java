@@ -54,7 +54,7 @@ public abstract class Board {
         this.history = new ArrayList<>();
         this.posFreq = new HashMap<>();
         posFreq.put(getUnclockedFEN(), 1);
-        updateWinner();
+        updateWinner(false);
     }
 
     public Board() {
@@ -65,7 +65,6 @@ public abstract class Board {
             this.history = new ArrayList<>();
             this.posFreq = new HashMap<>();
             posFreq.put(getUnclockedFEN(), 1);
-            updateWinner();
         } catch (Exception e) {
             assert false;
         }
@@ -229,8 +228,8 @@ public abstract class Board {
     public abstract char[][] getPieces();
 
     /**
-     * @param flipped if true, then we're viewing the board from black's perspective
-     *                if false, then we're viewing the board from white's perspective
+     * @param flipped    if true, then we're viewing the board from black's perspective
+     *                   if false, then we're viewing the board from white's perspective
      * @param showCoords if true, the coordinates (1-8, a-h) are shown
      * @return A readable depiction of the pieces
      */
@@ -601,7 +600,13 @@ public abstract class Board {
         }
         whiteToMove = !whiteToMove;
 
-        boolean changed = updateWinner();
+        // Update posFreq
+        if (!PERFT) {
+            String unclockedFEN = getUnclockedFEN();
+            posFreq.put(unclockedFEN, posFreq.getOrDefault(unclockedFEN, 0) + 1);
+        }
+
+        boolean changed = updateWinner(true);
 
         if (isInCheck()) {
             if (changed) {
@@ -613,11 +618,6 @@ public abstract class Board {
         }
         pgn.addMove(pgnMove.toString());
 
-        // Update posFreq
-        if (!PERFT) {
-            String unclockedFEN = getUnclockedFEN();
-            posFreq.put(unclockedFEN, posFreq.getOrDefault(unclockedFEN, 0) + 1);
-        }
 
         // Sanity check
         // TODO: Can be removed after fully tested
@@ -647,7 +647,11 @@ public abstract class Board {
             String unclockedFEN = getUnclockedFEN();
             assert posFreq.containsKey(unclockedFEN) && posFreq.get(unclockedFEN) > 0 :
                     String.format("unclockedFEN: %s\n posFreq: %s\n", unclockedFEN, posFreq);
-            posFreq.put(unclockedFEN, posFreq.get(unclockedFEN) - 1);
+            if (posFreq.get(unclockedFEN) == 1) {
+                posFreq.remove(unclockedFEN);
+            } else {
+                posFreq.put(unclockedFEN, posFreq.get(unclockedFEN) - 1);
+            }
         }
 
         try {
@@ -723,9 +727,11 @@ public abstract class Board {
     /**
      * Check if the game ended and update the winner variable.
      *
+     * @param incremental true if we only need to consider the last move;
+     *                    false if we need to consider the whole game (for threefold repetition)
      * @return true if the winner has changed, false otherwise.
      */
-    protected boolean updateWinner() {
+    protected boolean updateWinner(boolean incremental) {
         if (!hasLegalMoves()) {
             if (isInCheck()) {
                 // Checkmate
@@ -749,15 +755,26 @@ public abstract class Board {
             return true;
         }
 
-        if (!PERFT) {
-            // Threefold repetition
-            for (String key : posFreq.keySet()) {
-                if (posFreq.get(key) >= 3) {
+        if (PERFT) {
+            // skip threefold repetition check
+            return false;
+        }
+
+        // Threefold repetition
+        if (incremental) {
+            if (posFreq.get(getUnclockedFEN()) == 3) {
+                winner = 'd';
+                return true;
+            }
+        } else {
+            for (int value : posFreq.values()) {
+                if (value >= 3) {
                     winner = 'd';
                     return true;
                 }
             }
         }
+
         return false;
     }
 

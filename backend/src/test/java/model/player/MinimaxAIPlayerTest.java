@@ -91,12 +91,12 @@ class MinimaxAIPlayerTest {
                 Util.moveFromSquares("g6", "f8", false, true),
                 Util.moveFromSquares("e7", "g8", false, true),
         };
-        for (int depth = 1; depth <= 2; depth++) {
+        for (int depth = 1; depth <= 3; depth++) {
             Player player = new MinimaxAIPlayer(true, evaluator, depth);
             for (int i = 0; i < whitePuzzles1.length; i++) {
                 Board board = new BitmapBoard(whitePuzzles1[i]);
                 assertEquals(new Action(whiteSolutions1[i]), player.play(board), "Incorrect move for " + whitePuzzles1[i]);
-//                System.out.printf("Player with depth %d Finished Puzzle %d\n", depth, i);
+                System.out.printf("Player with depth %d Finished Puzzle %d\n", depth, i);
             }
         }
 

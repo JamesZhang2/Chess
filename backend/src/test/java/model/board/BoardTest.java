@@ -889,15 +889,14 @@ abstract class BoardTest {
         // Threefold repetition
         boolean legal = true;
         Board board = createBoard();
-        legal &= board.move(Util.moveFromSquares("g1", "f3", false, false));
         for (int i = 0; i < 2; i++) {
+            legal &= board.move(Util.moveFromSquares("g1", "f3", false, false));
             legal &= board.move(Util.moveFromSquares("g8", "f6", false, false));
             legal &= board.move(Util.moveFromSquares("f3", "g1", false, false));
             legal &= board.move(Util.moveFromSquares("f6", "g8", false, false));
-            legal &= board.move(Util.moveFromSquares("g1", "f3", false, false));
         }
         assert legal;
-        assertEquals('d', board.getWinner());
+        assertEquals('d', board.getWinner());  // Starting position has repeated 3 times
 
         // Underpromotion, or stalemate
         assertWinnerAfterMove("8/6P1/7k/8/6K1/8/8/8 w - - 0 1",
