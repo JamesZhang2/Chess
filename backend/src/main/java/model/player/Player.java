@@ -13,12 +13,15 @@ public abstract class Player {
     }
 
     /**
-     * @return an action based on the given board
+     * @return an action based on the given board.
+     * Note that the player is allowed to change the board,
+     * so the GameController must always make a copy of the board.
      */
     abstract public Action play(Board board);
 
     /**
      * Respond to opponent's draw offer based on the current board
+     * It's still the opponent's turn to move.
      *
      * @return true if player accepts a draw, false if player rejects a draw
      */

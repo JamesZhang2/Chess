@@ -134,6 +134,7 @@ class UtilTest {
         assert false;
         return 0;
     }
+
     @Test
     void testGetLS1BIdx() {
         // Edge cases

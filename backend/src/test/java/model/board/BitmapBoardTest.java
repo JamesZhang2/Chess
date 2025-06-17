@@ -1,6 +1,6 @@
 package model.board;
 
-class BitmapBoardTest extends BoardTest{
+class BitmapBoardTest extends BoardTest {
     @Override
     protected Board createBoard() {
         return new BitmapBoard();
