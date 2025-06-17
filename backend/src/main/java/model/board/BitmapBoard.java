@@ -49,7 +49,7 @@ public class BitmapBoard extends Board {
     }
 
     @Override
-    protected char[][] getPieces() {
+    public char[][] getPieces() {
         char[][] pieces = new char[8][8];
         for (char pieceType : Util.PIECE_NAMES) {
             populatePieces(pieces, pieceType);

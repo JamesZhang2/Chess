@@ -1,6 +1,6 @@
 package model.board;
 
-class MailboxBoardTest extends BoardTest{
+class MailboxBoardTest extends BoardTest {
     @Override
     protected Board createBoard() {
         return new MailboxBoard();

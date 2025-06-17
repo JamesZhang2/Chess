@@ -21,7 +21,7 @@ abstract class BoardTest {
     protected abstract Board createBoard(String fen) throws IllegalBoardException, MalformedFENException;
 
     @Test
-    public void testFENParser() throws IllegalBoardException, MalformedFENException {
+    void testFENParser() throws IllegalBoardException, MalformedFENException {
         Board start = createBoard();
         assertEquals("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", start.toFEN());
         String[] validFENs = {
@@ -137,7 +137,7 @@ abstract class BoardTest {
     }
 
     @Test
-    public void testInCheck() throws IllegalBoardException, MalformedFENException {
+    void testInCheck() throws IllegalBoardException, MalformedFENException {
         // Also tests the private attacks method
         String[] inCheckFENs = {
                 // Queen
@@ -241,7 +241,7 @@ abstract class BoardTest {
         };
         for (String fen : notInCheckFENs) {
             Board board = createBoard(fen);
-            assert !board.isInCheck() :  "Should not be in check but program thinks it's in check:\n" + board;
+            assert !board.isInCheck() : "Should not be in check but program thinks it's in check:\n" + board;
         }
     }
 
@@ -283,7 +283,7 @@ abstract class BoardTest {
 
 
     @Test
-    public void testMove() throws MalformedFENException, IllegalBoardException {
+    void testMove() throws MalformedFENException, IllegalBoardException {
         // Legal moves
         // Stafford Gambit line
         testLegalMove(Util.START_POS,
@@ -626,7 +626,7 @@ abstract class BoardTest {
     }
 
     @Test
-    public void testGetLegalMoves() throws MalformedFENException, IllegalBoardException {
+    void testGetLegalMoves() throws MalformedFENException, IllegalBoardException {
         // Starting position
         assertLegalCount(Util.START_POS, 20);
         assertLegalCount(Util.START_POS, "a1", 0);
@@ -822,7 +822,7 @@ abstract class BoardTest {
     }
 
     @Test
-    public void testGetWinner() throws MalformedFENException, IllegalBoardException {
+    void testGetWinner() throws MalformedFENException, IllegalBoardException {
         // Starting position
         assertWinner(Util.START_POS, 'u');
         // Winner-unknown positions
@@ -889,15 +889,14 @@ abstract class BoardTest {
         // Threefold repetition
         boolean legal = true;
         Board board = createBoard();
-        legal &= board.move(Util.moveFromSquares("g1", "f3", false, false));
         for (int i = 0; i < 2; i++) {
+            legal &= board.move(Util.moveFromSquares("g1", "f3", false, false));
             legal &= board.move(Util.moveFromSquares("g8", "f6", false, false));
             legal &= board.move(Util.moveFromSquares("f3", "g1", false, false));
             legal &= board.move(Util.moveFromSquares("f6", "g8", false, false));
-            legal &= board.move(Util.moveFromSquares("g1", "f3", false, false));
         }
         assert legal;
-        assertEquals('d', board.getWinner());
+        assertEquals('d', board.getWinner());  // Starting position has repeated 3 times
 
         // Underpromotion, or stalemate
         assertWinnerAfterMove("8/6P1/7k/8/6K1/8/8/8 w - - 0 1",
@@ -956,7 +955,7 @@ abstract class BoardTest {
     }
 
     @Test
-    public void perftTests() throws IllegalBoardException, MalformedFENException {
+    void perftTests() throws IllegalBoardException, MalformedFENException {
         // perft test cases are from https://www.chessprogramming.org/Perft_Results
         // Working directory is backend/
         try {
