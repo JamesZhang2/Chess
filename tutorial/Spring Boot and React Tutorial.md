@@ -156,7 +156,7 @@ public ResponseEntity<String> hello() {
 }
 ```
 
-We can also add the `@CrossOrigin` annotation on the entire class which will enable CORS for every handler method. Note that we can use `@CrossOrigin(origins = "*")` to allow all sites. It doesn't seem possible to allow all ports from localhost. See [this Stack Overflow post](http://stackoverflow.com/questions/14003332/access-control-allow-origin-wildcard-subdomains-ports-and-protocols) for more details.
+We can also add the `@CrossOrigin` annotation on the entire class which will enable CORS for every handler method. Note that we can use `@CrossOrigin(origins = "*")` to allow all sites. It doesn't seem possible to allow all ports from localhost unless we use regex on the origin header. See [this Stack Overflow post](http://stackoverflow.com/questions/14003332/access-control-allow-origin-wildcard-subdomains-ports-and-protocols) for more details.
 
 With this in mind, let's now look at POST requests.
 
