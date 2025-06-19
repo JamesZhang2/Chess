@@ -17,12 +17,13 @@ function Game() {
     ];
     const [pieces, setPieces] = useState(startPos);
     const [whiteToMove, setWhiteToMove] = useState(true);
+    const [selectedSquare, setSelectedSquare] = useState(null);
     // useEffect with empty dependency array to run only once
     useEffect(() => {
-        axios.get('http://localhost:8080/initGame',)
+        axios.get('http://localhost:8080/initGame')
             .then((response) => {
                 const fen = response.data;
-                setBoardState(fen, setPieces, setWhiteToMove);
+                setBoardState(fen);
             })
             .catch((error) => {
                 console.log(error);
@@ -30,23 +31,81 @@ function Game() {
     }, []);
     return <>
         <h1>Game!</h1>
-        <Board pieces={pieces} />
+        <Board pieces={pieces} handleSquareClick={handleSquareClick} selectedSquare={selectedSquare} />
     </>;
-}
 
-/**
- * Set the board state based on the given FEN string.
- * @param {string} fen 
- */
-function setBoardState(fen, setPieces, setWhiteToMove) {
-    setPieces(parsePiecePlacement(fen));
-    const sideToMove = fen.split(" ")[1];
-    if (sideToMove === "w") {
-        setWhiteToMove(true);
-    } else if (sideToMove === "b") {
-        setWhiteToMove(false);
-    } else {
-        throw new MalformedFENError("Malformed active color field");
+    /**
+     * Set the board state based on the given FEN string.
+     * @param {string} fen 
+     */
+    function setBoardState(fen) {
+        setPieces(parsePiecePlacement(fen));
+        const sideToMove = fen.split(" ")[1];
+        if (sideToMove === "w") {
+            setWhiteToMove(true);
+        } else if (sideToMove === "b") {
+            setWhiteToMove(false);
+        } else {
+            throw new MalformedFENError("Malformed active color field");
+        }
+    }
+
+    function handleSquareClick(sqName) {
+        console.log("Clicked " + sqName);
+        if (!selectedSquare) {
+            // startSquare is null
+            if ((pieceColorOnSquare(sqName) === "white" && whiteToMove)
+                || (pieceColorOnSquare(sqName) === "black" && !whiteToMove)) {
+                setSelectedSquare(sqName);
+                // TODO: Show legal moves
+            }
+        } else {
+            // startSquare is not null
+            if ((pieceColorOnSquare(sqName) === "white" && whiteToMove)
+                || (pieceColorOnSquare(sqName) === "black" && !whiteToMove)) {
+                // selecting a new friendly piece
+                setSelectedSquare(sqName);
+                // TODO: Show legal moves
+            } else {
+                axios.post('http://localhost:8080/tryMove', {
+                    fromSquare: selectedSquare,
+                    toSquare: sqName
+                })
+                    .then((response) => {
+                        const res = response.data;
+                        const isLegal = res.isLegal;
+                        const fen = res.fen;
+                        console.log(isLegal);
+                        console.log(fen);
+                        if (isLegal) {
+                            console.log("Legal move");
+                            setBoardState(fen);
+                        } else {
+                            console.log("Illegal move");
+                        }
+                    })
+                    .catch((error) => {
+                        console.log(error);
+                    });
+                setSelectedSquare(null);
+            }
+        }
+    }
+
+    /**
+     * @param {string} sqName name of square, like a1 or e4
+     * @returns the piece of 
+     */
+    function pieceColorOnSquare(sqName) {
+        const c = sqName.charCodeAt(0) - "a".charCodeAt(0);
+        const r = sqName.charCodeAt(1) - "1".charCodeAt(0);
+        if ("KQRBNP".includes(pieces[r][c])) {
+            return "white";
+        } else if ("kqrbnp".includes(pieces[r][c])) {
+            return "black";
+        } else {
+            return "empty";
+        }
     }
 }
 

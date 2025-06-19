@@ -1,9 +1,11 @@
-import "./Board.css"
+import "./Board.css";
+import classNames from 'classnames';
 
-function Square({ bgColor, piece, id }) {
-    // id is the name of the square (e.g. a1, h8, e4)
+/** sqName is the name of the square (e.g. a1, h8, e4) */
+function Square({ bgColor, piece, sqName, isSelected, handleSquareClick }) {
     // console.log(bgColor + " " + piece);
     let svg;
+    let containsPiece = true;
     switch (piece) {
         case 'p':
             svg = <img className="piece-svg" src="../svg/black_pawn.svg" />;
@@ -43,8 +45,10 @@ function Square({ bgColor, piece, id }) {
             break;
         default:
             svg = <></>;
+            containsPiece = false;
     }
-    return (<div className={bgColor} id={id}>
+    const squareClass = classNames(bgColor, { "contains-piece": containsPiece, "selected": isSelected });
+    return (<div className={squareClass} key={sqName} onClick={() => handleSquareClick(sqName)}>
         {svg}
     </div>);
 }
@@ -52,9 +56,13 @@ function Square({ bgColor, piece, id }) {
 /**
  * @param {Array.Array.<string>} pieces 
  * @param {boolean} white whether to render from white or black's point of view
+ * @param {string} selectedSquare the name of the selected square (like a1),
+ *                                or null if no squares are selected
  * @returns 2D array of Square components
  */
-function renderSquares(pieces, white) {
+function renderSquares(pieces, white, selectedSquare, handleSquareClick) {
+    const selectedR = selectedSquare ? selectedSquare.charCodeAt(1) - "1".charCodeAt(0) : -1;
+    const selectedC = selectedSquare ? selectedSquare.charCodeAt(0) - "a".charCodeAt(0) : -1;
     const squares = new Array(8);
     // r and c are the actual row and column.
     // r = 0, c = 0 corresponds to a1
@@ -66,25 +74,33 @@ function renderSquares(pieces, white) {
     for (let r = 0; r < 8; r++) {
         for (let c = 0; c < 8; c++) {
             const bgColor = (r + c) % 2 === 0 ? "dark" : "light";  // a1 is a dark square
-            const id = String.fromCharCode("a".charCodeAt(0) + c) + (r + 1);
+            const sqName = String.fromCharCode("a".charCodeAt(0) + c) + (r + 1);
             const visualR = white ? 7 - r : r;
             const visualC = white ? c : 7 - c;
-            squares[visualR][visualC] = (<Square bgColor={bgColor} piece={pieces[r][c]} id={id} />);
+            squares[visualR][visualC] = (<Square
+                bgColor={bgColor}
+                piece={pieces[r][c]}
+                key={sqName}
+                sqName={sqName}
+                isSelected={r === selectedR && c === selectedC}
+                handleSquareClick={handleSquareClick} />);
         }
     }
     return squares;
 }
 
 /**
- * @param pieces  2D array of characters representing board state.
+ * @param {Array.Array.<string>} pieces 2D array of characters representing board state.
+ * @param {string} selectedSquare the name of the selected square (like a1),
+ *                                or null if no squares are selected
  * KQRBNP represent white pieces, kqrbnp represent black pieces, and . represent empty space.
  */
-function Board({ pieces }) {
+function Board({ pieces, selectedSquare, handleSquareClick }) {
     console.log(pieces);
 
     return (
         <div className="container">
-            {renderSquares(pieces, true)}
+            {renderSquares(pieces, true, selectedSquare, handleSquareClick)}
         </div>
     );
 }

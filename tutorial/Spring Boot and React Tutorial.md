@@ -111,7 +111,7 @@ We will use the Axios package to send requests and receive responses for the fro
 Here is the basic syntax for sending GET requests using axios:
 
 ```javascript
-axios.get('http://localhost:8080/',)
+axios.get('http://localhost:8080/')
     .then((response) => {
         console.log(response.data);  // Should print out "Hello world!"
         // Handle data
@@ -120,7 +120,7 @@ axios.get('http://localhost:8080/',)
         console.log(error);
     });
 
-axios.get('http://localhost:8080/number/42',)
+axios.get('http://localhost:8080/number/42')
     .then((response) => {
         console.log(response.data);  // Should print out 84
         // Handle data

@@ -5,6 +5,7 @@ import model.board.BitmapBoard;
 import model.board.Board;
 import model.board.MalformedFENException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,7 +38,7 @@ public class Controller {
         return new ResponseEntity<>("Register successful!", HttpStatus.OK);
     }
 
-    @PostMapping("/playAsGuest")
+    @GetMapping("/playAsGuest")
     public ResponseEntity<String> playAsGuest() {
         String username = "_guest" + (guestCounter++);
         return new ResponseEntity<>(username, HttpStatus.OK);
@@ -46,11 +47,19 @@ public class Controller {
     @GetMapping("/initGame")
     public ResponseEntity<String> initGame() {
         try {
-            board = new BitmapBoard("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
+            board = new BitmapBoard("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1");
         } catch (Exception e) {
             e.printStackTrace();
         }
         System.out.println("initGame called");
         return new ResponseEntity<>(board.toFEN(), HttpStatus.OK);
+    }
+
+    @PostMapping("/tryMove")
+    public ResponseEntity<UIMoveResponse> tryMove(@RequestBody UIMove uiMove) {
+        System.out.println(uiMove);
+        // TODO: Write logic to handle UI moves
+        // for now, we'll say all moves are illegal
+        return new ResponseEntity<>(new UIMoveResponse(board.toFEN(), false), HttpStatus.OK);
     }
 }
