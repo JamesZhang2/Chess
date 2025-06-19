@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+/**
+ * The API that connects the frontend and the backend.
+ */
 @RestController
 //@CrossOrigin(origins = "http://localhost")
 @CrossOrigin(origins = "*")  // TODO: Only allow localhost but allow any port
@@ -55,11 +58,16 @@ public class Controller {
         return new ResponseEntity<>(board.toFEN(), HttpStatus.OK);
     }
 
+    @GetMapping("/getCandidates")
+    public ResponseEntity<CandidateMoves> getCandidates(@RequestParam String square) {
+        return new ResponseEntity<>(new CandidateMoves(board, square), HttpStatus.OK);
+    }
+
     @PostMapping("/tryMove")
     public ResponseEntity<UIMoveResponse> tryMove(@RequestBody UIMove uiMove) {
         System.out.println(uiMove);
         // TODO: Write logic to handle UI moves
         // for now, we'll say all moves are illegal
-        return new ResponseEntity<>(new UIMoveResponse(board.toFEN(), false), HttpStatus.OK);
+        return new ResponseEntity<>(new UIMoveResponse(board.toFEN(), false, board.getWinner()), HttpStatus.OK);
     }
 }

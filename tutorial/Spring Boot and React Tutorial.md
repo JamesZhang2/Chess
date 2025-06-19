@@ -90,9 +90,20 @@ public ResponseEntity<String> hello() {
 
 Or, you can use the `BodyBuilder` pattern: `return ResponseEntity.ok().headers(headers).body("Hello world!");`
 
+### GET Request with Query Parameters
+
+If we want to handle GET requests with query parameters, such as `/user?userId=1`, we can use the `@RequestParam` annotation:
+
+```java
+@GetMapping("/user")
+public ResponseEntity<String> getUser(@RequestParam("userId") int userId) {
+    return ResponseEntity<>(users.get(userId), HttpStatus.OK);
+}
+```
+
 ### GET Request with Template Variables
 
-Sometimes, we want to handle get requests where the endpoint contains so called "template variables". For instance, you may have an endpoint `/user/{username}`, where the `username` is a variable that decides which user is displayed on the web page. We can handle these using the `@PathVariable` annotation:
+Sometimes, we want to handle GET requests where the endpoint contains so called "template variables". For instance, you may have an endpoint `/user/{username}`, where the `username` is a variable that decides which user is displayed on the web page. We can handle these using the `@PathVariable` annotation:
 
 ```java
 @GetMapping("/number/{num}")
@@ -111,7 +122,7 @@ We will use the Axios package to send requests and receive responses for the fro
 Here is the basic syntax for sending GET requests using axios:
 
 ```javascript
-axios.get('http://localhost:8080/')
+axios.get("http://localhost:8080/")
     .then((response) => {
         console.log(response.data);  // Should print out "Hello world!"
         // Handle data
@@ -120,7 +131,7 @@ axios.get('http://localhost:8080/')
         console.log(error);
     });
 
-axios.get('http://localhost:8080/number/42')
+axios.get("http://localhost:8080/number/42")
     .then((response) => {
         console.log(response.data);  // Should print out 84
         // Handle data
@@ -165,7 +176,7 @@ With this in mind, let's now look at POST requests.
 Here's how we can send a POST request with Axios on the frontend:
 
 ```javascript
-axios.post('http://localhost:8080/addUser', {
+axios.post("http://localhost:8080/addUser", {
       name: "Bob",
       age: 20,
   }, {
@@ -227,6 +238,50 @@ public ResponseEntity<String> addUser(@RequestBody User user) {
 ```
 
 Note that the fields in the request body are used to construct the new object, so the name of the fields in the request must match the name of the parameters in the constructor of User. For fields in the constructor that are missing in the request body, the default values (like `null` for objects, `0` for numbers, and `false` for booleans) are used to construct the object.
+
+### Configure Proxy in Vite
+
+Currently, the GET and POST requests explicitly use the address `http://localhost:8080/`. However, if the backend address or port changes, we have to change the address in every axios call. To avoid this, we can configure a proxy in Vite by writing the following in `vite.config.js`:
+
+```javascript
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://localhost:8080",  // backend server address
+        changeOrigin: true,  // Make request appear to come from frontend
+        secure: false,
+        ws: true,
+        // Remove "/api" prefix so that backend endpoints can be /addUser rather than /api/addUser
+        rewrite: (path) => path.replace(/^\/api/, ""),
+        // log messages for debugging
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Sending Request to the Target:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+          });
+        },
+      }
+    }
+  }
+});
+```
+
+Then, we can call axios with (for example) `/api/addUser` rather than `http://localhost:8080/addUser`.
+
+See this [Medium post](https://medium.com/@eric_abell/simplifying-api-proxies-in-vite-a-guide-to-vite-config-js-a5cc3a091a2f) and this [StackOverflow post](https://stackoverflow.com/questions/64677212/how-to-configure-proxy-in-vite) for more details.
+
+Important: The `vite.config.js` **must be at the root of the project** (i.e. under `vite-project`) rather than being in `src`. It should already be created by Vite for us. I spent hours figuring out why Vite is not redirecting my api calls, only to find out that my `vite.config.js` is in `src` and it's not even being read by Vite! We can also check `DevTool > Network` to make sure that the status code of your API endpoint is 200 (OK), rather than 304 (Not Modified).
 
 ## Adding Spring Boot to Existing Java Project
 

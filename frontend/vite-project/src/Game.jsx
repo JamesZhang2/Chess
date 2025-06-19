@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import Board from "./Board.jsx";
 import axios from "axios";
 import MalformedFENError from "./MalformedFENError.js";
+import { getRC } from "./Util.js";
 
 function Game() {
     const startPos = [
@@ -20,9 +21,10 @@ function Game() {
     const [selectedSquare, setSelectedSquare] = useState(null);
     // useEffect with empty dependency array to run only once
     useEffect(() => {
-        axios.get('http://localhost:8080/initGame')
+        axios.get('/api/initGame')
             .then((response) => {
                 const fen = response.data;
+                console.log("fen: " + fen);
                 setBoardState(fen);
             })
             .catch((error) => {
@@ -57,7 +59,7 @@ function Game() {
             if ((pieceColorOnSquare(sqName) === "white" && whiteToMove)
                 || (pieceColorOnSquare(sqName) === "black" && !whiteToMove)) {
                 setSelectedSquare(sqName);
-                // TODO: Show legal moves
+                showLegalMoves(sqName);
             }
         } else {
             // startSquare is not null
@@ -65,31 +67,50 @@ function Game() {
                 || (pieceColorOnSquare(sqName) === "black" && !whiteToMove)) {
                 // selecting a new friendly piece
                 setSelectedSquare(sqName);
-                // TODO: Show legal moves
+                showLegalMoves(sqName);
             } else {
-                axios.post('http://localhost:8080/tryMove', {
-                    fromSquare: selectedSquare,
-                    toSquare: sqName
-                })
-                    .then((response) => {
-                        const res = response.data;
-                        const isLegal = res.isLegal;
-                        const fen = res.fen;
-                        console.log(isLegal);
-                        console.log(fen);
-                        if (isLegal) {
-                            console.log("Legal move");
-                            setBoardState(fen);
-                        } else {
-                            console.log("Illegal move");
-                        }
-                    })
-                    .catch((error) => {
-                        console.log(error);
-                    });
-                setSelectedSquare(null);
+                // attempt to make a move
+                tryMove(sqName);
             }
         }
+    }
+
+    function showLegalMoves(sqName) {
+        axios.get(`/api/getCandidates?square=${sqName}`)
+            .then((response) => {
+                const res = response.data;
+                const legalDests = res.legalDests;
+                const legalPromotions = res.legalPromotions;
+                console.log(legalDests);
+                console.log(legalPromotions);
+            })
+            .catch((error) => {
+                console.log(error);
+            });
+    }
+
+    function tryMove(sqName) {
+        axios.post('/api/tryMove', {
+            fromSquare: selectedSquare,
+            toSquare: sqName
+        })
+            .then((response) => {
+                const res = response.data;
+                const isLegal = res.isLegal;
+                const fen = res.fen;
+                console.log(isLegal);
+                console.log(fen);
+                if (isLegal) {
+                    console.log("Legal move");
+                    setBoardState(fen);
+                } else {
+                    console.log("Illegal move");
+                }
+            })
+            .catch((error) => {
+                console.log(error);
+            });
+        setSelectedSquare(null);
     }
 
     /**
@@ -97,8 +118,7 @@ function Game() {
      * @returns the piece of 
      */
     function pieceColorOnSquare(sqName) {
-        const c = sqName.charCodeAt(0) - "a".charCodeAt(0);
-        const r = sqName.charCodeAt(1) - "1".charCodeAt(0);
+        const [r, c] = getRC(sqName);
         if ("KQRBNP".includes(pieces[r][c])) {
             return "white";
         } else if ("kqrbnp".includes(pieces[r][c])) {
@@ -115,7 +135,7 @@ function Game() {
  * @returns a 2D array of characters representing the placement of pieces
  */
 function parsePiecePlacement(fen) {
-    console.log("Calling parsePiecePlacement with " + fen);
+    // console.log("Calling parsePiecePlacement with " + fen);
     const fields = fen.split(" ");
     const placement = fields[0].split("/");
     // console.log("placement: " + placement);
@@ -130,7 +150,7 @@ function parsePiecePlacement(fen) {
         // Since FEN goes from the top of the board to the bottom,
         // row i for pieces corresponds to index (7 - i) of the placement string
         const rowStr = placement[7 - row];
-        console.log("rowStr: " + rowStr);
+        // console.log("rowStr: " + rowStr);
         let col = 0;
         for (let i = 0; i < rowStr.length; i++) {
             if (col >= 8) {

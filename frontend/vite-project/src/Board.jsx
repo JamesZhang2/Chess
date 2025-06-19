@@ -1,5 +1,6 @@
 import "./Board.css";
 import classNames from 'classnames';
+import { getRC, getSquareName } from "./Util";
 
 /** sqName is the name of the square (e.g. a1, h8, e4) */
 function Square({ bgColor, piece, sqName, isSelected, handleSquareClick }) {
@@ -61,8 +62,7 @@ function Square({ bgColor, piece, sqName, isSelected, handleSquareClick }) {
  * @returns 2D array of Square components
  */
 function renderSquares(pieces, white, selectedSquare, handleSquareClick) {
-    const selectedR = selectedSquare ? selectedSquare.charCodeAt(1) - "1".charCodeAt(0) : -1;
-    const selectedC = selectedSquare ? selectedSquare.charCodeAt(0) - "a".charCodeAt(0) : -1;
+    const [selectedR, selectedC] = selectedSquare ? getRC(selectedSquare) : [-1, -1];
     const squares = new Array(8);
     // r and c are the actual row and column.
     // r = 0, c = 0 corresponds to a1
@@ -74,7 +74,7 @@ function renderSquares(pieces, white, selectedSquare, handleSquareClick) {
     for (let r = 0; r < 8; r++) {
         for (let c = 0; c < 8; c++) {
             const bgColor = (r + c) % 2 === 0 ? "dark" : "light";  // a1 is a dark square
-            const sqName = String.fromCharCode("a".charCodeAt(0) + c) + (r + 1);
+            const sqName = getSquareName(r, c);
             const visualR = white ? 7 - r : r;
             const visualC = white ? c : 7 - c;
             squares[visualR][visualC] = (<Square
@@ -96,7 +96,7 @@ function renderSquares(pieces, white, selectedSquare, handleSquareClick) {
  * KQRBNP represent white pieces, kqrbnp represent black pieces, and . represent empty space.
  */
 function Board({ pieces, selectedSquare, handleSquareClick }) {
-    console.log(pieces);
+    // console.log(pieces);
 
     return (
         <div className="container">
