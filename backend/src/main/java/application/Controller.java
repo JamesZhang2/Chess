@@ -1,5 +1,9 @@
 package application;
 
+import controller.GameController;
+import model.board.BitmapBoard;
+import model.board.Board;
+import model.board.MalformedFENException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -7,9 +11,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@CrossOrigin(origins = "http://localhost")
+//@CrossOrigin(origins = "http://localhost")
+@CrossOrigin(origins = "*")  // TODO: Only allow localhost but allow any port
 public class Controller {
     private int guestCounter = 0;
+    private Board board;
 
     @GetMapping("/")
     public ResponseEntity<String> index() {
@@ -27,7 +33,7 @@ public class Controller {
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody Map<String, String> body) {
         System.out.println("Username: " + body.get("register_username"));
-        System.out.println("Password: " + body.get("register__password"));
+        System.out.println("Password: " + body.get("register_password"));
         return new ResponseEntity<>("Register successful!", HttpStatus.OK);
     }
 
@@ -35,5 +41,16 @@ public class Controller {
     public ResponseEntity<String> playAsGuest() {
         String username = "_guest" + (guestCounter++);
         return new ResponseEntity<>(username, HttpStatus.OK);
+    }
+
+    @GetMapping("/initGame")
+    public ResponseEntity<String> initGame() {
+        try {
+            board = new BitmapBoard("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("initGame called");
+        return new ResponseEntity<>(board.toFEN(), HttpStatus.OK);
     }
 }

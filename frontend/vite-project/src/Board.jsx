@@ -1,6 +1,7 @@
 import "./Board.css"
 
-function Square({ bgColor, piece }) {
+function Square({ bgColor, piece, id }) {
+    // id is the name of the square (e.g. a1, h8, e4)
     // console.log(bgColor + " " + piece);
     let svg;
     switch (piece) {
@@ -43,43 +44,49 @@ function Square({ bgColor, piece }) {
         default:
             svg = <></>;
     }
-    return (<div className={bgColor}>
+    return (<div className={bgColor} id={id}>
         {svg}
     </div>);
 }
 
-function renderSquares(position) {
-    console.log(position);
-    let squares = [];
+/**
+ * @param {Array.Array.<string>} pieces 
+ * @param {boolean} white whether to render from white or black's point of view
+ * @returns 2D array of Square components
+ */
+function renderSquares(pieces, white) {
+    const squares = new Array(8);
+    // r and c are the actual row and column.
+    // r = 0, c = 0 corresponds to a1
+    // visualR and visualC are the squares shown on the screen.
+    // visualR = 0, visualC = 0 corresponds to the top left corner.
+    for (let visualR = 0; visualR < 8; visualR++) {
+        squares[visualR] = new Array(8);
+    }
     for (let r = 0; r < 8; r++) {
-        squares.push([]);
         for (let c = 0; c < 8; c++) {
-            let bgColor = (r + c) % 2 === 0 ? "light" : "dark";
-            squares[r].push(<Square bgColor={bgColor} piece={position[r][c]} key={`${r}-${c}`} />);
+            const bgColor = (r + c) % 2 === 0 ? "dark" : "light";  // a1 is a dark square
+            const id = String.fromCharCode("a".charCodeAt(0) + c) + (r + 1);
+            const visualR = white ? 7 - r : r;
+            const visualC = white ? c : 7 - c;
+            squares[visualR][visualC] = (<Square bgColor={bgColor} piece={pieces[r][c]} id={id} />);
         }
     }
     return squares;
 }
 
-function Board() {
-    // TODO: Use state for position
-    const startPos = [
-        "rnbqkbnr".split(""),
-        "pppppppp".split(""),
-        "........".split(""),
-        "........".split(""),
-        "........".split(""),
-        "........".split(""),
-        "PPPPPPPP".split(""),
-        "RNBQKBNR".split(""),
-    ]
-    console.log(startPos);
+/**
+ * @param pieces  2D array of characters representing board state.
+ * KQRBNP represent white pieces, kqrbnp represent black pieces, and . represent empty space.
+ */
+function Board({ pieces }) {
+    console.log(pieces);
 
     return (
         <div className="container">
-            {renderSquares(startPos)}
+            {renderSquares(pieces, true)}
         </div>
     );
 }
 
-export default Board
+export default Board;
