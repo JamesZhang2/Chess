@@ -9,7 +9,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Game />} />
+        <Route path="/" element={<Game whitePlayerType={"HumanGUIPlayer"} blackPlayerType={"HumanGUIPlayer"} />} />
         <Route path="/login" element={<Login />} />
         <Route path="/home" element={<Home />} />
         <Route path="/game" element={<Game />} />

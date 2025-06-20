@@ -3,7 +3,7 @@ import classNames from 'classnames';
 import { getRC, getSquareName } from "./Util";
 
 /** sqName is the name of the square (e.g. a1, h8, e4) */
-function Square({ bgColor, piece, sqName, isSelected, handleSquareClick }) {
+function Square({ bgColor, piece, sqName, isSelected, isLegalDest, handleSquareClick }) {
     // console.log(bgColor + " " + piece);
     let svg;
     let containsPiece = true;
@@ -48,20 +48,48 @@ function Square({ bgColor, piece, sqName, isSelected, handleSquareClick }) {
             svg = <></>;
             containsPiece = false;
     }
-    const squareClass = classNames(bgColor, { "contains-piece": containsPiece, "selected": isSelected });
-    return (<div className={squareClass} key={sqName} onClick={() => handleSquareClick(sqName)}>
+    const squareClass = classNames("square", bgColor, { "contains-piece": containsPiece, "selected": isSelected });
+    const centerCircleClass = classNames("center-circle", { "show": isLegalDest })
+    // console.log(`sqName=${sqName}, isLegalDest=${isLegalDest}`);
+    return (<div
+        className={squareClass}
+        key={sqName}
+        onClick={e => { e.stopPropagation(); handleSquareClick(sqName) }}>
         {svg}
+        <div className={centerCircleClass}></div>
     </div>);
 }
 
 /**
- * @param {Array.Array.<string>} pieces 
+ * The promotion overlay screen
+ * @param {boolean} white 
+ */
+function PromotionOverlay({ white, handlePromotionSelection, handlePromotionCancellation }) {
+    return <div className="promotion-overlay" onClick={e => handlePromotionCancellation(e)}>
+        <p>Select the piece that you want to promote to:</p>
+        <div className="promotion-selection-container">
+            <Square bgColor={"light"} piece={white ? "Q" : "q"} sqName={white ? "Q" : "q"} isSelected={false} isLegalDest={false} handleSquareClick={handlePromotionSelection} />
+            <Square bgColor={"light"} piece={white ? "R" : "r"} sqName={white ? "R" : "r"} isSelected={false} isLegalDest={false} handleSquareClick={handlePromotionSelection} />
+            <Square bgColor={"light"} piece={white ? "B" : "b"} sqName={white ? "B" : "b"} isSelected={false} isLegalDest={false} handleSquareClick={handlePromotionSelection} />
+            <Square bgColor={"light"} piece={white ? "N" : "n"} sqName={white ? "N" : "n"} isSelected={false} isLegalDest={false} handleSquareClick={handlePromotionSelection} />
+        </div>
+    </div>
+}
+
+/**
+ * @param {Array<Array<string>>} pieces 2D array of characters representing board state.
  * @param {boolean} white whether to render from white or black's point of view
  * @param {string} selectedSquare the name of the selected square (like a1),
  *                                or null if no squares are selected
- * @returns 2D array of Square components
+ * @param {Set<string>} legalDests set of legal destination squares for the selected square
+ * @param {(squareName: string) => void} handleSquareClick handler for clicking a square
+ * @param {boolean} showPromotionOverlay whether to show the promotion overlay
+ * @param {(squareName: string) => void} handlePromotionSelection handler for promotion selection
+ * @param {(e: PointerEvent) => void} handlePromotionCancellation
+ *        handler for promotion cancellation (clicking anywhere outside the 4 choices)
+ * KQRBNP represent white pieces, kqrbnp represent black pieces, and . represent empty space.
  */
-function renderSquares(pieces, white, selectedSquare, handleSquareClick) {
+function Board({ pieces, white, selectedSquare, legalDests, handleSquareClick, showPromotionOverlay, handlePromotionSelection, handlePromotionCancellation }) {
     const [selectedR, selectedC] = selectedSquare ? getRC(selectedSquare) : [-1, -1];
     const squares = new Array(8);
     // r and c are the actual row and column.
@@ -83,26 +111,24 @@ function renderSquares(pieces, white, selectedSquare, handleSquareClick) {
                 key={sqName}
                 sqName={sqName}
                 isSelected={r === selectedR && c === selectedC}
+                isLegalDest={legalDests.has(sqName)}
                 handleSquareClick={handleSquareClick} />);
         }
     }
-    return squares;
-}
-
-/**
- * @param {Array.Array.<string>} pieces 2D array of characters representing board state.
- * @param {string} selectedSquare the name of the selected square (like a1),
- *                                or null if no squares are selected
- * KQRBNP represent white pieces, kqrbnp represent black pieces, and . represent empty space.
- */
-function Board({ pieces, selectedSquare, handleSquareClick }) {
-    // console.log(pieces);
-
-    return (
-        <div className="container">
-            {renderSquares(pieces, true, selectedSquare, handleSquareClick)}
-        </div>
-    );
+    if (showPromotionOverlay) {
+        return (
+            <div className="board-container">
+                {squares}
+                <PromotionOverlay white={white} handlePromotionSelection={handlePromotionSelection} handlePromotionCancellation={handlePromotionCancellation} />
+            </div>
+        );
+    } else {
+        return (
+            <div className="board-container">
+                {squares}
+            </div>
+        )
+    }
 }
 
 export default Board;

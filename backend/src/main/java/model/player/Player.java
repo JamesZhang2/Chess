@@ -16,6 +16,7 @@ public abstract class Player {
      * @return an action based on the given board.
      * Note that the player is allowed to change the board,
      * so the GameController must always make a copy of the board.
+     * Requires: if the action is playing a move, the move must be legal.
      */
     abstract public Action play(Board board);
 

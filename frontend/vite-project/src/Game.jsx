@@ -5,7 +5,7 @@ import axios from "axios";
 import MalformedFENError from "./MalformedFENError.js";
 import { getRC } from "./Util.js";
 
-function Game() {
+function Game({ whitePlayerType, blackPlayerType }) {
     const startPos = [
         "RNBQKBNR".split(""),
         "PPPPPPPP".split(""),
@@ -19,9 +19,16 @@ function Game() {
     const [pieces, setPieces] = useState(startPos);
     const [whiteToMove, setWhiteToMove] = useState(true);
     const [selectedSquare, setSelectedSquare] = useState(null);
+    // u: unknown (game in progress), w: white, d: draw, b: black
+    const [winner, setWinner] = useState("u");
+    const [legalDests, setLegalDests] = useState(new Set());
+    const [legalPromotions, setLegalPromotions] = useState(new Set());
+    const [showPromotionOverlay, setShowPromotionOverlay] = useState(false);
+    const [promotionSquare, setPromotionSquare] = useState(null);
+
     // useEffect with empty dependency array to run only once
     useEffect(() => {
-        axios.get('/api/initGame')
+        axios.get(`/api/initGame?whitePlayerType=${whitePlayerType}&blackPlayerType=${blackPlayerType}`)
             .then((response) => {
                 const fen = response.data;
                 console.log("fen: " + fen);
@@ -31,10 +38,35 @@ function Game() {
                 console.log(error);
             })
     }, []);
-    return <>
-        <h1>Game!</h1>
-        <Board pieces={pieces} handleSquareClick={handleSquareClick} selectedSquare={selectedSquare} />
-    </>;
+    if (winner === "u") {
+        // game is ongoing
+        return <>
+            <h1>Game!</h1>
+            <Board
+                pieces={pieces}
+                white={whiteToMove}
+                selectedSquare={selectedSquare}
+                legalDests={legalDests}
+                handleSquareClick={handleSquareClick}
+                showPromotionOverlay={showPromotionOverlay}
+                handlePromotionSelection={handlePromotionSelection}
+                handlePromotionCancellation={handlePromotionCancellation} />
+        </>;
+    } else {
+        // game has ended
+        return <>
+            <h1>{winner === "w" ? "White won!" : (winner === "b" ? "Black won!" : "Draw!")}</h1>
+            <Board
+                pieces={pieces}
+                white={whiteToMove}
+                selectedSquare={null}
+                legalDests={new Set()}
+                handleSquareClick={(sqName) => { }}
+                showPromotionOverlay={false}
+                handlePromotionSelection={(pieceType) => { }}
+                handlePromotionCancellation={(event) => { }} />
+        </>
+    }
 
     /**
      * Set the board state based on the given FEN string.
@@ -59,7 +91,7 @@ function Game() {
             if ((pieceColorOnSquare(sqName) === "white" && whiteToMove)
                 || (pieceColorOnSquare(sqName) === "black" && !whiteToMove)) {
                 setSelectedSquare(sqName);
-                showLegalMoves(sqName);
+                setLegalMoves(sqName);
             }
         } else {
             // startSquare is not null
@@ -67,42 +99,75 @@ function Game() {
                 || (pieceColorOnSquare(sqName) === "black" && !whiteToMove)) {
                 // selecting a new friendly piece
                 setSelectedSquare(sqName);
-                showLegalMoves(sqName);
+                setLegalMoves(sqName);
             } else {
                 // attempt to make a move
-                tryMove(sqName);
+                if (legalPromotions.has(sqName)) {
+                    // promotion overlay
+                    setShowPromotionOverlay(true);
+                    setPromotionSquare(sqName);
+                } else {
+                    tryMove(sqName);
+                }
             }
         }
     }
 
-    function showLegalMoves(sqName) {
+    /**
+     * For the promotion overlay, the piece will have sqName set to "Q", "R", etc.
+     * @param {string} pieceType 
+     */
+    function handlePromotionSelection(pieceType) {
+        console.log("Promotion piece: " + pieceType);
+        setShowPromotionOverlay(false);
+        tryMove(promotionSquare, pieceType);
+    }
+
+    /**
+     * handles promotion cancellation (clicking anywhere outside the 4 choices)
+     * @param {PointerEvent} event
+     */
+    function handlePromotionCancellation(event) {
+        event.stopPropagation();
+        setShowPromotionOverlay(false);
+        setSelectedSquare(null);
+        setPromotionSquare(null);
+        setLegalDests(new Set());
+        setLegalPromotions(new Set());
+    }
+
+    function setLegalMoves(sqName) {
         axios.get(`/api/getCandidates?square=${sqName}`)
             .then((response) => {
                 const res = response.data;
-                const legalDests = res.legalDests;
-                const legalPromotions = res.legalPromotions;
-                console.log(legalDests);
-                console.log(legalPromotions);
+                console.log("legalDests: " + res.legalDests);
+                console.log("legalPromotions: " + res.legalPromotions);
+                setLegalDests(new Set(res.legalDests));
+                setLegalPromotions(new Set(res.legalPromotions));
             })
             .catch((error) => {
                 console.log(error);
             });
     }
 
-    function tryMove(sqName) {
+    function tryMove(sqName, promotion = null) {
         axios.post('/api/tryMove', {
             fromSquare: selectedSquare,
-            toSquare: sqName
+            toSquare: sqName,
+            promotion: promotion
         })
             .then((response) => {
                 const res = response.data;
                 const isLegal = res.isLegal;
                 const fen = res.fen;
+                const winner = res.winner;
                 console.log(isLegal);
                 console.log(fen);
+                console.log("Winner: " + winner);
                 if (isLegal) {
                     console.log("Legal move");
                     setBoardState(fen);
+                    setWinner(winner);
                 } else {
                     console.log("Illegal move");
                 }
@@ -111,6 +176,8 @@ function Game() {
                 console.log(error);
             });
         setSelectedSquare(null);
+        setLegalDests(new Set());
+        setLegalPromotions(new Set());
     }
 
     /**

@@ -9,11 +9,13 @@ public class HumanGUIPlayer extends Player {
 
     @Override
     public Action play(Board board) {
+        // this will not be used
         return null;
     }
 
     @Override
     public boolean considerDraw(Board board) {
+        // this will not be used
         return false;
     }
 }

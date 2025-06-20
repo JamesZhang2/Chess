@@ -4,22 +4,23 @@ package application;
  * A class representing a move received from the frontend. May be illegal.
  */
 public class UIMove {
-    private final String fromSquare;
-    private final String toSquare;
-    private final String promotePiece;
+    // making the fields public final since this is like a record
+    public final String fromSquare;
+    public final String toSquare;
+    public final String promotion;  // null if not a promotion
 
-    public UIMove(String fromSquare, String toSquare, String promotePiece) {
+    public UIMove(String fromSquare, String toSquare, String promotion) {
         this.fromSquare = fromSquare;
         this.toSquare = toSquare;
-        this.promotePiece = promotePiece;
+        this.promotion = promotion;
     }
 
     @Override
     public String toString() {
-        if (promotePiece == null) {
+        if (promotion == null) {
             return fromSquare + "-" + toSquare;
         } else {
-            return fromSquare + "-" + toSquare + "=" + promotePiece;
+            return fromSquare + "-" + toSquare + "=" + promotion;
         }
     }
 }

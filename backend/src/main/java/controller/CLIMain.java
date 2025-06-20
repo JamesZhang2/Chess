@@ -5,7 +5,7 @@ import model.player.HumanCLIPlayer;
 import model.player.MinimaxAIPlayer;
 import model.player.Player;
 
-public class MainCLI {
+public class CLIMain {
     public static void main(String[] args) {
         Player whitePlayer = new HumanCLIPlayer(true);
 //        Player blackPlayer = new RandomAIPlayer(false);
@@ -16,6 +16,6 @@ public class MainCLI {
 //        } catch (Exception ignored) {
 //
 //        }
-         GameController gameController = new GameController(whitePlayer, blackPlayer);
+         CLIGameController gameController = new CLIGameController(whitePlayer, blackPlayer);
     }
 }

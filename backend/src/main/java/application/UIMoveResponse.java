@@ -4,13 +4,13 @@ package application;
  * A class representing a response to a move received from the frontend.
  */
 public class UIMoveResponse {
-    public final String fen;
     public final boolean isLegal;
+    public final String fen;
     public final String winner;  // u, w, b, or d
 
-    public UIMoveResponse(String fen, boolean isLegal, char winner) {
-        this.fen = fen;
+    public UIMoveResponse(boolean isLegal, String fen, char winner) {
         this.isLegal = isLegal;
+        this.fen = fen;
         this.winner = String.valueOf(winner);
     }
 }
