@@ -12,7 +12,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The API that connects the frontend and the backend.
@@ -21,10 +23,10 @@ import java.util.Map;
 //@CrossOrigin(origins = "http://localhost")
 @CrossOrigin(origins = "*")  // TODO: Only allow localhost but allow any port
 public class Controller {
+    private Map<String, String> users = new HashMap<>();
     private int guestCounter = 0;
-    private Player whitePlayer;
-    private Player blackPlayer;
     private GUIGameController gameController;
+    // TODO: Map from gameId to GUIGameController
 
     @GetMapping("/")
     public ResponseEntity<String> index() {
@@ -33,28 +35,41 @@ public class Controller {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody Map<String, String> body) {
-        System.out.println("Username: " + body.get("login_username"));
-        System.out.println("Password: " + body.get("login_password"));
-        return new ResponseEntity<>("Login successful!", HttpStatus.OK);
+    public ResponseEntity<LoginResponse> login(@RequestBody Map<String, String> body) {
+        String username = body.get("username");
+        String password = body.get("password");
+        System.out.printf("Login with username=%s and password=%s\n", username, password);
+        if (users.containsKey(username) && users.get(username).equals(password)) {
+            return new ResponseEntity<>(new LoginResponse(true, ""), HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(new LoginResponse(false, "Error: Incorrect username or password"), HttpStatus.OK);
+        }
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody Map<String, String> body) {
-        System.out.println("Username: " + body.get("register_username"));
-        System.out.println("Password: " + body.get("register_password"));
-        return new ResponseEntity<>("Register successful!", HttpStatus.OK);
+    public ResponseEntity<LoginResponse> register(@RequestBody Map<String, String> body) {
+        String username = body.get("username");
+        String password = body.get("password");
+        System.out.printf("Register with username=%s and password=%s\n", username, password);
+        if (users.containsKey(username)) {
+            // user already exists
+            return new ResponseEntity<>(new LoginResponse(false, "Error: A player with this username already exists"), HttpStatus.OK);
+        } else {
+            users.put(username, password);
+            return new ResponseEntity<>(new LoginResponse(true, "Success! Please log in with your username and password."), HttpStatus.OK);
+        }
     }
 
     @GetMapping("/playAsGuest")
-    public ResponseEntity<String> playAsGuest() {
+    public ResponseEntity<LoginResponse> playAsGuest() {
         String username = "_guest" + (guestCounter++);
-        return new ResponseEntity<>(username, HttpStatus.OK);
+        return new ResponseEntity<>(new LoginResponse(true, username), HttpStatus.OK);
     }
 
     @GetMapping("/initGame")
     public ResponseEntity<String> initGame(@RequestParam String whitePlayerType, @RequestParam String blackPlayerType) {
         System.out.printf("initGame called with white player: %s, black player: %s\n", whitePlayerType, blackPlayerType);
+        Player whitePlayer, blackPlayer;
         switch (whitePlayerType) {
             case "HumanGUIPlayer":
                 whitePlayer = new HumanGUIPlayer(true);
@@ -63,7 +78,7 @@ public class Controller {
                 whitePlayer = new RandomAIPlayer(true);
                 break;
             case "MinimaxAIPlayer":
-                whitePlayer = new MinimaxAIPlayer(true, new MaterialEvaluator(), 1);
+                whitePlayer = new MinimaxAIPlayer(true, new MaterialEvaluator(), 3);
                 break;
             default:
                 throw new IllegalArgumentException("Unknown white player: " + whitePlayerType);
@@ -82,12 +97,13 @@ public class Controller {
                 throw new IllegalArgumentException("Unknown white player: " + whitePlayerType);
         }
         // for testing promotions
-        String testFEN = "q4k2/1P6/8/5K2/8/8/2p5/8 w - - 0 1";
-        try {
-            gameController = new GUIGameController(whitePlayer, blackPlayer, testFEN);
-        } catch (MalformedFENException | IllegalBoardException e) {
-            throw new RuntimeException(e);
-        }
+//        String testFEN = "q4k2/1P6/8/5K2/8/8/2p5/8 w - - 0 1";
+//        try {
+//            gameController = new GUIGameController(whitePlayer, blackPlayer, testFEN);
+//        } catch (MalformedFENException | IllegalBoardException e) {
+//            throw new RuntimeException(e);
+//        }
+        gameController = new GUIGameController(whitePlayer, blackPlayer);
         return new ResponseEntity<>(gameController.getFEN(), HttpStatus.OK);
     }
 

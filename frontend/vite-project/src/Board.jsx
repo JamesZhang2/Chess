@@ -48,7 +48,7 @@ function Square({ bgColor, piece, sqName, isSelected, isLegalDest, handleSquareC
             svg = <></>;
             containsPiece = false;
     }
-    const squareClass = classNames("square", bgColor, { "contains-piece": containsPiece, "selected": isSelected });
+    const squareClass = classNames("square", bgColor, { "contains-piece": containsPiece, "selected": isSelected, "legal-dest": isLegalDest });
     const centerCircleClass = classNames("center-circle", { "show": isLegalDest })
     // console.log(`sqName=${sqName}, isLegalDest=${isLegalDest}`);
     return (<div

@@ -1,6 +1,7 @@
 import "./Home.css";
 
-function Home() {
+function Home({ username }) {
+  return <h1>Hello, {username}!</h1>;
   return (
     <>
       <div className="home-container">

@@ -36,22 +36,22 @@ public class MinimaxAIPlayer extends Player {
             // evaluate resulting board from opponent's point of view
             double eval = evaluate(board, MAX_DEPTH, !isWhite);
             if (isWhite) {
-                if (eval > bestEval) {
+                if (eval >= bestEval) {
                     bestMove = move;
                     bestEval = eval;
                 }
             } else {
-                if (eval < bestEval) {
+                if (eval <= bestEval) {
                     bestMove = move;
                     bestEval = eval;
                 }
             }
             board.undoLastMove();
         }
-        if (bestMove == null) {
-            // inescapable checkmate
-            return new Action(Action.Type.RESIGN);
-        }
+//        if (bestMove == null) {
+//            // inescapable checkmate
+//            return new Action(Action.Type.RESIGN);
+//        }
         return new Action(bestMove);
     }
 

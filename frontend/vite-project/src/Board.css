@@ -7,8 +7,8 @@
     display: grid;
     grid-template-rows: repeat(8, minmax(0, 1fr));
     grid-template-columns: repeat(8, minmax(0, 1fr));
-    width: 85vh;
-    height: 85vh;
+    width: 80vh;
+    height: 80vh;
 }
 
 .promotion-overlay {
@@ -89,7 +89,8 @@
     background-color: #aadd88;
 }
 
-.contains-piece:hover {
+.contains-piece:hover,
+.legal-dest:hover {
     cursor: pointer;
 }
 

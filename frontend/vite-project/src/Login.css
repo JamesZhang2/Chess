@@ -20,30 +20,82 @@ main {
 
 .login-container {
     display: flex;
-    flex-direction: row;
-    padding: 20px;
-    background-color: #ffeecc;
-}
-
-.login-card {
-    display: flex;
-    flex: 1;
     flex-direction: column;
-    padding: 20px;
+    padding: 20px 25px;
+    background-color: #ffeecc;
+    border-radius: 10px;
 }
 
-#login-form,
-#register-form {
+.login-container>h2 {
+    text-align: center;
+}
+
+.login-container>form>div>input {
+    font-size: 18px;
+    border-radius: 3px;
+    border-width: 1px;
+}
+
+/* .login-card>form>div>input:invalid {
+    border-color: red;
+} */
+
+#login-form {
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
-#guest-card {
-    align-items: center;
+.login-btns-container {
+    display: flex;
     justify-content: center;
+    padding: 10px 20px 0px 20px;
+    gap: 20px;
 }
 
-h2 {
-    margin: 0 0 10px 0;
+.guest-btn-container {
+    padding-top: 15px;
+    text-align: center;
+}
+
+#register-btn,
+#login-btn {
+    flex: 1;
+}
+
+.login-container button {
+    border-width: 1px;
+    transition-duration: 0.3s;
+    background-color: #ffccaa;
+}
+
+.login-container button:hover {
+    border-width: 1px;
+    border-color: #ffccaa;
+    background-color: #ffddbb;
+    transition-duration: 0.3s;
+}
+
+.login-container>h2 {
+    margin: 0 0 25px 0;
+}
+
+.login-msg-container {
+    padding-top: 15px;
+}
+
+.login-msg-container.hidden {
+    display: none;
+}
+
+.login-msg-container.success p {
+    margin: 0;
+    font-size: 14px;
+    color: green;
+}
+
+.login-msg-container.error p {
+    margin: 0;
+    font-size: 14px;
+    color: red;
 }

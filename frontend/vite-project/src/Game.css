@@ -1,0 +1,16 @@
+.game-container {
+    margin-left: 20px;
+}
+
+.game-container>h1 {
+    text-align: center;
+    margin: 0;
+    padding: 20px 0px 10px 0px;
+}
+
+.player-info-banner {
+    font-size: 18px;
+    height: 5vh;
+    line-height: 5vh;
+    padding-left: 5px;
+}

@@ -5,7 +5,7 @@ import axios from "axios";
 import MalformedFENError from "./MalformedFENError.js";
 import { getRC } from "./Util.js";
 
-function Game({ whitePlayerType, blackPlayerType }) {
+function Game({ whiteName, whitePlayerType, blackName, blackPlayerType }) {
     const startPos = [
         "RNBQKBNR".split(""),
         "PPPPPPPP".split(""),
@@ -36,37 +36,49 @@ function Game({ whitePlayerType, blackPlayerType }) {
             })
             .catch((error) => {
                 console.log(error);
-            })
+            });
     }, []);
+    let board;
     if (winner === "u") {
         // game is ongoing
-        return <>
-            <h1>Game!</h1>
-            <Board
-                pieces={pieces}
-                white={whiteToMove}
-                selectedSquare={selectedSquare}
-                legalDests={legalDests}
-                handleSquareClick={handleSquareClick}
-                showPromotionOverlay={showPromotionOverlay}
-                handlePromotionSelection={handlePromotionSelection}
-                handlePromotionCancellation={handlePromotionCancellation} />
-        </>;
+        board = <Board
+            pieces={pieces}
+            white={whiteToMove}
+            selectedSquare={selectedSquare}
+            legalDests={legalDests}
+            handleSquareClick={handleSquareClick}
+            showPromotionOverlay={showPromotionOverlay}
+            handlePromotionSelection={handlePromotionSelection}
+            handlePromotionCancellation={handlePromotionCancellation} />;
     } else {
         // game has ended
-        return <>
-            <h1>{winner === "w" ? "White won!" : (winner === "b" ? "Black won!" : "Draw!")}</h1>
-            <Board
-                pieces={pieces}
-                white={whiteToMove}
-                selectedSquare={null}
-                legalDests={new Set()}
-                handleSquareClick={(sqName) => { }}
-                showPromotionOverlay={false}
-                handlePromotionSelection={(pieceType) => { }}
-                handlePromotionCancellation={(event) => { }} />
-        </>
+        board = <Board
+            pieces={pieces}
+            white={whiteToMove}
+            selectedSquare={null}
+            legalDests={new Set()}
+            handleSquareClick={(sqName) => { }}
+            showPromotionOverlay={false}
+            handlePromotionSelection={(pieceType) => { }}
+            handlePromotionCancellation={(event) => { }} />;
     }
+    let message;
+    if (winner === "u") {
+        message = "Let's play!";
+    } else if (winner === "w") {
+        message = "White won!";
+    } else if (winner === "d") {
+        message = "Draw!";
+    } else {
+        message = "Black won!";
+    }
+    // TODO: Offer Draw & Resign buttons
+    return <div className="game-container">
+        <h1>{message}</h1>
+        <div className="player-info-banner">{whiteName}</div>
+        {board}
+        <div className="player-info-banner">{blackName}</div>
+    </div>
 
     /**
      * Set the board state based on the given FEN string.
