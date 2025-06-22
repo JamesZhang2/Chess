@@ -1,72 +1,79 @@
+import { useState } from "react";
 import "./Home.css";
+import Login from "./Login";
 
 function Home({ username }) {
-  return <h1>Hello, {username}!</h1>;
-  return (
-    <>
-      <div className="home-container">
-        <div className="vs-human-container">
-          <h2>Play vs. Human</h2>
-          <div className="side-dropdown">
-            <label htmlFor="vs-human-side">I play as:</label>
-            <select name="vs-human-side" id="vs-human-side">
-              <option value="white">White</option>
-              <option value="random" selected>Random</option>
-              <option value="black">Black</option>
-            </select>
-          </div>
-          <div className="time-dropdown">
-            <label htmlFor="vs-human-time">Time control:</label>
-            <select name="vs-human-time" id="vs-human-time">
-              <option value="untimed" selected>Untimed</option>
-              <option value="1-min">1 minutes</option>
-              <option value="3-min">3 minutes</option>
-              <option value="5-min">5 minutes</option>
-              <option value="10-min">10 minutes</option>
-            </select>
-          </div>
-          <button>Create Challenge</button>
-        </div>
+    const [loggedOut, setLoggedOut] = useState(false);
+    const [vsHuman, setVsHuman] = useState(true);  // toggles vs human or vs AI
+    const [aiType, setAIType] = useState("random");
+    const [side, setSide] = useState("random");
+    if (loggedOut) {
+        return <Login />;
+    }
+    return (
+        <div className="home-body">
+            <header>
+                <h1>Hello, {username}!</h1>
+                <button id="log-out-btn" onClick={() => setLoggedOut(true)}>Log out</button>
+            </header>
+            <div className="home-container">
+                <div className="toggle" id="human-ai-toggle">
+                    <button id="vs-human-btn" className={vsHuman ? "pressed" : ""} onClick={() => setVsHuman(true)}>Play vs. Human</button>
+                    <button id="vs-human-btn" className={vsHuman ? "" : "pressed"} onClick={() => setVsHuman(false)}>Play vs. AI</button>
+                </div>
 
-        <div className="vs-ai-container">
-          <h2>Play vs. AI</h2>
-          <div className="side-dropdown">
-            <label htmlFor="vs-ai-side">I play as:</label>
-            <select name="vs-ai-side" id="vs-ai-side">
-              <option value="white">White</option>
-              <option value="random" selected>Random</option>
-              <option value="black">Black</option>
-            </select>
-          </div>
-          <div className="time-dropdown">
-            <label htmlFor="vs-ai-time">Time control:</label>
-            <select name="vs-ai-time" id="vs-ai-time">
-              <option value="untimed" selected>Untimed</option>
-              <option value="1-min">1 minutes</option>
-              <option value="3-min">3 minutes</option>
-              <option value="5-min">5 minutes</option>
-              <option value="10-min">10 minutes</option>
-            </select>
-          </div>
-          <div className="ai-level-dropdown">
-            <label htmlFor="ai-level">AI Level:</label>
-            <select name="ai-level" id="ai-level">
-              <option value="1" selected>1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-            </select>
-          </div>
-          <button>Play</button>
-        </div>
-        <div className="current-challenges">
-          Current challenges
-          <table id="challenges-table">
+                <div className="toggle" id="side-toggle">
+                    <p>I play as:</p>
+                    <button id="play-white-btn" className={side === "white" ? "pressed" : ""} onClick={() => setSide("white")}>White</button>
+                    <button id="play-random-btn" className={side === "random" ? "pressed" : ""} onClick={() => setSide("random")}>Random</button>
+                    <button id="play-black-btn" className={side === "black" ? "pressed" : ""} onClick={() => setSide("black")}>Black</button>
+                </div>
 
-          </table>
+                <div className="handicap-container">
+                    <label htmlFor="handicap-dropdown">Handicap: </label>
+                    <select name="handicap-dropdown" id="handicap-dropdown">
+                        <option value="none" selected>None</option>
+                        <option value="selfQueen">I play without the queen</option>
+                        <option value="selfARook">I play without the a-rook</option>
+                        <option value="selfHRook">I play without the h-rook</option>
+                        <option value="selfBKnight">I play without the b-knight</option>
+                        <option value="selfGKnight">I play without the g-knight</option>
+                        <option value="selfCBishop">I play without the c-bishop</option>
+                        <option value="selfFBishop">I play without the f-bishop</option>
+                        <option value="selfAHRook">I play without both rooks</option>
+                        <option value="selfAHRookQueen">I play without both rooks and the queen</option>
+                        <option value="opQueen">Opponent plays without the queen</option>
+                        <option value="opARook">Opponent plays without the a-rook</option>
+                        <option value="opHRook">Opponent plays without the h-rook</option>
+                        <option value="opBKnight">Opponent plays without the b-knight</option>
+                        <option value="opGKnight">Opponent plays without the g-knight</option>
+                        <option value="opCBishop">Opponent plays without the c-bishop</option>
+                        <option value="opFBishop">Opponent plays without the f-bishop</option>
+                        <option value="opAHRook">Opponent plays without both rooks</option>
+                        <option value="opAHRookQueen">Opponent plays without both rooks and the queen</option>
+                    </select>
+                </div>
+
+                <div id="ai-menu" className={vsHuman ? "hide" : "show"}>
+                    <div className="toggle" id="ai-type-toggle">
+                        <p>AI type:</p>
+                        <button id="random-ai-btn" className={aiType === "random" ? "pressed" : ""} onClick={() => setAIType("random")}>Random</button>
+                        <button id="minimax-1-ai-btn" className={aiType === "minimax1" ? "pressed" : ""} onClick={() => setAIType("minimax1")}>Minimax Depth 1</button>
+                        <button id="minimax-3-ai-btn" className={aiType === "minimax3" ? "pressed" : ""} onClick={() => setAIType("minimax3")}>Minimax Depth 3</button>
+                    </div>
+                </div>
+
+                <button id="play-btn">{vsHuman ? "Create Challenge" : "Play"}</button>
+
+                <div className="current-challenges">
+                    Current challenges:
+                    <table id="challenges-table">
+
+                    </table>
+                </div>
+            </div>
         </div>
-      </div>
-    </>
-  );
+    );
 }
 
 export default Home;

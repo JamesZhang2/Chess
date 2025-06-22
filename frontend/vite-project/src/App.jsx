@@ -6,8 +6,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 function App() {
   return (
-    <Login />
-  )
+    // <Login />
+    <Home username={"James"} />
+    // <Game whiteName={"White"} whitePlayerType={"MinimaxAIPlayer"} blackName={"Black"} blackPlayerType={"HumanGUIPlayer"} />
+  );
   // return (
   //   <BrowserRouter>
   //     <Routes>

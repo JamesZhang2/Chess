@@ -2,14 +2,147 @@ body {
     font-size: 18px;
 }
 
-.home-container {
+.home-body {
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
 }
 
-.vs-human-container,
-.vs-ai-container {
+header {
+    flex: 0;
+    display: flex;
+    width: 100vw;
+    background-color: #ffddaa;
+}
+
+header h1 {
+    text-align: center;
+    flex: 1;
+}
+
+#log-out-btn {
+    flex: none;
+    height: 48px;
+    align-content: center;
+    align-self: center;
+    margin-right: 24px;
+    background-color: #ffaa88;
+}
+
+#log-out-btn:hover {
+    border-width: 1px;
+    border-color: #ffccaa;
+    background-color: #ff6655;
+}
+
+.home-container {
+    background-color: #fff6dd;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    padding: 0px 20px;
+}
+
+.home-container button {
+    background-color: #cccccc;
+    border-width: 3px;
+    border-color: #cccccc;
+    transition-duration: 0s;
+}
+
+.home-container button:hover {
+    background-color: #ffddbb;
+    border-width: 3px;
+    border-color: #ffccaa;
+}
+
+.home-container button.pressed {
+    background-color: #ffccaa;
+    border-color: #ff9977;
+    border-width: 3px;
+}
+
+.home-container button:focus {
+    outline-color: #ff9977;
+}
+
+.toggle {
+    justify-content: space-between;
+}
+
+.toggle>p {
+    display: inline-block;
+    flex: 0;
+    white-space: nowrap;
+    margin: 0;
+}
+
+#human-ai-toggle {
     display: flex;
     flex-direction: row;
-    gap: 20px;
+    gap: 20%;
+    margin: 15px 10% 0 10%;
+}
+
+#vs-human-btn,
+#vs-ai-btn {
+    flex: 1;
+}
+
+#side-toggle {
+    display: flex;
+    align-items: center;
+    gap: 5%;
+    padding-top: 15px;
+    margin-right: 5%;
+}
+
+#play-white-btn,
+#play-random-btn,
+#play-black-btn {
+    flex: 1;
+}
+
+.handicap-container {
+    padding: 10px 0px;
+}
+
+#handicap-dropdown {
+    font-size: 16px;
+}
+
+#ai-type-toggle {
+    display: flex;
+    align-items: center;
+    gap: 5%;
+    padding-top: 15px;
+    margin-right: 5%;
+}
+
+#ai-menu.hide {
+    display: none;
+}
+
+#ai-menu.show {
+    display: block;
+}
+
+#play-btn {
+    background-color: #ffff66;
+    border-color: #ff9977;
+    border-width: 0;
+    margin-top: 25px;
+    width: 200px;
+    height: 50px;
+    align-self: center;
+    font-weight: bold;
+}
+
+#play-btn:hover {
+    background-color: #ffffaa;
+}
+
+#play-btn:focus {
+    outline-color: #ccbb55;
 }

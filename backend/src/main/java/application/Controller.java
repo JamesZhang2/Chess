@@ -28,6 +28,7 @@ public class Controller {
     private GUIGameController gameController;
     // TODO: Map from gameId to GUIGameController
 
+    // for testing
     @GetMapping("/")
     public ResponseEntity<String> index() {
         System.out.println("Hello world!");
@@ -70,32 +71,18 @@ public class Controller {
     public ResponseEntity<String> initGame(@RequestParam String whitePlayerType, @RequestParam String blackPlayerType) {
         System.out.printf("initGame called with white player: %s, black player: %s\n", whitePlayerType, blackPlayerType);
         Player whitePlayer, blackPlayer;
-        switch (whitePlayerType) {
-            case "HumanGUIPlayer":
-                whitePlayer = new HumanGUIPlayer(true);
-                break;
-            case "RandomAIPlayer":
-                whitePlayer = new RandomAIPlayer(true);
-                break;
-            case "MinimaxAIPlayer":
-                whitePlayer = new MinimaxAIPlayer(true, new MaterialEvaluator(), 3);
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown white player: " + whitePlayerType);
-        }
-        switch (blackPlayerType) {
-            case "HumanGUIPlayer":
-                blackPlayer = new HumanGUIPlayer(false);
-                break;
-            case "RandomAIPlayer":
-                blackPlayer = new RandomAIPlayer(false);
-                break;
-            case "MinimaxAIPlayer":
-                blackPlayer = new MinimaxAIPlayer(false, new MaterialEvaluator(), 1);
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown white player: " + whitePlayerType);
-        }
+        whitePlayer = switch (whitePlayerType) {
+            case "HumanGUIPlayer" -> new HumanGUIPlayer(true);
+            case "RandomAIPlayer" -> new RandomAIPlayer(true);
+            case "MinimaxAIPlayer" -> new MinimaxAIPlayer(true, new MaterialEvaluator(), 3);
+            default -> throw new IllegalArgumentException("Unknown white player: " + whitePlayerType);
+        };
+        blackPlayer = switch (blackPlayerType) {
+            case "HumanGUIPlayer" -> new HumanGUIPlayer(false);
+            case "RandomAIPlayer" -> new RandomAIPlayer(false);
+            case "MinimaxAIPlayer" -> new MinimaxAIPlayer(false, new MaterialEvaluator(), 3);
+            default -> throw new IllegalArgumentException("Unknown white player: " + blackPlayerType);
+        };
         // for testing promotions
 //        String testFEN = "q4k2/1P6/8/5K2/8/8/2p5/8 w - - 0 1";
 //        try {
@@ -104,6 +91,9 @@ public class Controller {
 //            throw new RuntimeException(e);
 //        }
         gameController = new GUIGameController(whitePlayer, blackPlayer);
+        if (!(whitePlayer instanceof HumanGUIPlayer)) {
+            gameController.playOneMove();
+        }
         return new ResponseEntity<>(gameController.getFEN(), HttpStatus.OK);
     }
 

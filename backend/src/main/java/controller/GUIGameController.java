@@ -46,6 +46,23 @@ public class GUIGameController extends GameController {
     }
 
     /**
+     * Asks the current player to play a move.
+     * Requires: current player is not a HumanGUIPlayer.
+     */
+    public void playOneMove() {
+        Player curPlayer = board.whiteToMove() ? whitePlayer : blackPlayer;
+        if (curPlayer instanceof HumanGUIPlayer) {
+            throw new IllegalStateException("Can't ask a HumanGUIPlayer to play a move");
+        }
+        Action action = curPlayer.play(board);
+        switch (action.getActionType()) {
+            case MOVE -> board.move(action.getMove());
+            case RESIGN -> board.resign();
+            case OFFER_DRAW -> throw new UnsupportedOperationException();
+        }
+    }
+
+    /**
      * Try a certain move received from the frontend.
      * If the move is valid, the current player plays the move and the board state is updated.
      * Otherwise, the board state is unchanged.
@@ -100,6 +117,7 @@ public class GUIGameController extends GameController {
             board.move(move);
 
             // Ask the other player to play if they're not a human GUI player
+            // TODO: Move this logic to another function so that the game doesn't freeze when AI is thinking
             if (board.getWinner() == 'u') {
                 if ((board.whiteToMove() && !(whitePlayer instanceof HumanGUIPlayer))
                         || (!board.whiteToMove() && !(blackPlayer instanceof HumanGUIPlayer))) {

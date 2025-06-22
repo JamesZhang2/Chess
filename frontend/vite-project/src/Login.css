@@ -22,7 +22,7 @@ main {
     display: flex;
     flex-direction: column;
     padding: 20px 25px;
-    background-color: #ffeecc;
+    background-color: #fff6dd;
     border-radius: 10px;
 }
 
@@ -73,7 +73,6 @@ main {
     border-width: 1px;
     border-color: #ffccaa;
     background-color: #ffddbb;
-    transition-duration: 0.3s;
 }
 
 .login-container>h2 {
