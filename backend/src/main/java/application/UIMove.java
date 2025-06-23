@@ -2,18 +2,12 @@ package application;
 
 /**
  * A class representing a move received from the frontend. May be illegal.
+ *
+ * @param fromSquare name of the starting square
+ * @param toSquare   name of the destination square
+ * @param promotion  single letter representing a piece, or null if not a promotion
  */
-public class UIMove {
-    // making the fields public final since this is like a record
-    public final String fromSquare;
-    public final String toSquare;
-    public final String promotion;  // null if not a promotion
-
-    public UIMove(String fromSquare, String toSquare, String promotion) {
-        this.fromSquare = fromSquare;
-        this.toSquare = toSquare;
-        this.promotion = promotion;
-    }
+public record UIMove(String fromSquare, String toSquare, String promotion) {
 
     @Override
     public String toString() {

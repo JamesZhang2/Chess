@@ -39,14 +39,7 @@ public class MinimaxAIPlayer extends Player {
         for (Move move : board.getLegalMoves()) {
             board.move(move);
             // evaluate resulting board from opponent's point of view
-            String fen = board.toFEN();
-            double eval;
-            if (fenToEval.containsKey(fen)) {
-                eval = fenToEval.get(fen);
-            } else {
-                eval = evaluate(board, MAX_DEPTH, !isWhite);
-                fenToEval.put(fen, eval);
-            }
+            double eval = evaluate(board, MAX_DEPTH, !isWhite);
             if (isWhite) {
                 if (eval >= bestEval) {
                     bestMove = move;
@@ -60,6 +53,7 @@ public class MinimaxAIPlayer extends Player {
             }
             board.undoLastMove();
         }
+        System.out.println("Minimax AI plays " + bestMove);
 //        if (bestMove == null) {
 //            // inescapable checkmate
 //            return new Action(Action.Type.RESIGN);
@@ -76,6 +70,10 @@ public class MinimaxAIPlayer extends Player {
      * Postcondition: The state of the board is unchanged.
      */
     private double evaluate(Board board, int depth, boolean maximizing) {
+        String fen = board.toFEN();
+        if (fenToEval.containsKey(fen)) {
+            return fenToEval.get(fen);
+        }
         if (depth == 0 || board.getWinner() != 'u') {
             // no more depth or game has ended, leaf node
             return evaluator.evaluate(board);
@@ -96,6 +94,7 @@ public class MinimaxAIPlayer extends Player {
             }
             board.undoLastMove();
         }
+        fenToEval.put(fen, bestEval);
         return bestEval;
     }
 
@@ -106,5 +105,9 @@ public class MinimaxAIPlayer extends Player {
         } else {
             return evaluate(board, MAX_DEPTH, true) > DRAW_CUTOFF;
         }
+    }
+
+    public void win(Board board) {
+        System.out.println("won");
     }
 }

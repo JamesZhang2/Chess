@@ -2,7 +2,8 @@ package controller;
 
 import application.CandidateMoves;
 import application.UIMove;
-import application.UIMoveResponse;
+import application.TryMoveResponse;
+import application.OpponentMoveResponse;
 import model.Util;
 import model.board.Handicap;
 import model.board.IllegalBoardException;
@@ -52,19 +53,24 @@ public class GUIGameController extends GameController {
 
     /**
      * Asks the current player to play a move.
-     * Requires: current player is not a HumanGUIPlayer.
+     * If the current player is a HumanGUIPlayer, do nothing.
+     * If the game is over, do nothing.
      */
-    public void playOneMove() {
+    public OpponentMoveResponse playOneMove() {
         Player curPlayer = board.whiteToMove() ? whitePlayer : blackPlayer;
-        if (curPlayer instanceof HumanGUIPlayer) {
-            throw new IllegalStateException("Can't ask a HumanGUIPlayer to play a move");
+        if (board.getWinner() == 'u' && !(curPlayer instanceof HumanGUIPlayer)) {
+            Action action = curPlayer.play(board);
+            if (action.getActionType() == Action.Type.MOVE) {
+                board.move(action.getMove());
+                return new OpponentMoveResponse(true, board.toFEN(), String.valueOf(board.getWinner()), false);
+            } else if (action.getActionType() == Action.Type.RESIGN) {
+                board.resign();
+                return new OpponentMoveResponse(true, board.toFEN(), String.valueOf(board.getWinner()), true);
+            } else {
+                throw new UnsupportedOperationException("Unimplemented");  // TODO
+            }
         }
-        Action action = curPlayer.play(board);
-        switch (action.getActionType()) {
-            case MOVE -> board.move(action.getMove());
-            case RESIGN -> board.resign();
-            case OFFER_DRAW -> throw new UnsupportedOperationException();
-        }
+        return new OpponentMoveResponse(false, board.toFEN(), String.valueOf(board.getWinner()), false);
     }
 
     /**
@@ -75,29 +81,29 @@ public class GUIGameController extends GameController {
      * @param uiMove the move received from the frontend
      * @return a UIMoveResponse object indicating whether the move is legal,
      */
-    public UIMoveResponse tryMove(UIMove uiMove) {
-        CandidateMoves candidates = getCandidateMoves(uiMove.fromSquare);
+    public TryMoveResponse tryMove(UIMove uiMove) {
+        CandidateMoves candidates = getCandidateMoves(uiMove.fromSquare());
         Move move = null;
-        int[] fromCoords = Util.squareToCoords(uiMove.fromSquare);
-        int[] toCoords = Util.squareToCoords(uiMove.toSquare);
+        int[] fromCoords = Util.squareToCoords(uiMove.fromSquare());
+        int[] toCoords = Util.squareToCoords(uiMove.toSquare());
         char pieceAtStart = board.getPieceAt(fromCoords[0], fromCoords[1]);
         char pieceAtDest = board.getPieceAt(toCoords[0], toCoords[1]);
         // does not include en passant
         boolean isNormalCapture = pieceAtDest != '0'
                 && ((Character.isLowerCase(pieceAtDest) && board.whiteToMove())
                 || (Character.isUpperCase(pieceAtDest) && !board.whiteToMove()));
-        if (candidates.legalPromotions.contains(uiMove.toSquare)
-                && uiMove.promotion != null
-                && uiMove.promotion.length() == 1) {
+        if (candidates.legalPromotions.contains(uiMove.toSquare())
+                && uiMove.promotion() != null
+                && uiMove.promotion().length() == 1) {
             // promotions
-            if (board.whiteToMove() && "QRNB".contains(uiMove.promotion)
-                    || !board.whiteToMove() && "qrnb".contains(uiMove.promotion)) {
+            if (board.whiteToMove() && "QRNB".contains(uiMove.promotion())
+                    || !board.whiteToMove() && "qrnb".contains(uiMove.promotion())) {
                 move = Util.moveFromSquares(
-                        uiMove.fromSquare, uiMove.toSquare, uiMove.promotion.charAt(0), isNormalCapture);
+                        uiMove.fromSquare(), uiMove.toSquare(), uiMove.promotion().charAt(0), isNormalCapture);
             }
-        } else if (candidates.legalDests.contains(uiMove.toSquare)
-                && !candidates.legalPromotions.contains(uiMove.toSquare)
-                && uiMove.promotion == null) {
+        } else if (candidates.legalDests.contains(uiMove.toSquare())
+                && !candidates.legalPromotions.contains(uiMove.toSquare())
+                && uiMove.promotion() == null) {
             // castling
             if (pieceAtStart == 'K' && fromCoords[0] == 0 && fromCoords[1] == 4 && toCoords[0] == 0 && toCoords[1] == 6) {
                 move = new Move('K');
@@ -109,32 +115,18 @@ public class GUIGameController extends GameController {
                 move = new Move('q');
             } else if ((pieceAtStart == 'P' || pieceAtStart == 'p') && !isNormalCapture && fromCoords[1] != toCoords[1]) {
                 // en passant
-                move = Util.moveFromSquares(uiMove.fromSquare, uiMove.toSquare, true, true);
+                move = Util.moveFromSquares(uiMove.fromSquare(), uiMove.toSquare(), true, true);
             } else {
                 // normal move
-                move = Util.moveFromSquares(uiMove.fromSquare, uiMove.toSquare, false, isNormalCapture);
+                move = Util.moveFromSquares(uiMove.fromSquare(), uiMove.toSquare(), false, isNormalCapture);
             }
         }
         // move is set to the correct move if uiMove is legal, or null if uiMove is not legal
         if (move == null) {
-            return new UIMoveResponse(false, board.toFEN(), board.getWinner());
+            return new TryMoveResponse(false, board.toFEN(), String.valueOf(board.getWinner()));
         } else {
             board.move(move);
-
-            // Ask the other player to play if they're not a human GUI player
-            // TODO: Move this logic to another function so that the game doesn't freeze when AI is thinking
-            if (board.getWinner() == 'u') {
-                if ((board.whiteToMove() && !(whitePlayer instanceof HumanGUIPlayer))
-                        || (!board.whiteToMove() && !(blackPlayer instanceof HumanGUIPlayer))) {
-                    Action action = (board.whiteToMove() ? whitePlayer : blackPlayer).play(board);
-                    if (action.getActionType() == Action.Type.MOVE) {
-                        board.move(action.getMove());
-                    } else {
-                        throw new UnsupportedOperationException("Unimplemented");  // TODO
-                    }
-                }
-            }
-            return new UIMoveResponse(true, board.toFEN(), board.getWinner());
+            return new TryMoveResponse(true, board.toFEN(), String.valueOf(board.getWinner()));
         }
     }
 }

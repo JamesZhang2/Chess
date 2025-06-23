@@ -17,6 +17,7 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
         "pppppppp".split(""),
         "rnbqkbnr".split(""),
     ];
+    const viewAsWhite = (whiteName === username);  // whether to see the board from white or black's perspective
     const [pieces, setPieces] = useState(startPos);
     const [whiteToMove, setWhiteToMove] = useState(true);
     const [selectedSquare, setSelectedSquare] = useState(null);
@@ -26,6 +27,8 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
     const [legalPromotions, setLegalPromotions] = useState(new Set());
     const [showPromotionOverlay, setShowPromotionOverlay] = useState(false);
     const [promotionSquare, setPromotionSquare] = useState(null);
+    const [gameId, setGameId] = useState(null);
+    const [opResigned, setOpResigned] = useState(false);
 
     const [goHome, setGoHome] = useState(false);
 
@@ -39,9 +42,9 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
             }
         )
             .then((response) => {
-                const fen = response.data;
-                console.log("fen: " + fen);
-                setBoardState(fen);
+                console.log(response.data);
+                setBoardState(response.data.fen);
+                setGameId(response.data.gameId);
             })
             .catch((error) => {
                 console.log(error);
@@ -52,7 +55,7 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
         // game is ongoing
         board = <Board
             pieces={pieces}
-            white={whiteToMove}
+            white={viewAsWhite}
             selectedSquare={selectedSquare}
             legalDests={legalDests}
             handleSquareClick={handleSquareClick}
@@ -63,7 +66,7 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
         // game has ended
         board = <Board
             pieces={pieces}
-            white={whiteToMove}
+            white={viewAsWhite}
             selectedSquare={null}
             legalDests={new Set()}
             handleSquareClick={(sqName) => { }}
@@ -92,9 +95,9 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
             <h1>{message}</h1>
             <button id="back-home-btn" onClick={() => setGoHome(true)}>Back to Home Page</button>
         </header>
-        <div className="player-info-banner">{whiteName}</div>
+        <div className="player-info-banner">{viewAsWhite ? blackName : whiteName}</div>
         {board}
-        <div className="player-info-banner">{blackName}</div>
+        <div className="player-info-banner">{viewAsWhite ? whiteName : blackName}</div>
     </div>
 
     /**
@@ -137,6 +140,7 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
                     setPromotionSquare(sqName);
                 } else {
                     tryMove(sqName);
+                    waitForOpponent();
                 }
             }
         }
@@ -166,7 +170,7 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
     }
 
     function setLegalMoves(sqName) {
-        axios.get(`/api/getCandidates?square=${sqName}`)
+        axios.get(`/api/getCandidates?gameId=${gameId}&square=${sqName}`)
             .then((response) => {
                 const res = response.data;
                 console.log("legalDests: " + res.legalDests);
@@ -179,10 +183,15 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
             });
     }
 
-    function tryMove(sqName, promotion = null) {
-        axios.post('/api/tryMove', {
+    /**
+     * Try to play a move.
+     * @param {string} destSq destination square
+     * @param {string} promotion single letter representing promotion piece, or null if not a promotion
+     */
+    function tryMove(destSq, promotion = null) {
+        axios.post(`/api/tryMove?gameId=${gameId}`, {
             fromSquare: selectedSquare,
-            toSquare: sqName,
+            toSquare: destSq,
             promotion: promotion
         })
             .then((response) => {
@@ -210,6 +219,33 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
     }
 
     /**
+     * Wait for the opponent's next move.
+     * Keeps polling until opponent has made a move.
+     */
+    async function waitForOpponent() {
+        let moved = false;
+        let fen, winner, isResign;
+        while (!moved && winner === "u") {
+            await axios.get(`/api/waitForOpponent?gameId=${gameId}`)
+                .then((response) => {
+                    const res = response.data;
+                    moved = res.moved;
+                    fen = res.fen;
+                    winner = res.winner;
+                    isResign = res.isResign;
+                    console.log(response.data);
+                })
+                .catch((error) => {
+                    console.log(error);
+                });
+            console.log(moved);
+            await sleep(1000);
+        }
+        setBoardState(fen);
+        setWinner(winner);
+    }
+
+    /**
      * @param {string} sqName name of square, like a1 or e4
      * @returns the piece of 
      */
@@ -223,6 +259,10 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
             return "empty";
         }
     }
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**

@@ -11,7 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,10 +23,9 @@ import java.util.Map;
 //@CrossOrigin(origins = "http://localhost")
 @CrossOrigin(origins = "*")  // TODO: Only allow localhost but allow any port
 public class AppController {
-    private Map<String, String> users = new HashMap<>();
+    private final Map<String, String> users = new HashMap<>();
     private int guestCounter = 0;
-    private GUIGameController gameController;
-    // TODO: Map from gameId to GUIGameController
+    private final List<GUIGameController> gameControllers = new ArrayList<>();
 
     // for testing
     @GetMapping("/")
@@ -66,10 +67,10 @@ public class AppController {
     }
 
     @PostMapping("/initGame")
-    public ResponseEntity<String> initGame(@RequestBody InitGameRequest request) {
-        String whitePlayerType = request.whitePlayerType;
-        String blackPlayerType = request.blackPlayerType;
-        String handicapType = request.handicapType;
+    public ResponseEntity<InitGameResponse> initGame(@RequestBody InitGameRequest request) {
+        String whitePlayerType = request.whitePlayerType();
+        String blackPlayerType = request.blackPlayerType();
+        String handicapType = request.handicapType();
 
         System.out.printf("initGame called with white player: %s, black player: %s, handicap type: %s\n", whitePlayerType, blackPlayerType, handicapType);
         Player whitePlayer, blackPlayer;
@@ -87,13 +88,6 @@ public class AppController {
             case "MinimaxAIPlayer-3" -> new MinimaxAIPlayer(false, new MaterialEvaluator(), 3);
             default -> throw new IllegalArgumentException("Unknown black player: " + blackPlayerType);
         };
-        // for testing promotions
-//        String testFEN = "q4k2/1P6/8/5K2/8/8/2p5/8 w - - 0 1";
-//        try {
-//            gameController = new GUIGameController(whitePlayer, blackPlayer, testFEN);
-//        } catch (MalformedFENException | IllegalBoardException e) {
-//            throw new RuntimeException(e);
-//        }
         Handicap handicap;
         try {
             handicap = Handicap.valueOf(handicapType);
@@ -101,22 +95,56 @@ public class AppController {
             System.out.println("Warning: Unknown handicap type " + handicapType + ", defaulting to NONE");
             handicap = Handicap.NONE;
         }
-        gameController = new GUIGameController(whitePlayer, blackPlayer, handicap);
+        GUIGameController gameController = new GUIGameController(whitePlayer, blackPlayer, handicap);
         if (!(whitePlayer instanceof HumanGUIPlayer)) {
             gameController.playOneMove();
         }
-        return new ResponseEntity<>(gameController.getFEN(), HttpStatus.OK);
+        int gameId = gameControllers.size();
+        gameControllers.add(gameController);
+        return new ResponseEntity<>(new InitGameResponse(gameController.getFEN(), gameId), HttpStatus.OK);
     }
 
     @GetMapping("/getCandidates")
-    public ResponseEntity<CandidateMoves> getCandidates(@RequestParam String square) {
-        return new ResponseEntity<>(gameController.getCandidateMoves(square), HttpStatus.OK);
+    public ResponseEntity<CandidateMoves> getCandidates(@RequestParam int gameId, @RequestParam String square) {
+        if (gameId >= gameControllers.size()) {
+            throw new IllegalArgumentException("Unknown gameId: " + gameId);
+        }
+        return new ResponseEntity<>(gameControllers.get(gameId).getCandidateMoves(square), HttpStatus.OK);
     }
 
+    /**
+     * Tries to play the given move.
+     * If the move is illegal, the isLegal field in the response will be false,
+     * the board state will be unchanged, and the fen and winner will be for the current board.
+     * If the move is legal, the isLegal field in the response will be true,
+     * the move will be made, and the fen and winner will be for the updated move.
+     * The frontend should call /getOpponentMove periodically to poll the next move of the opponent.
+     */
     @PostMapping("/tryMove")
-    public ResponseEntity<UIMoveResponse> tryMove(@RequestBody UIMove uiMove) {
+    public ResponseEntity<TryMoveResponse> tryMove(@RequestParam int gameId, @RequestBody UIMove uiMove) {
+        if (gameId >= gameControllers.size()) {
+            throw new IllegalArgumentException("Unknown gameId: " + gameId);
+        }
         System.out.println(uiMove);
-        UIMoveResponse response = gameController.tryMove(uiMove);
-        return new ResponseEntity<>(response, HttpStatus.OK);
+        synchronized (gameControllers.get(gameId)) {
+            TryMoveResponse response = gameControllers.get(gameId).tryMove(uiMove);
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+    }
+
+    /**
+     * Wait for the opponent to make a move.
+     * If the opponent is an AI or a Human CLI player, the game controller will tell the AI to make a move.
+     * If the opponent is a Human GUI player, the game controller will do nothing.
+     */
+    @GetMapping("/waitForOpponent")
+    public ResponseEntity<OpponentMoveResponse> waitForOpponent(@RequestParam int gameId) {
+        if (gameId >= gameControllers.size()) {
+            throw new IllegalArgumentException("Unknown gameId: " + gameId);
+        }
+        GUIGameController gameController = gameControllers.get(gameId);
+        synchronized (gameController) {
+            return new ResponseEntity<>(gameController.playOneMove(), HttpStatus.OK);
+        }
     }
 }
