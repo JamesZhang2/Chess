@@ -1,11 +1,12 @@
 import "./Game.css";
 import { useState, useEffect } from 'react';
 import Board from "./Board.jsx";
+import Home from "./Home.jsx";
 import axios from "axios";
 import MalformedFENError from "./MalformedFENError.js";
 import { getRC } from "./Util.js";
 
-function Game({ whiteName, whitePlayerType, blackName, blackPlayerType }) {
+function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType, handicapType }) {
     const startPos = [
         "RNBQKBNR".split(""),
         "PPPPPPPP".split(""),
@@ -26,9 +27,17 @@ function Game({ whiteName, whitePlayerType, blackName, blackPlayerType }) {
     const [showPromotionOverlay, setShowPromotionOverlay] = useState(false);
     const [promotionSquare, setPromotionSquare] = useState(null);
 
+    const [goHome, setGoHome] = useState(false);
+
     // useEffect with empty dependency array to run only once
     useEffect(() => {
-        axios.get(`/api/initGame?whitePlayerType=${whitePlayerType}&blackPlayerType=${blackPlayerType}`)
+        axios.post("/api/initGame",
+            {
+                "whitePlayerType": whitePlayerType,
+                "blackPlayerType": blackPlayerType,
+                "handicapType": handicapType
+            }
+        )
             .then((response) => {
                 const fen = response.data;
                 console.log("fen: " + fen);
@@ -72,9 +81,17 @@ function Game({ whiteName, whitePlayerType, blackName, blackPlayerType }) {
     } else {
         message = "Black won!";
     }
+
+    if (goHome) {
+        return <Home username={username} />;
+    }
+
     // TODO: Offer Draw & Resign buttons
     return <div className="game-container">
-        <h1>{message}</h1>
+        <header>
+            <h1>{message}</h1>
+            <button id="back-home-btn" onClick={() => setGoHome(true)}>Back to Home Page</button>
+        </header>
         <div className="player-info-banner">{whiteName}</div>
         {board}
         <div className="player-info-banner">{blackName}</div>

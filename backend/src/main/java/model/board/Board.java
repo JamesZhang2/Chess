@@ -70,6 +70,19 @@ public abstract class Board {
         }
     }
 
+    public Board(Handicap handicap) {
+        try {
+            parseFen(handicap.startPos);
+            checkBoardLegality();
+            this.pgn = new PGN(1, true, "*");
+            this.history = new ArrayList<>();
+            this.posFreq = new HashMap<>();
+            posFreq.put(getUnclockedFEN(), 1);
+        } catch (Exception e) {
+            assert false;
+        }
+    }
+
     public Board(Board other) {
         try {
             parseFen(other.toFEN());

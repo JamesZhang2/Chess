@@ -4,6 +4,9 @@ import model.board.Board;
 import model.eval.Evaluator;
 import model.move.Move;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * An AI that plays chess using Minimax.
  */
@@ -11,6 +14,7 @@ public class MinimaxAIPlayer extends Player {
     private Evaluator evaluator;
     private final int MAX_DEPTH;
     private final double DRAW_CUTOFF = 1.0;  // will draw as black if eval is greater than draw cutoff; mirrored for white
+    private final Map<String, Double> fenToEval;  // evaluation cache
 
     // Whether to enable alpha-beta pruning. Usually it's always true. Can be set to false when debugging.
     private final boolean ENABLE_PRUNING = true;
@@ -25,6 +29,7 @@ public class MinimaxAIPlayer extends Player {
         super(isWhite);
         this.evaluator = evaluator;
         this.MAX_DEPTH = maxDepth;
+        fenToEval = new HashMap<>();
     }
 
     @Override
@@ -34,7 +39,14 @@ public class MinimaxAIPlayer extends Player {
         for (Move move : board.getLegalMoves()) {
             board.move(move);
             // evaluate resulting board from opponent's point of view
-            double eval = evaluate(board, MAX_DEPTH, !isWhite);
+            String fen = board.toFEN();
+            double eval;
+            if (fenToEval.containsKey(fen)) {
+                eval = fenToEval.get(fen);
+            } else {
+                eval = evaluate(board, MAX_DEPTH, !isWhite);
+                fenToEval.put(fen, eval);
+            }
             if (isWhite) {
                 if (eval >= bestEval) {
                     bestMove = move;

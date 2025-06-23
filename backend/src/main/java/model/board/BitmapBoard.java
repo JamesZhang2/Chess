@@ -35,6 +35,13 @@ public class BitmapBoard extends Board {
     }
 
     /**
+     * With handicap
+     */
+    public BitmapBoard(Handicap handicap){
+        super(handicap);
+    }
+
+    /**
      * Creates a clone of the other board
      * <p>
      * Requires: The other board is legal

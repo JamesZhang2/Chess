@@ -11,6 +11,7 @@
   - [ ] Cache searched positions and their evaluations
   - [ ] Better evaluation function: Piece location, pawn structure, mobility, center control, etc.
   - [ ] Better search function: Look for more forcing moves, promotions, etc.
+  - [ ] Quiet moves at end of search
   - [ ] Simulations to tune hyperparameters
 - Opening book
   - [ ] Use Lichess API to build opening book database

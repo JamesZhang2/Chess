@@ -1,9 +1,6 @@
 package controller;
 
-import model.board.BitmapBoard;
-import model.board.Board;
-import model.board.IllegalBoardException;
-import model.board.MalformedFENException;
+import model.board.*;
 import model.player.Player;
 
 /**
@@ -21,6 +18,15 @@ public class GameController {
         this.whitePlayer = whitePlayer;
         this.blackPlayer = blackPlayer;
         this.board = new BitmapBoard();
+    }
+
+    /**
+     * Initialize a game controller with the given handicap.
+     */
+    public GameController(Player whitePlayer, Player blackPlayer, Handicap handicap) {
+        this.whitePlayer = whitePlayer;
+        this.blackPlayer = blackPlayer;
+        this.board = new BitmapBoard(handicap);
     }
 
     /**

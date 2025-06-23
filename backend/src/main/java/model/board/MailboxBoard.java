@@ -28,6 +28,13 @@ public class MailboxBoard extends Board {
     }
 
     /**
+     * With handicap
+     */
+    public MailboxBoard(Handicap handicap){
+        super(handicap);
+    }
+
+    /**
      * Creates a clone of the other board
      * <p>
      * Requires: The other board is legal

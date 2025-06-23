@@ -7,7 +7,6 @@ import model.move.Move;
  */
 public class Util {
     public static final String START_POS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    // TODO: Add handicap positions
 
     public static final char[] PIECE_NAMES = {'p', 'n', 'b', 'r', 'q', 'k', 'P', 'N', 'B', 'R', 'Q', 'K'};
     public static final char[] WHITE_PIECE_NAMES = {'P', 'N', 'B', 'R', 'Q', 'K'};

@@ -1,8 +1,7 @@
 package application;
 
 import controller.GUIGameController;
-import model.board.IllegalBoardException;
-import model.board.MalformedFENException;
+import model.board.Handicap;
 import model.eval.MaterialEvaluator;
 import model.player.HumanGUIPlayer;
 import model.player.MinimaxAIPlayer;
@@ -14,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * The API that connects the frontend and the backend.
@@ -22,7 +20,7 @@ import java.util.Set;
 @RestController
 //@CrossOrigin(origins = "http://localhost")
 @CrossOrigin(origins = "*")  // TODO: Only allow localhost but allow any port
-public class Controller {
+public class AppController {
     private Map<String, String> users = new HashMap<>();
     private int guestCounter = 0;
     private GUIGameController gameController;
@@ -67,21 +65,27 @@ public class Controller {
         return new ResponseEntity<>(new LoginResponse(true, username), HttpStatus.OK);
     }
 
-    @GetMapping("/initGame")
-    public ResponseEntity<String> initGame(@RequestParam String whitePlayerType, @RequestParam String blackPlayerType) {
-        System.out.printf("initGame called with white player: %s, black player: %s\n", whitePlayerType, blackPlayerType);
+    @PostMapping("/initGame")
+    public ResponseEntity<String> initGame(@RequestBody InitGameRequest request) {
+        String whitePlayerType = request.whitePlayerType;
+        String blackPlayerType = request.blackPlayerType;
+        String handicapType = request.handicapType;
+
+        System.out.printf("initGame called with white player: %s, black player: %s, handicap type: %s\n", whitePlayerType, blackPlayerType, handicapType);
         Player whitePlayer, blackPlayer;
         whitePlayer = switch (whitePlayerType) {
             case "HumanGUIPlayer" -> new HumanGUIPlayer(true);
             case "RandomAIPlayer" -> new RandomAIPlayer(true);
-            case "MinimaxAIPlayer" -> new MinimaxAIPlayer(true, new MaterialEvaluator(), 3);
+            case "MinimaxAIPlayer-1" -> new MinimaxAIPlayer(true, new MaterialEvaluator(), 1);
+            case "MinimaxAIPlayer-3" -> new MinimaxAIPlayer(true, new MaterialEvaluator(), 3);
             default -> throw new IllegalArgumentException("Unknown white player: " + whitePlayerType);
         };
         blackPlayer = switch (blackPlayerType) {
             case "HumanGUIPlayer" -> new HumanGUIPlayer(false);
             case "RandomAIPlayer" -> new RandomAIPlayer(false);
-            case "MinimaxAIPlayer" -> new MinimaxAIPlayer(false, new MaterialEvaluator(), 3);
-            default -> throw new IllegalArgumentException("Unknown white player: " + blackPlayerType);
+            case "MinimaxAIPlayer-1" -> new MinimaxAIPlayer(false, new MaterialEvaluator(), 1);
+            case "MinimaxAIPlayer-3" -> new MinimaxAIPlayer(false, new MaterialEvaluator(), 3);
+            default -> throw new IllegalArgumentException("Unknown black player: " + blackPlayerType);
         };
         // for testing promotions
 //        String testFEN = "q4k2/1P6/8/5K2/8/8/2p5/8 w - - 0 1";
@@ -90,7 +94,14 @@ public class Controller {
 //        } catch (MalformedFENException | IllegalBoardException e) {
 //            throw new RuntimeException(e);
 //        }
-        gameController = new GUIGameController(whitePlayer, blackPlayer);
+        Handicap handicap;
+        try {
+            handicap = Handicap.valueOf(handicapType);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Warning: Unknown handicap type " + handicapType + ", defaulting to NONE");
+            handicap = Handicap.NONE;
+        }
+        gameController = new GUIGameController(whitePlayer, blackPlayer, handicap);
         if (!(whitePlayer instanceof HumanGUIPlayer)) {
             gameController.playOneMove();
         }

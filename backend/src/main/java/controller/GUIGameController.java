@@ -4,6 +4,7 @@ import application.CandidateMoves;
 import application.UIMove;
 import application.UIMoveResponse;
 import model.Util;
+import model.board.Handicap;
 import model.board.IllegalBoardException;
 import model.board.MalformedFENException;
 import model.move.Move;
@@ -17,6 +18,10 @@ import model.player.Player;
 public class GUIGameController extends GameController {
     public GUIGameController(Player whitePlayer, Player blackPlayer) {
         super(whitePlayer, blackPlayer);
+    }
+
+    public GUIGameController(Player whitePlayer, Player blackPlayer, Handicap handicap) {
+        super(whitePlayer, blackPlayer, handicap);
     }
 
     public GUIGameController(Player whitePlayer, Player blackPlayer, String FEN) throws IllegalBoardException, MalformedFENException {
