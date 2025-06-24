@@ -37,3 +37,7 @@ export function getSquareName(r, c) {
     }
     return String.fromCharCode("a".charCodeAt(0) + c) + (r + 1);
 }
+
+export function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}

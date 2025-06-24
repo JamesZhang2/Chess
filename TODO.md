@@ -6,8 +6,8 @@
     - [X] Play vs. AI
     - [ ] Play vs. Human - Challenge system
   - [ ] Game page
-  - [ ] Implement resigning/offer draw in frontend
-  - [ ] Update the board after user input while waiting for opponent's response so the game doesn't appear frozen
+    - [ ] Implement resigning/offer draw in frontend
+  - [X] Update the board after user input while waiting for opponent's response so the game doesn't appear frozen
     - Create two separate endpoints, one for trying a move, the other for polling periodically until the board state is updated. This will require some synchronization if we're storing the games in memory - otherwise there might be data-race issues.
   - [ ] Lock the board orientation so it doesn't flip back and forth when two players are playing on the same webpage (or when playing against AI)
   - [ ] Use database to store user info so that it persists if backend reboots

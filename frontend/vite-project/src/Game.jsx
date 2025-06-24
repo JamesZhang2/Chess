@@ -4,9 +4,9 @@ import Board from "./Board.jsx";
 import Home from "./Home.jsx";
 import axios from "axios";
 import MalformedFENError from "./MalformedFENError.js";
-import { getRC } from "./Util.js";
+import { getRC, sleep } from "./Util.js";
 
-function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType, handicapType }) {
+function Game({ gameId, username }) {
     const startPos = [
         "RNBQKBNR".split(""),
         "PPPPPPPP".split(""),
@@ -17,7 +17,10 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
         "pppppppp".split(""),
         "rnbqkbnr".split(""),
     ];
-    const viewAsWhite = (whiteName === username);  // whether to see the board from white or black's perspective
+    const [whiteName, setWhiteName] = useState(null);
+    const [blackName, setBlackName] = useState(null);
+    const [viewAsWhite, setViewAsWhite] = useState(null);  // whether to see the board from white or black's perspective
+
     const [pieces, setPieces] = useState(startPos);
     const [whiteToMove, setWhiteToMove] = useState(true);
     const [selectedSquare, setSelectedSquare] = useState(null);
@@ -27,24 +30,22 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
     const [legalPromotions, setLegalPromotions] = useState(new Set());
     const [showPromotionOverlay, setShowPromotionOverlay] = useState(false);
     const [promotionSquare, setPromotionSquare] = useState(null);
-    const [gameId, setGameId] = useState(null);
     const [opResigned, setOpResigned] = useState(false);
-
     const [goHome, setGoHome] = useState(false);
 
     // useEffect with empty dependency array to run only once
     useEffect(() => {
-        axios.post("/api/initGame",
-            {
-                "whitePlayerType": whitePlayerType,
-                "blackPlayerType": blackPlayerType,
-                "handicapType": handicapType
-            }
-        )
+        console.log("gameId in Game: " + gameId);
+        axios.get(`/api/getGameInfo?gameId=${gameId}`)
             .then((response) => {
+                if (response.data === null) {
+                    throw new Error("Failed to get the FEN for game with gameId " + gameId);
+                }
                 console.log(response.data);
+                setWhiteName(response.data.whiteName);
+                setBlackName(response.data.blackName);
+                setViewAsWhite(response.data.whiteName === username);
                 setBoardState(response.data.fen);
-                setGameId(response.data.gameId);
             })
             .catch((error) => {
                 console.log(error);
@@ -74,15 +75,18 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
             handlePromotionSelection={(pieceType) => { }}
             handlePromotionCancellation={(event) => { }} />;
     }
-    let message;
+    let message = "";
+    if (opResigned) {
+        message = "Opponent resigned. ";
+    }
     if (winner === "u") {
-        message = "Let's play!";
+        message += "Let's play!";
     } else if (winner === "w") {
-        message = "White won!";
+        message += "White won!";
     } else if (winner === "d") {
-        message = "Draw!";
+        message += "Draw!";
     } else {
-        message = "Black won!";
+        message += "Black won!";
     }
 
     if (goHome) {
@@ -140,7 +144,6 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
                     setPromotionSquare(sqName);
                 } else {
                     tryMove(sqName);
-                    waitForOpponent();
                 }
             }
         }
@@ -184,7 +187,7 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
     }
 
     /**
-     * Try to play a move.
+     * Try to play a move. If it's legal, wait for the opponent's response.
      * @param {string} destSq destination square
      * @param {string} promotion single letter representing promotion piece, or null if not a promotion
      */
@@ -199,13 +202,14 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
                 const isLegal = res.isLegal;
                 const fen = res.fen;
                 const winner = res.winner;
-                console.log(isLegal);
-                console.log(fen);
-                console.log("Winner: " + winner);
+                console.log(res);
                 if (isLegal) {
                     console.log("Legal move");
                     setBoardState(fen);
                     setWinner(winner);
+                    if (winner === "u") {
+                        waitForOpponent();
+                    }
                 } else {
                     console.log("Illegal move");
                 }
@@ -224,16 +228,17 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
      */
     async function waitForOpponent() {
         let moved = false;
-        let fen, winner, isResign;
-        while (!moved && winner === "u") {
+        let fen, newWinner, isResign;
+        while (!moved) {
+            console.log("in waitForOpponent");
             await axios.get(`/api/waitForOpponent?gameId=${gameId}`)
                 .then((response) => {
                     const res = response.data;
+                    console.log(res);
                     moved = res.moved;
                     fen = res.fen;
-                    winner = res.winner;
+                    newWinner = res.winner;
                     isResign = res.isResign;
-                    console.log(response.data);
                 })
                 .catch((error) => {
                     console.log(error);
@@ -242,7 +247,8 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
             await sleep(1000);
         }
         setBoardState(fen);
-        setWinner(winner);
+        setWinner(newWinner);
+        setOpResigned(isResign);
     }
 
     /**
@@ -259,10 +265,6 @@ function Game({ username, whiteName, whitePlayerType, blackName, blackPlayerType
             return "empty";
         }
     }
-}
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**

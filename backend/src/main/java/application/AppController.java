@@ -26,6 +26,7 @@ public class AppController {
     private final Map<String, String> users = new HashMap<>();
     private int guestCounter = 0;
     private final List<GUIGameController> gameControllers = new ArrayList<>();
+    private final List<Challenge> challenges = new ArrayList<>();
 
     // for testing
     @GetMapping("/")
@@ -63,16 +64,118 @@ public class AppController {
     @GetMapping("/playAsGuest")
     public ResponseEntity<LoginResponse> playAsGuest() {
         String username = "_guest" + (guestCounter++);
+        System.out.println("Playing as guest: " + username);
         return new ResponseEntity<>(new LoginResponse(true, username), HttpStatus.OK);
     }
 
+    /**
+     * Creates a challenge. Each player must only have at most 1 pending challenge at a time.
+     * @return if the challenge is successfully created,
+     * returns the challengeId for the newly created challenge.
+     * Otherwise, return -1.
+     */
+    @PostMapping("/createChallenge")
+    public ResponseEntity<Integer> createChallenge(@RequestBody Challenge challenge) {
+        System.out.println("Creating challenge " + challenge);
+        for (Challenge c : challenges) {
+            if (c.status == Challenge.Status.PENDING && c.username.equals(challenge.username)) {
+                System.out.println("Existing pending challenge found for user " + challenge.username);
+                return new ResponseEntity<>(-1, HttpStatus.OK);
+            }
+        }
+        int challengeId = challenges.size();
+        challenge.challengeId = challengeId;
+        challenges.add(challenge);
+        System.out.println("Challenge successfully created with challengeId " + challengeId);
+        return new ResponseEntity<>(challengeId, HttpStatus.OK);
+    }
+
+    /**
+     * Accepts the challenge with the given opponent username and gameId.
+     * @return If successful, returns the updated challenge.
+     * Otherwise, returns null and a BAD_REQUEST status code.
+     */
+    @PostMapping("/acceptChallenge")
+    public ResponseEntity<Challenge> acceptChallenge(@RequestParam int challengeId, @RequestBody Challenge newChallenge) {
+        String opUsername = newChallenge.opUsername;
+        int gameId = newChallenge.gameId;
+        String newSide = newChallenge.side;
+        System.out.println("User " + opUsername + " is trying to accept challenge " + challengeId);
+        if (challengeId >= challenges.size() || opUsername == null || gameId >= gameControllers.size()) {
+            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+        }
+
+        Challenge challenge = challenges.get(challengeId);
+        // use the challenge mutex because another user may cancel it at the same time
+        synchronized (challenge) {
+            if (challenge.status != Challenge.Status.PENDING) {
+                return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            }
+            challenge.match(opUsername, gameId, newSide);
+            System.out.println("Challenge successfully accepted");
+            return new ResponseEntity<>(challenge, HttpStatus.OK);
+        }
+    }
+
+    /**
+     * Cancels a challenge.
+     * @return a response entity containing true if challenge is successfully canceled, false otherwise
+     */
+    @PostMapping("/cancelChallenge")
+    public ResponseEntity<Boolean> cancelChallenge(@RequestParam int challengeId) {
+        System.out.println("Cancelling challenge " + challengeId);
+        if (challengeId >= challenges.size() || challenges.get(challengeId).status != Challenge.Status.PENDING) {
+            return new ResponseEntity<>(false, HttpStatus.OK);
+        }
+        // use the challenge mutex because another user may accept it at the same time
+        Challenge challenge = challenges.get(challengeId);
+        synchronized (challenge) {
+            challenge.cancel();
+            System.out.println("Successfully canceled challenge " + challengeId);
+            return new ResponseEntity<>(true, HttpStatus.OK);
+        }
+    }
+
+    /**
+     * Resolve a matched challenge.
+     * @return a response entity containing true if challenge is successfully resolved, false otherwise
+     */
+    @PostMapping("/resolveChallenge")
+    public ResponseEntity<Boolean> resolveChallenge(@RequestParam int challengeId) {
+        System.out.println("Resolving challenge " + challengeId);
+        if (challengeId >= challenges.size() || challenges.get(challengeId).status != Challenge.Status.MATCHED) {
+            return new ResponseEntity<>(false, HttpStatus.OK);
+        }
+        challenges.get(challengeId).resolve();
+        System.out.println("Successfully resolved challenge " + challengeId);
+        return new ResponseEntity<>(true, HttpStatus.OK);
+    }
+
+    /**
+     * @return all challenges whose status is pending or matched
+     */
+    @GetMapping("/getActiveChallenges")
+    public ResponseEntity<List<Challenge>> getChallenges() {
+        return new ResponseEntity<>(challenges.stream()
+                .filter(c -> c.status == Challenge.Status.PENDING || c.status == Challenge.Status.MATCHED)
+                .toList(),
+                HttpStatus.OK);
+    }
+
+    /**
+     * Initializes a game with the given information.
+     * @return the gameId of the game
+     */
     @PostMapping("/initGame")
-    public ResponseEntity<InitGameResponse> initGame(@RequestBody InitGameRequest request) {
+    public ResponseEntity<Integer> initGame(@RequestBody InitGameRequest request) {
         String whitePlayerType = request.whitePlayerType();
+        String whiteName = request.whiteName();
         String blackPlayerType = request.blackPlayerType();
+        String blackName = request.blackName();
         String handicapType = request.handicapType();
 
-        System.out.printf("initGame called with white player: %s, black player: %s, handicap type: %s\n", whitePlayerType, blackPlayerType, handicapType);
+        System.out.printf("initGame called with white player name: %s, white player type: %s, black player name: %s, black player type: %s, handicap type: %s\n",
+                whiteName, whitePlayerType, blackName, blackPlayerType, handicapType);
         Player whitePlayer, blackPlayer;
         whitePlayer = switch (whitePlayerType) {
             case "HumanGUIPlayer" -> new HumanGUIPlayer(true);
@@ -95,13 +198,29 @@ public class AppController {
             System.out.println("Warning: Unknown handicap type " + handicapType + ", defaulting to NONE");
             handicap = Handicap.NONE;
         }
-        GUIGameController gameController = new GUIGameController(whitePlayer, blackPlayer, handicap);
+        GUIGameController gameController = new GUIGameController(whiteName, whitePlayer, blackName, blackPlayer, handicap);
         if (!(whitePlayer instanceof HumanGUIPlayer)) {
             gameController.playOneMove();
         }
         int gameId = gameControllers.size();
         gameControllers.add(gameController);
-        return new ResponseEntity<>(new InitGameResponse(gameController.getFEN(), gameId), HttpStatus.OK);
+        return new ResponseEntity<>(gameId, HttpStatus.OK);
+    }
+
+    /**
+     * @return the info for the game with the given gameId, or null if gameId is invalid
+     */
+    @GetMapping("/getGameInfo")
+    public ResponseEntity<GameInfo> getGameInfo(@RequestParam int gameId) {
+        System.out.println("Getting the info for game " + gameId);
+        if (gameId >= gameControllers.size()) {
+            return new ResponseEntity<>(null, HttpStatus.OK);
+        }
+        GUIGameController gameController = gameControllers.get(gameId);
+        System.out.println("Returning the info for game " + gameId);
+        return new ResponseEntity<>(new GameInfo(gameController.getFEN(),
+                gameController.getWhiteName(),
+                gameController.getBlackName()), HttpStatus.OK);
     }
 
     @GetMapping("/getCandidates")

@@ -17,16 +17,24 @@ import model.player.Player;
  * A game controller with additional methods that accept data from and provide data to the frontend
  */
 public class GUIGameController extends GameController {
-    public GUIGameController(Player whitePlayer, Player blackPlayer) {
+    private final String whiteName;
+    private final String blackName;
+    public GUIGameController(String whiteName, Player whitePlayer, String blackName, Player blackPlayer) {
         super(whitePlayer, blackPlayer);
+        this.whiteName = whiteName;
+        this.blackName = blackName;
     }
 
-    public GUIGameController(Player whitePlayer, Player blackPlayer, Handicap handicap) {
+    public GUIGameController(String whiteName, Player whitePlayer, String blackName, Player blackPlayer, Handicap handicap) {
         super(whitePlayer, blackPlayer, handicap);
+        this.whiteName = whiteName;
+        this.blackName = blackName;
     }
 
-    public GUIGameController(Player whitePlayer, Player blackPlayer, String FEN) throws IllegalBoardException, MalformedFENException {
+    public GUIGameController(String whiteName, Player whitePlayer, String blackName, Player blackPlayer, String FEN) throws IllegalBoardException, MalformedFENException {
         super(whitePlayer, blackPlayer, FEN);
+        this.whiteName = whiteName;
+        this.blackName = blackName;
     }
 
     /**
@@ -49,6 +57,14 @@ public class GUIGameController extends GameController {
      */
     public char getWinner() {
         return board.getWinner();
+    }
+
+    public String getWhiteName() {
+        return whiteName;
+    }
+
+    public String getBlackName() {
+        return blackName;
     }
 
     /**
