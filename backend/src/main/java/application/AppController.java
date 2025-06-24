@@ -70,6 +70,7 @@ public class AppController {
 
     /**
      * Creates a challenge. Each player must only have at most 1 pending challenge at a time.
+     *
      * @return if the challenge is successfully created,
      * returns the challengeId for the newly created challenge.
      * Otherwise, return -1.
@@ -92,6 +93,7 @@ public class AppController {
 
     /**
      * Accepts the challenge with the given opponent username and gameId.
+     *
      * @return If successful, returns the updated challenge.
      * Otherwise, returns null and a BAD_REQUEST status code.
      */
@@ -119,6 +121,7 @@ public class AppController {
 
     /**
      * Cancels a challenge.
+     *
      * @return a response entity containing true if challenge is successfully canceled, false otherwise
      */
     @PostMapping("/cancelChallenge")
@@ -138,6 +141,7 @@ public class AppController {
 
     /**
      * Resolve a matched challenge.
+     *
      * @return a response entity containing true if challenge is successfully resolved, false otherwise
      */
     @PostMapping("/resolveChallenge")
@@ -164,6 +168,7 @@ public class AppController {
 
     /**
      * Initializes a game with the given information.
+     *
      * @return the gameId of the game
      */
     @PostMapping("/initGame")
@@ -199,9 +204,6 @@ public class AppController {
             handicap = Handicap.NONE;
         }
         GUIGameController gameController = new GUIGameController(whiteName, whitePlayer, blackName, blackPlayer, handicap);
-        if (!(whitePlayer instanceof HumanGUIPlayer)) {
-            gameController.playOneMove();
-        }
         int gameId = gameControllers.size();
         gameControllers.add(gameController);
         return new ResponseEntity<>(gameId, HttpStatus.OK);
@@ -244,9 +246,15 @@ public class AppController {
         if (gameId >= gameControllers.size()) {
             throw new IllegalArgumentException("Unknown gameId: " + gameId);
         }
-        System.out.println(uiMove);
-        synchronized (gameControllers.get(gameId)) {
-            TryMoveResponse response = gameControllers.get(gameId).tryMove(uiMove);
+        System.out.println("Trying move " + uiMove);
+        GUIGameController gameController = gameControllers.get(gameId);
+        synchronized (gameController) {
+            TryMoveResponse response = gameController.tryMove(uiMove);
+            if (response.isLegal()) {
+                System.out.println("Legal; new FEN: " + gameController.getFEN());
+            } else {
+                System.out.println("Illegal");
+            }
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
     }
@@ -258,12 +266,15 @@ public class AppController {
      */
     @GetMapping("/waitForOpponent")
     public ResponseEntity<OpponentMoveResponse> waitForOpponent(@RequestParam int gameId) {
+        System.out.println("Waiting for opponent in gameId " + gameId);
         if (gameId >= gameControllers.size()) {
             throw new IllegalArgumentException("Unknown gameId: " + gameId);
         }
         GUIGameController gameController = gameControllers.get(gameId);
         synchronized (gameController) {
-            return new ResponseEntity<>(gameController.playOneMove(), HttpStatus.OK);
+            OpponentMoveResponse response = gameController.playOneMove();
+            System.out.println(response.fen());
+            return new ResponseEntity<>(response, HttpStatus.OK);
         }
     }
 }

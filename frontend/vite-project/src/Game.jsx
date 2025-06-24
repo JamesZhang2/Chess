@@ -19,10 +19,13 @@ function Game({ gameId, username }) {
     ];
     const [whiteName, setWhiteName] = useState(null);
     const [blackName, setBlackName] = useState(null);
-    const [viewAsWhite, setViewAsWhite] = useState(null);  // whether to see the board from white or black's perspective
+    const [selfIsWhite, setSelfIsWhite] = useState(false);
+    // true if we're playing as white, false otherwise.
+    // Affects whether we're seeing the board from white or black's perspective.
+    // since we need to wait for opponent's move at the very beginning if we're black,
+    // setSelfIsWhite has not changed the state yet. Therefore, we initialize it as false by default.
 
     const [pieces, setPieces] = useState(startPos);
-    const [whiteToMove, setWhiteToMove] = useState(true);
     const [selectedSquare, setSelectedSquare] = useState(null);
     // u: unknown (game in progress), w: white, d: draw, b: black
     const [winner, setWinner] = useState("u");
@@ -44,19 +47,24 @@ function Game({ gameId, username }) {
                 console.log(response.data);
                 setWhiteName(response.data.whiteName);
                 setBlackName(response.data.blackName);
-                setViewAsWhite(response.data.whiteName === username);
+                setSelfIsWhite(response.data.whiteName === username);
                 setBoardState(response.data.fen);
+                if (response.data.whiteName !== username) {
+                    // we are black, wait for opponent's response
+                    waitForOpponent();
+                }
             })
             .catch((error) => {
                 console.log(error);
             });
     }, []);
+
     let board;
     if (winner === "u") {
         // game is ongoing
         board = <Board
             pieces={pieces}
-            white={viewAsWhite}
+            white={selfIsWhite}
             selectedSquare={selectedSquare}
             legalDests={legalDests}
             handleSquareClick={handleSquareClick}
@@ -67,7 +75,7 @@ function Game({ gameId, username }) {
         // game has ended
         board = <Board
             pieces={pieces}
-            white={viewAsWhite}
+            white={selfIsWhite}
             selectedSquare={null}
             legalDests={new Set()}
             handleSquareClick={(sqName) => { }}
@@ -99,9 +107,9 @@ function Game({ gameId, username }) {
             <h1>{message}</h1>
             <button id="back-home-btn" onClick={() => setGoHome(true)}>Back to Home Page</button>
         </header>
-        <div className="player-info-banner">{viewAsWhite ? blackName : whiteName}</div>
+        <div className="player-info-banner">{selfIsWhite ? blackName : whiteName}</div>
         {board}
-        <div className="player-info-banner">{viewAsWhite ? whiteName : blackName}</div>
+        <div className="player-info-banner">{selfIsWhite ? whiteName : blackName}</div>
     </div>
 
     /**
@@ -109,30 +117,23 @@ function Game({ gameId, username }) {
      * @param {string} fen 
      */
     function setBoardState(fen) {
+        console.log("calling setBoardState with fen " + fen);
         setPieces(parsePiecePlacement(fen));
-        const sideToMove = fen.split(" ")[1];
-        if (sideToMove === "w") {
-            setWhiteToMove(true);
-        } else if (sideToMove === "b") {
-            setWhiteToMove(false);
-        } else {
-            throw new MalformedFENError("Malformed active color field");
-        }
     }
 
     function handleSquareClick(sqName) {
         console.log("Clicked " + sqName);
         if (!selectedSquare) {
             // startSquare is null
-            if ((pieceColorOnSquare(sqName) === "white" && whiteToMove)
-                || (pieceColorOnSquare(sqName) === "black" && !whiteToMove)) {
+            if ((pieceColorOnSquare(sqName) === "white" && selfIsWhite)
+                || (pieceColorOnSquare(sqName) === "black" && !selfIsWhite)) {
                 setSelectedSquare(sqName);
                 setLegalMoves(sqName);
             }
         } else {
             // startSquare is not null
-            if ((pieceColorOnSquare(sqName) === "white" && whiteToMove)
-                || (pieceColorOnSquare(sqName) === "black" && !whiteToMove)) {
+            if ((pieceColorOnSquare(sqName) === "white" && selfIsWhite)
+                || (pieceColorOnSquare(sqName) === "black" && !selfIsWhite)) {
                 // selecting a new friendly piece
                 setSelectedSquare(sqName);
                 setLegalMoves(sqName);
@@ -202,6 +203,7 @@ function Game({ gameId, username }) {
                 const isLegal = res.isLegal;
                 const fen = res.fen;
                 const winner = res.winner;
+                console.log("response from tryMove:");
                 console.log(res);
                 if (isLegal) {
                     console.log("Legal move");
@@ -227,15 +229,13 @@ function Game({ gameId, username }) {
      * Keeps polling until opponent has made a move.
      */
     async function waitForOpponent() {
-        let moved = false;
         let fen, newWinner, isResign;
-        while (!moved) {
-            console.log("in waitForOpponent");
+        do {
+            console.log("Waiting for opponent to move");
             await axios.get(`/api/waitForOpponent?gameId=${gameId}`)
                 .then((response) => {
                     const res = response.data;
                     console.log(res);
-                    moved = res.moved;
                     fen = res.fen;
                     newWinner = res.winner;
                     isResign = res.isResign;
@@ -243,9 +243,8 @@ function Game({ gameId, username }) {
                 .catch((error) => {
                     console.log(error);
                 });
-            console.log(moved);
             await sleep(1000);
-        }
+        } while (parseIsWhiteToMove(fen) !== selfIsWhite && newWinner === "u");
         setBoardState(fen);
         setWinner(newWinner);
         setOpResigned(isResign);
@@ -322,6 +321,16 @@ function parsePiecePlacement(fen) {
     }
     // console.log("pieces: " + pieces.toString());
     return pieces;
+}
+
+function parseIsWhiteToMove(fen) {
+    if (fen.split(" ")[1] === "w") {
+        return true;
+    } else if (fen.split(" ")[1] === "b") {
+        return false;
+    } else {
+        throw new MalformedFENError("Malformed active color field");
+    }
 }
 
 export default Game;

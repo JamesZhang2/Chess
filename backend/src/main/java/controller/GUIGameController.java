@@ -78,15 +78,15 @@ public class GUIGameController extends GameController {
             Action action = curPlayer.play(board);
             if (action.getActionType() == Action.Type.MOVE) {
                 board.move(action.getMove());
-                return new OpponentMoveResponse(true, board.toFEN(), String.valueOf(board.getWinner()), false);
+                return new OpponentMoveResponse(board.toFEN(), String.valueOf(board.getWinner()), false);
             } else if (action.getActionType() == Action.Type.RESIGN) {
                 board.resign();
-                return new OpponentMoveResponse(true, board.toFEN(), String.valueOf(board.getWinner()), true);
+                return new OpponentMoveResponse(board.toFEN(), String.valueOf(board.getWinner()), true);
             } else {
                 throw new UnsupportedOperationException("Unimplemented");  // TODO
             }
         }
-        return new OpponentMoveResponse(false, board.toFEN(), String.valueOf(board.getWinner()), false);
+        return new OpponentMoveResponse(board.toFEN(), String.valueOf(board.getWinner()), false);
     }
 
     /**

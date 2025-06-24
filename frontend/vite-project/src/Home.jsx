@@ -88,7 +88,7 @@ function Home({ username }) {
                         // my challenge has a match
                         // console.log("Setting challengeId to null in pollChallenges()");
                         challengeIdRef.current = null;
-                        axios.post(`/api/resolveChallenge?challengeId=${c.challengeId}}`)
+                        axios.post(`/api/resolveChallenge?challengeId=${c.challengeId}`)
                             .then((response) => {
                                 const success = response.data;
                                 if (!success) {
