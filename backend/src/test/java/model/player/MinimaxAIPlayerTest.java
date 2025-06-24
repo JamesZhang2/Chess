@@ -8,6 +8,7 @@ import model.board.MalformedFENException;
 import model.eval.Evaluator;
 import model.eval.MaterialEvaluator;
 import model.eval.TrivialEvaluator;
+import model.eval.WeightedEvaluator;
 import model.move.Move;
 import org.junit.jupiter.api.Test;
 
@@ -21,8 +22,7 @@ class MinimaxAIPlayerTest {
         // as long as the implementation of the evaluator is correct!
         Evaluator[] evaluators = {
                 new TrivialEvaluator(),
-                new MaterialEvaluator()
-                // add more evaluators here...
+                new WeightedEvaluator()
         };
         String[] whiteM1 = {
                 "6k1/1q3ppp/8/8/8/8/8/3R2K1 w - - 0 1",

@@ -243,7 +243,7 @@ function Game({ gameId, username }) {
                 .catch((error) => {
                     console.log(error);
                 });
-            await sleep(1000);
+            await sleep(200);
         } while (parseIsWhiteToMove(fen) !== selfIsWhite && newWinner === "u");
         setBoardState(fen);
         setWinner(newWinner);

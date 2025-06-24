@@ -14,7 +14,6 @@ abstract class EvaluatorTest {
     @Test
     void testCompletedGames() throws IllegalBoardException, MalformedFENException {
         Evaluator evaluator = getEvaluator();
-        final double DELTA = 0.001;
         String[] whiteWon = {
                 "5k1R/8/5K2/8/8/8/8/8 b - - 1 1",
                 "7k/6Q1/6K1/8/8/8/8/8 b - - 0 1",
@@ -34,13 +33,13 @@ abstract class EvaluatorTest {
                 "5B2/8/8/8/8/8/2K5/k1N5 b - - 1 1"
         };
         for (String fen : whiteWon) {
-            assertEquals(Double.POSITIVE_INFINITY, evaluator.evaluate(new BitmapBoard(fen)), DELTA);
+            assertTrue(evaluator.evaluate(new BitmapBoard(fen)) > 0);
         }
         for (String fen : blackWon) {
-            assertEquals(Double.NEGATIVE_INFINITY, evaluator.evaluate(new BitmapBoard(fen)), DELTA);
+            assertTrue(evaluator.evaluate(new BitmapBoard(fen)) < 0);
         }
         for (String fen : draw) {
-            assertEquals(0, evaluator.evaluate(new BitmapBoard(fen)), DELTA);
+            assertEquals(0, evaluator.evaluate(new BitmapBoard(fen)), 0.001);
         }
     }
 }

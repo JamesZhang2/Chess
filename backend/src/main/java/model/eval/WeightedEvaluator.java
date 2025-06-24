@@ -1,5 +1,6 @@
 package model.eval;
 
+import model.Util;
 import model.board.Board;
 
 /**
@@ -9,18 +10,18 @@ public class WeightedEvaluator implements Evaluator {
     // weights
     private final double materialWt, locationWt, pawnStructWt;
 
-    private final MaterialPartialEvaluator materialEval;
-    private final LocationPartialEvaluator locationEval;
-    private final PawnStructPartialEvaluator pawnStructEval;
+    private final MaterialEvaluator materialEval;
+    private final LocationEvaluator locationEval;
+    private final PawnStructEvaluator pawnStructEval;
 
     public WeightedEvaluator() {
-        this(1.0, 1.0, 1.0);
+        this(1.0, 0.5, 1.0);
     }
 
     public WeightedEvaluator(double materialWt, double locationWt, double pawnStructWt) {
-        materialEval = new MaterialPartialEvaluator();
-        locationEval = new LocationPartialEvaluator();
-        pawnStructEval = new PawnStructPartialEvaluator();
+        materialEval = new MaterialEvaluator();
+        locationEval = new LocationEvaluator();
+        pawnStructEval = new PawnStructEvaluator();
         this.materialWt = materialWt;
         this.locationWt = locationWt;
         this.pawnStructWt = pawnStructWt;
@@ -29,9 +30,9 @@ public class WeightedEvaluator implements Evaluator {
     @Override
     public double evaluate(Board board) {
         if (board.getWinner() == 'w') {
-            return Double.POSITIVE_INFINITY;
+            return Util.MATE_EVAL;
         } else if (board.getWinner() == 'b') {
-            return Double.NEGATIVE_INFINITY;
+            return -Util.MATE_EVAL;
         } else if (board.getWinner() == 'd') {
             return 0;
         }

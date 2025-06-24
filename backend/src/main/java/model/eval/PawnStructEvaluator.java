@@ -2,7 +2,7 @@ package model.eval;
 
 import model.board.Board;
 
-public class PawnStructPartialEvaluator implements PartialEvaluator {
+public class PawnStructEvaluator implements Evaluator {
 
     @Override
     public double evaluate(Board board) {

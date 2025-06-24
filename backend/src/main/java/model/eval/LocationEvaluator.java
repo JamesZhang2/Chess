@@ -2,7 +2,10 @@ package model.eval;
 
 import model.board.Board;
 
-public class LocationPartialEvaluator implements PartialEvaluator {
+/**
+ * An evaluator for piece locations
+ */
+public class LocationEvaluator implements Evaluator {
     // Reference: https://www.chessprogramming.org/Piece-Square_Tables
 
     // how much each piece contributes to the phase weight
@@ -23,8 +26,8 @@ public class LocationPartialEvaluator implements PartialEvaluator {
     // center pawns should move; promotion should be encouraged
     private final int[][] MG_P_TABLE = {
             {  0,  0,  0,  0,  0,  0,  0,  0},
-            {  5, 10, 10,-20,-20, 10, 10,  5},
-            {  5,  5,-10, 10, 10,-10,  5,  5},
+            {  5, 10, 10,-25,-25, 10, 10,  5},
+            {  2,  5,-10, 10, 10,-10,  5,  2},
             {-10,-10,  0, 25, 25,  0,-10,-10},
             {  0,  0, 10, 30, 30, 10,  0,  0},
             {  5, 15, 25, 40, 40, 25, 15,  5},
@@ -36,11 +39,11 @@ public class LocationPartialEvaluator implements PartialEvaluator {
     // they should be encouraged to push forward to promote
     private final int[][] EG_P_TABLE = {
             {  0,  0,  0,  0,  0,  0,  0,  0},
-            {  0,  2,  5, 10, 10,  5,  2,  0},
-            {  2,  5,  7, 12, 12,  7,  5,  2},
-            {  5,  7, 10, 15, 15, 10,  7,  5},
-            { 20, 25, 30, 30, 30, 30, 25, 20},
-            { 50, 60, 65, 65, 65, 65, 60, 50},
+            {-10, -5, -2,  0,  0, -2, -5,-10},
+            {  2,  8, 10, 12, 12, 10,  8,  2},
+            { 12, 20, 30, 35, 35, 30, 20, 12},
+            { 30, 40, 50, 50, 50, 50, 40, 30},
+            { 50, 60, 70, 70, 70, 70, 60, 50},
             { 90,100,100,100,100,100,100, 90},
             {  0,  0,  0,  0,  0,  0,  0,  0},
     };
@@ -51,10 +54,10 @@ public class LocationPartialEvaluator implements PartialEvaluator {
     private final int[][] MG_N_TABLE = {
             {-85,-60,-50,-50,-50,-50,-60,-85},
             {-60,-30,-10,  0,  0,-10,-30,-60},
-            {-50,  5, 20, 15, 15, 20, 10,-50},
+            {-50,  5, 10, 15, 15, 10, 10,-50},
+            {-50,  0, 15, 20, 20, 15,  0,-50},
             {-50,  0, 20, 25, 25, 20,  0,-50},
-            {-50,  0, 20, 30, 30, 20,  0,-50},
-            {-50,-10, 15, 15, 15, 15,-10,-50},
+            {-50,-10, 10, 15, 15, 10,-10,-50},
             {-60,-30,-10,  0,  0,-10,-30,-60},
             {-85,-60,-50,-50,-50,-50,-60,-85},
     };
@@ -95,8 +98,8 @@ public class LocationPartialEvaluator implements PartialEvaluator {
     // Rooks on the 7th rank are great. Centralizing rooks is also a good idea.
     // Lifting rooks through a3/h3 is a bad idea.
     private final int[][] MG_R_TABLE = {
-            {-15,-10,  5, 15, 15,  5,-10,-15},
-            {-30,  0,  0,  0,  0,  0,  0,-30},
+            {-25,-15, 10, 15, 15, 10,-15,-25},
+            {-30, -5, -5, -5, -5, -5, -5,-30},
             {-35,  0,  0,  0,  0,  0,  0,-35},
             {-30,  0,  0,  0,  0,  0,  0,-30},
             {-20,  0,  0,  0,  0,  0,  0,-20},
@@ -108,7 +111,7 @@ public class LocationPartialEvaluator implements PartialEvaluator {
     // Rooks on the 7th rank are great. Centralizing rooks is also a good idea.
     // Lifting rooks through a3/h3 is a bad idea.
     private final int[][] EG_R_TABLE = {
-            {-10,  0,  0,  0,  0,  0,  0,-10},
+            {-25,  0,  0,  0,  0,  0,  0,-25},
             { -5,  0,  0,  0,  0,  0,  0, -5},
             { -5,  0,  0,  0,  0,  0,  0, -5},
             { -5,  0,  0,  0,  0,  0,  0, -5},
@@ -146,8 +149,8 @@ public class LocationPartialEvaluator implements PartialEvaluator {
     // In the early game, the king should stay sheltered behind pawns. Castling should be encouraged.
     // Moving the king to f1 without castling should be discouraged.
     private final int[][] MG_K_TABLE = {
-            { 20, 30, 15,  0,  0,-10, 30, 20},
-            { 15, 15, -5,-20,-20, -5, 15, 15},
+            { 25, 45, 15,  0,  0,-20, 45, 25},
+            { 25, 20, -5,-20,-20, -5, 20, 25},
             {-10,-20,-20,-20,-20,-20,-20,-10},
             {-30,-40,-40,-40,-40,-40,-40,-30},
             {-50,-50,-50,-50,-50,-50,-50,-50},
@@ -158,8 +161,8 @@ public class LocationPartialEvaluator implements PartialEvaluator {
 
     // In the endgame, the king should fight for the center.
     private final int[][] EG_K_TABLE = {
-            {-50,-35,-35,-35,-35,-35,-35,-50},
-            {-35,  0,  0,  0,  0,  0,  0,-35},
+            {-50,-40,-40,-40,-40,-40,-40,-50},
+            {-40,-10,  0,  0,  0,  0,-10,-40},
             {-35,  0, 20, 30, 30, 20,  0,-35},
             {-35,  0, 30, 45, 45, 30,  0,-35},
             {-35,  0, 30, 45, 45, 30,  0,-35},
@@ -183,12 +186,12 @@ public class LocationPartialEvaluator implements PartialEvaluator {
                 }
                 boolean isWhite = Character.isUpperCase(piece);
                 centipawns += (isWhite ? 1 : -1) * switch (piece) {
-                    case 'P', 'p' -> (1 - phase) * MG_P_TABLE[isWhite ? r : 7 - r][c] + phase * EG_P_TABLE[isWhite ? r : 7 - r][c];
-                    case 'N', 'n' -> (1 - phase) * MG_N_TABLE[isWhite ? r : 7 - r][c] + phase * EG_N_TABLE[isWhite ? r : 7 - r][c];
-                    case 'B', 'b' -> (1 - phase) * MG_B_TABLE[isWhite ? r : 7 - r][c] + phase * EG_B_TABLE[isWhite ? r : 7 - r][c];
-                    case 'R', 'r' -> (1 - phase) * MG_R_TABLE[isWhite ? r : 7 - r][c] + phase * EG_R_TABLE[isWhite ? r : 7 - r][c];
-                    case 'Q', 'q' -> (1 - phase) * MG_Q_TABLE[isWhite ? r : 7 - r][c] + phase * EG_Q_TABLE[isWhite ? r : 7 - r][c];
-                    case 'K', 'k' -> (1 - phase) * MG_K_TABLE[isWhite ? r : 7 - r][c] + phase * EG_K_TABLE[isWhite ? r : 7 - r][c];
+                    case 'P', 'p' -> phase * MG_P_TABLE[isWhite ? r : 7 - r][c] + (1 - phase) * EG_P_TABLE[isWhite ? r : 7 - r][c];
+                    case 'N', 'n' -> phase * MG_N_TABLE[isWhite ? r : 7 - r][c] + (1 - phase) * EG_N_TABLE[isWhite ? r : 7 - r][c];
+                    case 'B', 'b' -> phase * MG_B_TABLE[isWhite ? r : 7 - r][c] + (1 - phase) * EG_B_TABLE[isWhite ? r : 7 - r][c];
+                    case 'R', 'r' -> phase * MG_R_TABLE[isWhite ? r : 7 - r][c] + (1 - phase) * EG_R_TABLE[isWhite ? r : 7 - r][c];
+                    case 'Q', 'q' -> phase * MG_Q_TABLE[isWhite ? r : 7 - r][c] + (1 - phase) * EG_Q_TABLE[isWhite ? r : 7 - r][c];
+                    case 'K', 'k' -> phase * MG_K_TABLE[isWhite ? r : 7 - r][c] + (1 - phase) * EG_K_TABLE[isWhite ? r : 7 - r][c];
                     default -> 0;
                 };
             }
@@ -197,8 +200,8 @@ public class LocationPartialEvaluator implements PartialEvaluator {
     }
 
     /**
-     * @return a double between 0 and 1, where a smaller number means that the game is in the
-     * early game phase while a larger number means that the game is in the endgame phase.
+     * @return a double between 0 and 1, where a larger number means that the game is in the
+     * early game phase while a smaller number means that the game is in the endgame phase.
      */
     private double getGamePhase(Board board) {
         double phase = 0;

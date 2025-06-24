@@ -29,6 +29,7 @@ public class Util {
     public static final long A_FILE = 0x0101010101010101L;
     public static final long H_FILE = 0x8080808080808080L;
 
+    public static final double MATE_EVAL = 100000;  // eval for winning - used instead of infinity to find the fastest mate
 
     /**
      * @return true if input is in [0...7], false otherwise

@@ -1,5 +1,6 @@
 package model.player;
 
+import model.Util;
 import model.board.Board;
 import model.eval.Evaluator;
 import model.move.Move;
@@ -17,19 +18,28 @@ public class MinimaxAIPlayer extends Player {
     private final Map<String, Double> fenToEval;  // evaluation cache
 
     // Whether to enable alpha-beta pruning. Usually it's always true. Can be set to false when debugging.
-    private final boolean ENABLE_PRUNING = true;
+    private final boolean ENABLE_PRUNING;
+
+    /**
+     * Constructs a new Minimax AI Player with pruning enabled.
+     */
+    public MinimaxAIPlayer(boolean isWhite, Evaluator evaluator, int maxDepth) {
+        this(isWhite, evaluator, maxDepth, true);
+    }
 
     /**
      * Constructs a new Minimax AI Player.
-     * @param isWhite true if the player is playing white, false otherwise
+     *
+     * @param isWhite   true if the player is playing white, false otherwise
      * @param evaluator the evaluator used for leaf positions
-     * @param maxDepth the maximum height to run minimax
+     * @param maxDepth  the maximum height to run minimax
      */
-    public MinimaxAIPlayer(boolean isWhite, Evaluator evaluator, int maxDepth) {
+    public MinimaxAIPlayer(boolean isWhite, Evaluator evaluator, int maxDepth, boolean enablePruning) {
         super(isWhite);
         this.evaluator = evaluator;
         this.MAX_DEPTH = maxDepth;
         fenToEval = new HashMap<>();
+        ENABLE_PRUNING = enablePruning;
     }
 
     @Override
@@ -56,17 +66,14 @@ public class MinimaxAIPlayer extends Player {
         }
         System.out.println("Evaluation: " + bestEval);
         System.out.println("Minimax AI plays " + bestMove);
-//        if (bestMove == null) {
-//            // inescapable checkmate
-//            return new Action(Action.Type.RESIGN);
-//        }
         return new Action(bestMove);
     }
 
     /**
      * Evaluate the current position using minimax.
-     * @param board The board to evaluate.
-     * @param depth The depth of the search. If zero, then we reached a leaf position.
+     *
+     * @param board      The board to evaluate.
+     * @param depth      The depth of the search. If zero, then we reached a leaf position.
      * @param maximizing true if we want to maximize, false otherwise
      * @return the eval
      * Postcondition: The state of the board is unchanged.
@@ -86,10 +93,18 @@ public class MinimaxAIPlayer extends Player {
             // evaluate resulting board from opponent's point of view
             double eval = evaluate(board, depth - 1, !maximizing);
             if (maximizing) {
+                if (eval > Util.MATE_EVAL / 2) {
+                    // forced mate, prefer lower depth
+                    eval--;
+                }
                 if (eval > bestEval) {
                     bestEval = eval;
                 }
             } else {
+                if (eval < -Util.MATE_EVAL / 2) {
+                    // forced mate, prefer lower depth
+                    eval++;
+                }
                 if (eval < bestEval) {
                     bestEval = eval;
                 }
