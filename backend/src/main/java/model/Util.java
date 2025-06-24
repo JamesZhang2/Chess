@@ -145,11 +145,37 @@ public class Util {
 
     /**
      * Turns a square (like f3) into coordinates in {row, col} form (like [2, 5]).
+     * @throws IllegalArgumentException if square is not a valid square.
      */
     public static int[] squareToCoords(String square) {
+        if (square.length() != 2) {
+            throw new IllegalArgumentException("Length of square must be 2");
+        }
         int row = square.charAt(1) - '1';
         int col = square.charAt(0) - 'a';
+        if (row < 0 || row > 7) {
+            throw new IllegalArgumentException("Illegal row: " + square.charAt(1));
+        }
+        if (col < 0 || col > 7) {
+            throw new IllegalArgumentException("Illegal column: " + square.charAt(0));
+        }
         return new int[]{row, col};
+    }
+
+    /**
+     * Converts {row, col} into a square (like f3).
+     * @param r row value, must satisfy 0 <= r <= 7
+     * @param c column value, must satisfy 0 <= c <= 7
+     * @return name of square
+     */
+    public static String coordsToSquare(int r, int c) {
+        if (r < 0 || r > 7) {
+            throw new IllegalArgumentException("Illegal row: " + r);
+        }
+        if (c < 0 || c > 7) {
+            throw new IllegalArgumentException("Illegal column: " + c);
+        }
+        return String.valueOf((char)('a' + c)) + (r + 1);
     }
 
     /**

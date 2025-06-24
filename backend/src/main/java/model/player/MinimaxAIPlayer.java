@@ -4,6 +4,9 @@ import model.board.Board;
 import model.eval.Evaluator;
 import model.move.Move;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * An AI that plays chess using Minimax.
  */
@@ -11,6 +14,7 @@ public class MinimaxAIPlayer extends Player {
     private Evaluator evaluator;
     private final int MAX_DEPTH;
     private final double DRAW_CUTOFF = 1.0;  // will draw as black if eval is greater than draw cutoff; mirrored for white
+    private final Map<String, Double> fenToEval;  // evaluation cache
 
     // Whether to enable alpha-beta pruning. Usually it's always true. Can be set to false when debugging.
     private final boolean ENABLE_PRUNING = true;
@@ -25,10 +29,12 @@ public class MinimaxAIPlayer extends Player {
         super(isWhite);
         this.evaluator = evaluator;
         this.MAX_DEPTH = maxDepth;
+        fenToEval = new HashMap<>();
     }
 
     @Override
     public Action play(Board board) {
+        fenToEval.clear();  // clear the cache so that it can think at higher depth
         Move bestMove = null;
         double bestEval = isWhite ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
         for (Move move : board.getLegalMoves()) {
@@ -36,22 +42,23 @@ public class MinimaxAIPlayer extends Player {
             // evaluate resulting board from opponent's point of view
             double eval = evaluate(board, MAX_DEPTH, !isWhite);
             if (isWhite) {
-                if (eval > bestEval) {
+                if (eval >= bestEval) {
                     bestMove = move;
                     bestEval = eval;
                 }
             } else {
-                if (eval < bestEval) {
+                if (eval <= bestEval) {
                     bestMove = move;
                     bestEval = eval;
                 }
             }
             board.undoLastMove();
         }
-        if (bestMove == null) {
-            // inescapable checkmate
-            return new Action(Action.Type.RESIGN);
-        }
+        System.out.println("Minimax AI plays " + bestMove);
+//        if (bestMove == null) {
+//            // inescapable checkmate
+//            return new Action(Action.Type.RESIGN);
+//        }
         return new Action(bestMove);
     }
 
@@ -64,6 +71,10 @@ public class MinimaxAIPlayer extends Player {
      * Postcondition: The state of the board is unchanged.
      */
     private double evaluate(Board board, int depth, boolean maximizing) {
+        String fen = board.toFEN();
+        if (fenToEval.containsKey(fen)) {
+            return fenToEval.get(fen);
+        }
         if (depth == 0 || board.getWinner() != 'u') {
             // no more depth or game has ended, leaf node
             return evaluator.evaluate(board);
@@ -84,6 +95,7 @@ public class MinimaxAIPlayer extends Player {
             }
             board.undoLastMove();
         }
+        fenToEval.put(fen, bestEval);
         return bestEval;
     }
 
@@ -94,5 +106,9 @@ public class MinimaxAIPlayer extends Player {
         } else {
             return evaluate(board, MAX_DEPTH, true) > DRAW_CUTOFF;
         }
+    }
+
+    public void win(Board board) {
+        System.out.println("won");
     }
 }

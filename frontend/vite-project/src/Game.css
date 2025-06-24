@@ -1,0 +1,42 @@
+.game-container {
+    width: 100vw;
+    height: 100vh;
+    padding-left: 20px;
+    background-color: #fff6dd;
+}
+
+.game-container header {
+    background-color: #ffddaa;
+    display: flex;
+    flex-direction: row;
+}
+
+.game-container h1 {
+    flex: 1;
+    text-align: center;
+    margin: 0;
+    padding: 15px 0px 15px 0px;
+}
+
+#back-home-btn {
+    flex: none;
+    white-space: nowrap;
+    height: 48px;
+    align-content: center;
+    align-self: center;
+    margin-right: 24px;
+    background-color: #ffaa88;
+}
+
+#back-home-btn:hover {
+    border-width: 1px;
+    border-color: #ffccaa;
+    background-color: #ff6655;
+}
+
+.player-info-banner {
+    font-size: 18px;
+    height: 5vh;
+    line-height: 5vh;
+    padding-left: 5px;
+}

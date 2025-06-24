@@ -1,0 +1,31 @@
+# TODO
+
+- UI/UX
+  - [X] Login page
+  - [X] Home page
+    - [X] Play vs. AI
+    - [X] Play vs. Human - Challenge system
+  - [ ] Game page
+    - [ ] Implement resigning/offer draw in frontend
+  - [X] Update the board after user input while waiting for opponent's response so the game doesn't appear frozen
+    - Create two separate endpoints, one for trying a move, the other for polling periodically until the board state is updated. This will require some synchronization if we're storing the games in memory - otherwise there might be data-race issues.
+  - [X] Lock the board orientation so it doesn't flip back and forth when two players are playing on the same webpage (or when playing against AI)
+  - [ ] Use database to store user info so that it persists if backend reboots
+  - [ ] Timer
+- Bitmap Board
+  - [ ] Lookup tables for rook and bishop attacks: (square, direction, allPieces bitmap) -> attack bitmap
+- Minimax
+  - [ ] Alpha-beta pruning
+  - [X] Cache searched positions and their evaluations
+  - [ ] Better evaluation function: Piece location, pawn structure, mobility, center control, etc.
+  - [ ] Better search function: Look deeper for forcing moves, promotions, etc.
+  - [ ] Quiet moves at end of search
+  - [ ] Endgame vs. Non-endgame position maps for kings
+  - [ ] Simulations to tune hyperparameters
+- Database integration
+  - [ ] Research how to connect backend to database (needed for storing user info, opening book, and endgame tablebase)
+- Opening book
+  - [ ] Use Lichess API to build opening book database
+- Endgame tablebase
+  - [ ] Create endgame tablebase using dynamic programming
+    - [ ] Implement unmove method

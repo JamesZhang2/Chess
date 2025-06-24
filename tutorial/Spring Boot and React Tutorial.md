@@ -30,10 +30,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class Controller {
-	@GetMapping("/")
-	public String index() {
-		return "Hello world!";
-	}
+    @GetMapping("/")
+    public String index() {
+        return "Hello world!";
+    }
 }
 ```
 
@@ -52,10 +52,12 @@ We can now build the frontend. For React, I'm going to use Vite, although you ca
 In the `Project` directory, run `npm create vite@latest`. Then follow the instructions to create a React project. Select `JavaScript` as the language (or `TypeScript` if you prefer). I called the project `frontend` for simplicity, but you can call it whatever you like.
 
 Now, run
-```
+
+```cmd
 cd frontend
 npm install
 ```
+
 to create the project. Run `code .` to open the project in VS Code. Run `npm run dev` to run the project. If you now go to `http://localhost:5173/` (the port may be different, look at the URL from your terminal), you should see the Vite and React logo with an h1 heading of Vite + React, along with a button that says "count is 0", together with some other text. Type `q` and Enter in the terminal to quit (or you can use `Ctrl + C`).
 
 ## Putting Backend and Frontend Together
@@ -88,9 +90,20 @@ public ResponseEntity<String> hello() {
 
 Or, you can use the `BodyBuilder` pattern: `return ResponseEntity.ok().headers(headers).body("Hello world!");`
 
+### GET Request with Query Parameters
+
+If we want to handle GET requests with query parameters, such as `/user?userId=1`, we can use the `@RequestParam` annotation:
+
+```java
+@GetMapping("/user")
+public ResponseEntity<String> getUser(@RequestParam("userId") int userId) {
+    return ResponseEntity<>(users.get(userId), HttpStatus.OK);
+}
+```
+
 ### GET Request with Template Variables
 
-Sometimes, we want to handle get requests where the endpoint contains so called "template variables". For instance, you may have an endpoint `/user/{username}`, where the `username` is a variable that decides which user is displayed on the web page. We can handle these using the `@PathVariable` annotation:
+Sometimes, we want to handle GET requests where the endpoint contains so called "template variables". For instance, you may have an endpoint `/user/{username}`, where the `username` is a variable that decides which user is displayed on the web page. We can handle these using the `@PathVariable` annotation:
 
 ```java
 @GetMapping("/number/{num}")
@@ -109,7 +122,7 @@ We will use the Axios package to send requests and receive responses for the fro
 Here is the basic syntax for sending GET requests using axios:
 
 ```javascript
-axios.get('http://localhost:8080/',)
+axios.get("http://localhost:8080/")
     .then((response) => {
         console.log(response.data);  // Should print out "Hello world!"
         // Handle data
@@ -118,7 +131,7 @@ axios.get('http://localhost:8080/',)
         console.log(error);
     });
 
-axios.get('http://localhost:8080/number/42',)
+axios.get("http://localhost:8080/number/42")
     .then((response) => {
         console.log(response.data);  // Should print out 84
         // Handle data
@@ -137,7 +150,8 @@ One of the ways to circumvent this issue is to manually add an `Access-Control-A
 However, this only works for GET requests. For POST requests, it gets a little more complicated: Since POST requests are often "non-simple requests", the browser will first send a "preflight" OPTIONS request to verify that the server will accept the actual request. If the response signifies that the server will accept the actual request (with `Access-Control-Allow-Headers` and `Access-Control-Allow-Methods` that match the headers and methods of the actual request), then the actual request is sent.
 
 If you don't handle the preflight, the following error message is shown:
-```
+
+```text
 localhost/:1 Access to XMLHttpRequest at 'http://localhost:8080/addUser' from origin 'http://localhost:5173' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.
 ```
 
@@ -153,6 +167,8 @@ public ResponseEntity<String> hello() {
 }
 ```
 
+We can also add the `@CrossOrigin` annotation on the entire class which will enable CORS for every handler method. Note that we can use `@CrossOrigin(origins = "*")` to allow all sites. It doesn't seem possible to allow all ports from localhost unless we use regex on the origin header. See [this Stack Overflow post](http://stackoverflow.com/questions/14003332/access-control-allow-origin-wildcard-subdomains-ports-and-protocols) for more details.
+
 With this in mind, let's now look at POST requests.
 
 ### POST Requests
@@ -160,7 +176,7 @@ With this in mind, let's now look at POST requests.
 Here's how we can send a POST request with Axios on the frontend:
 
 ```javascript
-axios.post('http://localhost:8080/addUser', {
+axios.post("http://localhost:8080/addUser", {
       name: "Bob",
       age: 20,
   }, {
@@ -178,6 +194,7 @@ axios.post('http://localhost:8080/addUser', {
 ```
 
 This sends a post request with the data
+
 ```json
 {
     "name": "Bob",
@@ -186,6 +203,7 @@ This sends a post request with the data
 ```
 
 On the backend side, we first need to create a User class:
+
 ```java
 // User.java
 package com.example.demo;  // Your package name here
@@ -221,43 +239,88 @@ public ResponseEntity<String> addUser(@RequestBody User user) {
 
 Note that the fields in the request body are used to construct the new object, so the name of the fields in the request must match the name of the parameters in the constructor of User. For fields in the constructor that are missing in the request body, the default values (like `null` for objects, `0` for numbers, and `false` for booleans) are used to construct the object.
 
+### Configure Proxy in Vite
+
+Currently, the GET and POST requests explicitly use the address `http://localhost:8080/`. However, if the backend address or port changes, we have to change the address in every axios call. To avoid this, we can configure a proxy in Vite by writing the following in `vite.config.js`:
+
+```javascript
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://localhost:8080",  // backend server address
+        changeOrigin: true,  // Make request appear to come from frontend
+        secure: false,
+        ws: true,
+        // Remove "/api" prefix so that backend endpoints can be /addUser rather than /api/addUser
+        rewrite: (path) => path.replace(/^\/api/, ""),
+        // log messages for debugging
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Sending Request to the Target:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+          });
+        },
+      }
+    }
+  }
+});
+```
+
+Then, we can call axios with (for example) `/api/addUser` rather than `http://localhost:8080/addUser`.
+
+See this [Medium post](https://medium.com/@eric_abell/simplifying-api-proxies-in-vite-a-guide-to-vite-config-js-a5cc3a091a2f) and this [StackOverflow post](https://stackoverflow.com/questions/64677212/how-to-configure-proxy-in-vite) for more details.
+
+Important: The `vite.config.js` **must be at the root of the project** (i.e. under `vite-project`) rather than being in `src`. It should already be created by Vite for us. I spent hours figuring out why Vite is not redirecting my api calls, only to find out that my `vite.config.js` is in `src` and it's not even being read by Vite! We can also check `DevTool > Network` to make sure that the status code of your API endpoint is 200 (OK), rather than 304 (Not Modified).
+
 ## Adding Spring Boot to Existing Java Project
 
 To add Spring Boot support to an existing Java project, update the `pom.xml` file by adding the following lines:
-```xml
-	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.2.1</version>
-		<relativePath/> <!-- lookup parent from repository -->
-	</parent>
-	
-	<dependencies>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter</artifactId>
-		</dependency>
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
+```xml
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.1</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+    
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-	</dependencies>
+    </dependencies>
 
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
-		</plugins>
-	</build>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 ```
 
 Also copy `mvnw`, `mvnw.cmd`, `.mvn` and `.gitignore` from a project generated by Spring Initializr to the existing project.
