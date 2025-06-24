@@ -34,6 +34,7 @@ public class MinimaxAIPlayer extends Player {
 
     @Override
     public Action play(Board board) {
+        fenToEval.clear();  // clear the cache so that it can think at higher depth
         Move bestMove = null;
         double bestEval = isWhite ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
         for (Move move : board.getLegalMoves()) {
