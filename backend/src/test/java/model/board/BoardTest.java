@@ -20,6 +20,8 @@ abstract class BoardTest {
 
     protected abstract Board createBoard(String fen) throws IllegalBoardException, MalformedFENException;
 
+    protected abstract Board createBoard(Board other);
+
     @Test
     void testFENParser() throws IllegalBoardException, MalformedFENException {
         Board start = createBoard();
@@ -53,6 +55,8 @@ abstract class BoardTest {
         for (String validFEN : validFENs) {
             Board board = createBoard(validFEN);
             assertEquals(validFEN, board.toFEN());
+            Board boardCopy = createBoard(board);
+            assertEquals(validFEN, boardCopy.toFEN());
         }
 
         String[] malformedFENs = {

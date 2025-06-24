@@ -44,12 +44,15 @@ public abstract class Board {
 
     protected List<String> history;  // history positions stored in FEN form
 
+    protected String curFEN;  // cache the current FEN to improve efficiency
+
     // When running perft, set this to true. Otherwise, don't touch it!
     public boolean PERFT = false;
 
     public Board(String fen) throws MalformedFENException, IllegalBoardException {
         parseFen(fen);
         checkBoardLegality();
+        this.curFEN = fen;
         this.pgn = new PGN(fullMove, whiteToMove, getResult());
         this.history = new ArrayList<>();
         this.posFreq = new HashMap<>();
@@ -61,6 +64,7 @@ public abstract class Board {
         try {
             parseFen(Util.START_POS);
             checkBoardLegality();
+            this.curFEN = Util.START_POS;
             this.pgn = new PGN(1, true, "*");
             this.history = new ArrayList<>();
             this.posFreq = new HashMap<>();
@@ -74,6 +78,7 @@ public abstract class Board {
         try {
             parseFen(handicap.startPos);
             checkBoardLegality();
+            this.curFEN = handicap.startPos;
             this.pgn = new PGN(1, true, "*");
             this.history = new ArrayList<>();
             this.posFreq = new HashMap<>();
@@ -87,6 +92,7 @@ public abstract class Board {
         try {
             parseFen(other.toFEN());
             checkBoardLegality();
+            this.curFEN = other.curFEN;
             this.winner = other.winner;
             this.pgn = new PGN(other.pgn);
             this.history = new ArrayList<>(other.history);
@@ -157,15 +163,16 @@ public abstract class Board {
     }
 
     /**
+     * Requires: curFEN is up to date
      * @return return the FEN string representing the current board state
      * without the halfMove and fullMove fields
      */
     protected String getUnclockedFEN() {
         // Find index of second-to-last space
-        String fen = this.toFEN();
-        int idx = fen.lastIndexOf(' ');
-        idx = fen.substring(0, idx).lastIndexOf(' ');
-        return fen.substring(0, idx);
+        assert curFEN.equals(toFEN());
+        int idx = curFEN.lastIndexOf(' ');
+        idx = curFEN.substring(0, idx).lastIndexOf(' ');
+        return curFEN.substring(0, idx);
     }
 
     /**
@@ -478,7 +485,8 @@ public abstract class Board {
 
         // Move must be legal, make the move by changing board state
         // Take a snapshot of the current state (in FEN form) and put it in history
-        history.add(this.toFEN());
+        assert toFEN().equals(curFEN);
+        history.add(curFEN);
 
         // For now, we're using a verbose version of the Standard Algebraic Notation for the PGN
         // For every non-pawn move, we include the entire starting square regardless of ambiguity
@@ -613,6 +621,8 @@ public abstract class Board {
         }
         whiteToMove = !whiteToMove;
 
+        curFEN = toFEN();
+
         // Update posFreq
         if (!PERFT) {
             String unclockedFEN = getUnclockedFEN();
@@ -669,6 +679,7 @@ public abstract class Board {
 
         try {
             parseFen(prevFEN);
+            curFEN = prevFEN;
 //            checkBoardLegality();  // Sanity check, TODO: Can be removed after fully tested
         } catch (MalformedFENException e) {
             assert false;
@@ -739,6 +750,7 @@ public abstract class Board {
 
     /**
      * Check if the game ended and update the winner variable.
+     * Requires: curFEN is up to date.
      *
      * @param incremental true if we only need to consider the last move;
      *                    false if we need to consider the whole game (for threefold repetition)

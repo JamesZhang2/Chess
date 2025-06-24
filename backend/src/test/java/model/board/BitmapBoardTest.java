@@ -10,4 +10,9 @@ class BitmapBoardTest extends BoardTest {
     protected Board createBoard(String fen) throws IllegalBoardException, MalformedFENException {
         return new BitmapBoard(fen);
     }
+
+    @Override
+    protected Board createBoard(Board other) {
+        return new BitmapBoard(other);
+    }
 }
