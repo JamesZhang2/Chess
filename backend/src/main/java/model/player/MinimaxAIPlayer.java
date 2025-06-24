@@ -54,6 +54,7 @@ public class MinimaxAIPlayer extends Player {
             }
             board.undoLastMove();
         }
+        System.out.println("Evaluation: " + bestEval);
         System.out.println("Minimax AI plays " + bestMove);
 //        if (bestMove == null) {
 //            // inescapable checkmate

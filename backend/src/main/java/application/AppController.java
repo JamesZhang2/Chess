@@ -3,6 +3,7 @@ package application;
 import controller.GUIGameController;
 import model.board.Handicap;
 import model.eval.MaterialEvaluator;
+import model.eval.WeightedEvaluator;
 import model.player.HumanGUIPlayer;
 import model.player.MinimaxAIPlayer;
 import model.player.Player;
@@ -185,15 +186,15 @@ public class AppController {
         whitePlayer = switch (whitePlayerType) {
             case "HumanGUIPlayer" -> new HumanGUIPlayer(true);
             case "RandomAIPlayer" -> new RandomAIPlayer(true);
-            case "MinimaxAIPlayer-1" -> new MinimaxAIPlayer(true, new MaterialEvaluator(), 1);
-            case "MinimaxAIPlayer-3" -> new MinimaxAIPlayer(true, new MaterialEvaluator(), 3);
+            case "MinimaxAIPlayer-1" -> new MinimaxAIPlayer(true, new WeightedEvaluator(), 1);
+            case "MinimaxAIPlayer-3" -> new MinimaxAIPlayer(true, new WeightedEvaluator(), 3);
             default -> throw new IllegalArgumentException("Unknown white player: " + whitePlayerType);
         };
         blackPlayer = switch (blackPlayerType) {
             case "HumanGUIPlayer" -> new HumanGUIPlayer(false);
             case "RandomAIPlayer" -> new RandomAIPlayer(false);
-            case "MinimaxAIPlayer-1" -> new MinimaxAIPlayer(false, new MaterialEvaluator(), 1);
-            case "MinimaxAIPlayer-3" -> new MinimaxAIPlayer(false, new MaterialEvaluator(), 3);
+            case "MinimaxAIPlayer-1" -> new MinimaxAIPlayer(false, new WeightedEvaluator(), 1);
+            case "MinimaxAIPlayer-3" -> new MinimaxAIPlayer(false, new WeightedEvaluator(), 3);
             default -> throw new IllegalArgumentException("Unknown black player: " + blackPlayerType);
         };
         Handicap handicap;
