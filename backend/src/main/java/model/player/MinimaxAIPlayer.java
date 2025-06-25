@@ -6,6 +6,8 @@ import model.eval.Evaluator;
 import model.move.Move;
 
 import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * An AI that plays chess using Minimax.
@@ -58,10 +60,17 @@ public class MinimaxAIPlayer extends Player {
         double bestEval = isWhite ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
         double alpha = Double.NEGATIVE_INFINITY;
         double beta = Double.POSITIVE_INFINITY;
+        Map<Double, Move> evalMap;
+        if (isWhite) {
+            evalMap = new TreeMap<>((a, b) -> Double.compare(b, a));  // sorted by eval in descending order
+        } else {
+            evalMap = new TreeMap<>(Double::compareTo);  // sorted by eval in ascending order
+        }
         for (Move move : board.getLegalMoves()) {
             board.move(move);
             // evaluate resulting board from opponent's point of view
             double eval = evaluate(board, MAX_DEPTH - 1, alpha, beta, !isWhite);
+            evalMap.put(eval, move);
             if (isWhite) {
                 if (eval >= bestEval) {
                     bestMove = move;
@@ -77,8 +86,9 @@ public class MinimaxAIPlayer extends Player {
             }
             board.undoLastMove();
         }
-//        System.out.println("Evaluation: " + bestEval);
-//        System.out.println("Minimax AI plays " + bestMove);
+        System.out.println(evalMap);
+        System.out.println("Evaluation: " + bestEval);
+        System.out.println("Minimax AI plays " + bestMove);
         return new EvalMovePair(bestEval, bestMove);
     }
 

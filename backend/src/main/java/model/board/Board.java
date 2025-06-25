@@ -695,7 +695,17 @@ public abstract class Board {
     /**
      * @return the set of legal moves in the current position
      */
-    public abstract Set<Move> getLegalMoves();
+    public Set<Move> getLegalMoves() {
+        return getLegalMoves(false);
+    }
+
+    /**
+     * This method is useful for quiescence search.
+     * @param capturesOnly whether to only consider captures.
+     * @return if capturesOnly is true, return the set of all legal captures.
+     * Otherwise, return the set of all legal moves in the current position.
+     */
+    public abstract Set<Move> getLegalMoves(boolean capturesOnly);
 
     /**
      * @return the set of legal moves for the piece at position {row, col}.
@@ -703,7 +713,20 @@ public abstract class Board {
      * Requires: There is a piece at {row, col} and the color of the piece is the same
      * as the current player
      */
-    public abstract Set<Move> getLegalMoves(int row, int col);
+    public Set<Move> getLegalMoves(int row, int col) {
+        return getLegalMoves(row, col, false);
+    }
+
+    /**
+     * This method is useful for quiescence search.
+     * @param capturesOnly whether to only consider captures.
+     * @return if capturesOnly is true, return the set of legal captures for the piece at position {row, col}.
+     * Otherwise, return the set of all legal moves for the piece at position {row, col}.
+     * <p>
+     * Requires: There is a piece at {row, col} and the color of the piece is the same
+     * as the current player
+     */
+    public abstract Set<Move> getLegalMoves(int row, int col, boolean capturesOnly);
 
     /**
      * Only checks whether move is legal or not, does not change the board state.

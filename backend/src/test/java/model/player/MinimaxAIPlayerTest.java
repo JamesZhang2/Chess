@@ -193,4 +193,31 @@ class MinimaxAIPlayerTest {
             assertEquals(evalOff.get(depth), evalOn.get(depth));
         }
     }
+
+    @Test
+    void test() throws IllegalBoardException, MalformedFENException {
+        String fen = "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2";
+        Evaluator evaluator = new WeightedEvaluator();
+        MinimaxAIPlayer pruneOff3 = new MinimaxAIPlayer(true, evaluator, 3, false);
+        MinimaxAIPlayer pruneOn3 = new MinimaxAIPlayer(true, evaluator, 3, true);
+        MinimaxAIPlayer pruneOff4 = new MinimaxAIPlayer(true, evaluator, 4, false);
+        MinimaxAIPlayer pruneOn4 = new MinimaxAIPlayer(true, evaluator, 4, true);
+//        MinimaxAIPlayer pruneOff5 = new MinimaxAIPlayer(true, evaluator, 5, false);
+//        MinimaxAIPlayer pruneOn5 = new MinimaxAIPlayer(true, evaluator, 5, true);
+        Board board = new BitmapBoard(fen);
+        EvalMovePair pair1 = pruneOff3.getBestEvalMove(board);
+        EvalMovePair pair2 = pruneOn3.getBestEvalMove(board);
+        EvalMovePair pair3 = pruneOff4.getBestEvalMove(board);
+        EvalMovePair pair4 = pruneOn4.getBestEvalMove(board);
+//        EvalMovePair pair5 = pruneOff5.getBestEvalMove(board);
+//        EvalMovePair pair6 = pruneOn5.getBestEvalMove(board);
+    }
+
+    @Test
+    void test2() throws IllegalBoardException, MalformedFENException {
+        String fen = "rnbqkbnr/pppp1ppp/8/4p3/P3P3/8/1PPP1PPP/RNBQKBNR b KQkq a3 0 2";
+        Evaluator evaluator = new WeightedEvaluator();
+        Board board = new BitmapBoard(fen);
+        System.out.println(evaluator.evaluate(board));
+    }
 }

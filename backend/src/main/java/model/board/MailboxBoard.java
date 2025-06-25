@@ -1,5 +1,6 @@
 package model.board;
 
+import ch.qos.logback.core.joran.sanity.Pair;
 import model.move.Move;
 import model.Util;
 
@@ -30,7 +31,7 @@ public class MailboxBoard extends Board {
     /**
      * With handicap
      */
-    public MailboxBoard(Handicap handicap){
+    public MailboxBoard(Handicap handicap) {
         super(handicap);
     }
 
@@ -269,24 +270,23 @@ public class MailboxBoard extends Board {
     }
 
     @Override
-    public Set<Move> getLegalMoves() {
+    public Set<Move> getLegalMoves(boolean capturesOnly) {
         if (winner != 'u') {
             return new HashSet<>();
         }
         Set<Move> legalMoves = new HashSet<>();
         for (List<Integer> coord : getPieceCoords(whiteToMove)) {
-            legalMoves.addAll(getLegalMoves(coord.get(0), coord.get(1)));
+            legalMoves.addAll(getLegalMoves(coord.get(0), coord.get(1), capturesOnly));
         }
         return legalMoves;
     }
 
     @Override
-    public Set<Move> getLegalMoves(int row, int col) {
+    public Set<Move> getLegalMoves(int row, int col, boolean capturesOnly) {
         Set<Move> legalMoves = new HashSet<>();
         assert pieces[row][col] != 0 && (pieces[row][col] <= 'Z') == whiteToMove;
         Set<List<Integer>> candidates = attacks(row, col);
         char pieceTypeUpper = Character.toUpperCase(pieces[row][col]);
-
         for (List<Integer> target : candidates) {
             int endRow = target.get(0);
             int endCol = target.get(1);
@@ -294,6 +294,9 @@ public class MailboxBoard extends Board {
                 // Can't capture your own piece
                 continue;
             }
+            // already checked that the destination is not our own piece,
+            // so if there is a piece it must be a regular capture (not en passant)
+            boolean isCapture = pieces[endRow][endCol] != 0;
             if (pieceTypeUpper == 'P') {
                 // Pawns can only capture diagonally (which is what they attack)
                 // so if there isn't a piece diagonal to the pawn, it's not a legal move
@@ -302,7 +305,9 @@ public class MailboxBoard extends Board {
                     continue;
                 }
             }
-            tryRegularMove(row, col, endRow, endCol, legalMoves);
+            if (!capturesOnly || isCapture) {
+                tryRegularMove(row, col, endRow, endCol, legalMoves);
+            }
         }
 
         // Special rules for pawn
@@ -313,23 +318,26 @@ public class MailboxBoard extends Board {
             int advance = whiteToMove ? 1 : -1;
             int enPassantRow = whiteToMove ? 4 : 3;
 
-            if (row != promRow - advance && pieces[row + advance][col] == 0) {
+            if (!capturesOnly && row != promRow - advance && pieces[row + advance][col] == 0) {
                 tryRegularMove(row, col, row + advance, col, legalMoves);
             }
             // Pawns on starting position can move two squares
-            if (row == startRow && pieces[row + advance][col] == 0 && pieces[row + 2 * advance][col] == 0) {
+            if (!capturesOnly && row == startRow && pieces[row + advance][col] == 0 && pieces[row + 2 * advance][col] == 0) {
                 tryRegularMove(row, col, row + 2 * advance, col, legalMoves);
             }
             // Promotion - Note that we don't need to specify which piece to promote to
             // because if one of the promotions is legal, then so are all others.
             if (row == promRow - advance) {
-                if (pieces[promRow][col] == 0) {
+                if (!capturesOnly && pieces[promRow][col] == 0) {
+                    // promotion without capture
                     tryPromotion(row, col, row + advance, col, legalMoves);
                 }
                 if (col != 0 && pieces[promRow][col - 1] != 0 && pieces[promRow][col - 1] <= 'Z' != whiteToMove) {
+                    // promotion with capture
                     tryPromotion(row, col, row + advance, col - 1, legalMoves);
                 }
                 if (col != 7 && pieces[promRow][col + 1] != 0 && pieces[promRow][col + 1] <= 'Z' != whiteToMove) {
+                    // promotion with capture
                     tryPromotion(row, col, row + advance, col + 1, legalMoves);
                 }
             }
@@ -352,6 +360,11 @@ public class MailboxBoard extends Board {
                     }
                 }
             }
+        }
+
+        if (capturesOnly) {
+            // Castling can't be captures
+            return legalMoves;
         }
 
         // Special rules for king

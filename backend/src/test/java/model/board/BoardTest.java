@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -589,6 +590,8 @@ abstract class BoardTest {
 
     /**
      * Asserts that the number of legal moves in the position is equal to expected.
+     * Also asserts that the legal captures are the same as
+     * all legal moves filtered by captures.
      */
     private void assertLegalCount(String fen, int expected)
             throws MalformedFENException, IllegalBoardException {
@@ -602,14 +605,22 @@ abstract class BoardTest {
             }
             Collections.sort(sorted);
             System.out.println("All legal moves: " + sorted);
-            System.out.println();
         }
         assertEquals(expected, legalMoves.size(), board.toString());
+
+        Set<Move> legalCaptures = board.getLegalMoves(true);
+        if (printMoves) {
+            System.out.println("All legal captures: " + legalCaptures + "\n");
+        }
+        Set<Move> expectedLegalCaptures = legalMoves.stream().filter(Move::getIsCapture).collect(Collectors.toSet());
+        assertEquals(expectedLegalCaptures, legalCaptures, "Expected legal captures is not the same as actual");
     }
 
     /**
      * Asserts that the number of legal moves in the position
      * for the piece at the given square is equal to expected.
+     * Also asserts that the legal captures are the same as
+     * all legal moves filtered by captures.
      */
     private void assertLegalCount(String fen, String square, int expected)
             throws MalformedFENException, IllegalBoardException {
@@ -624,9 +635,15 @@ abstract class BoardTest {
             }
             Collections.sort(sorted);
             System.out.println("Legal moves for piece at " + square + ": " + sorted);
-            System.out.println();
         }
         assertEquals(expected, legalMoves.size(), board.toString());
+
+        Set<Move> legalCaptures = board.getLegalMoves(coord[0], coord[1], true);
+        Set<Move> expectedLegalCaptures = legalMoves.stream().filter(Move::getIsCapture).collect(Collectors.toSet());
+        if (printMoves) {
+            System.out.println("Legal captures for piece at " + square + ": " + legalCaptures + "\n");
+        }
+        assertEquals(expectedLegalCaptures, legalCaptures, "Expected legal captures is not the same as actual");
     }
 
     @Test
@@ -803,6 +820,10 @@ abstract class BoardTest {
         // En passant mate
         assertLegalCount("rn1q1bkr/pppp2pp/8/4P3/2B5/8/8/4K3 b - - 0 1", 1);
         assertLegalCount("rn1q1bkr/ppp3pp/8/3pP3/2B5/8/8/4K3 w - d6 0 2", 15);
+
+        // Lots of captures
+        assertLegalCount("4k3/r1n1p1p1/1PR2p2/3r1b2/2q1Q1p1/n3N2r/1Bp2nK1/6b1 w - - 0 1", 36);
+        assertLegalCount("5BkN/1P6/2qQ4/3b4/PpR5/2Nr1B2/3R2p1/Kn3n1Q b - a3 0 1", 40);
     }
 
     /**
