@@ -8,8 +8,12 @@ import model.eval.TrivialEvaluator;
 import model.eval.WeightedEvaluator;
 import model.move.Move;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.method.support.HandlerMethodReturnValueHandler;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -144,34 +148,49 @@ class MinimaxAIPlayerTest {
                 "r1bqkb1r/pppp1pPp/2n5/8/4P3/2P2N2/PP3PPP/RNBQKB1R w KQkq - 0 1",
                 "5rk1/5ppp/8/8/8/8/5PPP/q4RK1 w - - 0 1",
                 "1k3q1b/6P1/8/8/8/8/8/1K6 w - - 0 1",
-                "1k3b1q/6P1/8/8/8/8/8/1K6 w - - 0 1"
+                "1k3b1q/6P1/8/8/8/8/8/1K6 w - - 0 1",
+                "7k/8/8/8/8/8/7n/6rK w - - 0 1",
+                "7k/8/8/8/8/8/6n1/5rK1 w - - 0 1"
         };
 
-        Evaluator evaluator = new WeightedEvaluator();
+        Evaluator evaluator = new MaterialEvaluator();
+
+        List<Map<String, Double>> evalOff = new ArrayList<>();  // depth -> (fen, eval)
+        evalOff.add(new HashMap<>());
         System.out.println("Pruning off");
         for (int depth = 1; depth <= 4; depth++) {
+            evalOff.add(new HashMap<>());
             System.out.println("Depth: " + depth);
             long startTime = System.nanoTime();
-            Player pruningOff = new MinimaxAIPlayer(true, evaluator, depth, false);
+            MinimaxAIPlayer pruningOff = new MinimaxAIPlayer(true, evaluator, depth, false);
             for (String position : positions) {
                 Board board = new BitmapBoard(position);
-                Move pruningOffMove = pruningOff.play(board).getMove();
+                EvalMovePair pair = pruningOff.getBestEvalMove(board);
+                evalOff.get(depth).put(position, pair.eval());
             }
             long endTime = System.nanoTime();
             System.out.println("Time spent on depth " + depth + ": " + (endTime - startTime) / 1.0e6 + " ms");
         }
 
+        List<Map<String, Double>> evalOn = new ArrayList<>();  // depth -> (fen, eval)
+        evalOn.add(new HashMap<>());
         System.out.println("Pruning on");
         for (int depth = 1; depth <= 5; depth++) {
+            evalOn.add(new HashMap<>());
             System.out.println("Depth: " + depth);
             long startTime = System.nanoTime();
-            Player pruningOn = new MinimaxAIPlayer(true, evaluator, depth, true);
+            MinimaxAIPlayer pruningOn = new MinimaxAIPlayer(true, evaluator, depth, true);
             for (String position : positions) {
                 Board board = new BitmapBoard(position);
-                Move pruningOnMove = pruningOn.play(board).getMove();
+                EvalMovePair pair = pruningOn.getBestEvalMove(board);
+                evalOn.get(depth).put(position, pair.eval());
             }
             long endTime = System.nanoTime();
             System.out.println("Time spent on depth " + depth + ": " + (endTime - startTime) / 1.0e6 + " ms");
+        }
+        for (int depth = 1; depth <= 4; depth++) {
+            System.out.println("Testing depth " + depth);
+            assertEquals(evalOff.get(depth), evalOn.get(depth));
         }
     }
 }

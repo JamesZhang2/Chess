@@ -15,8 +15,8 @@
 - Bitmap Board
   - [ ] Lookup tables for rook and bishop attacks: (square, direction, allPieces bitmap) -> attack bitmap
 - Minimax
-  - [ ] Alpha-beta pruning
-  - [X] Cache searched positions and their evaluations
+  - [X] Alpha-beta pruning
+  - [ ] Cache searched positions and their evaluations (using FEN is too slow; with alpha-beta pruning, need to consider whether we computed an upper or lower bound)
   - [ ] Better evaluation function: Piece location, pawn structure, mobility, center control, etc.
   - [ ] Better search function: Look deeper for forcing moves, promotions, etc.
   - [ ] Quiet moves at end of search

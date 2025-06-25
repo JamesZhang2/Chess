@@ -6,16 +6,17 @@ import model.eval.Evaluator;
 import model.move.Move;
 
 import java.util.HashMap;
-import java.util.Map;
 
 /**
  * An AI that plays chess using Minimax.
  */
 public class MinimaxAIPlayer extends Player {
-    private Evaluator evaluator;
+    private final Evaluator evaluator;
     private final int MAX_DEPTH;
     private final double DRAW_CUTOFF = 1.0;  // will draw as black if eval is greater than draw cutoff; mirrored for white
-    private final Map<String, Map<Integer, Double>> fenToEval;  // evaluation cache: fen -> (depth, eval)
+
+    // TODO: Caching (don't use FEN: computing FEN takes longer than not caching)
+    // TODO: Also, with alpha-beta pruning, caching needs to consider which bound it is
 
     // Whether to enable alpha-beta pruning. Usually it's always true. Can be set to false when debugging.
     private final boolean ENABLE_PRUNING;
@@ -40,28 +41,34 @@ public class MinimaxAIPlayer extends Player {
         super(isWhite);
         this.evaluator = evaluator;
         this.MAX_DEPTH = maxDepth;
-        fenToEval = new HashMap<>();
         ENABLE_PRUNING = enablePruning;
     }
 
     @Override
     public Action play(Board board) {
+        EvalMovePair pair = getBestEvalMove(board);
+        return new Action(pair.move());
+    }
+
+    /**
+     * @return the best evaluation and the best move
+     */
+    public EvalMovePair getBestEvalMove(Board board) {
         Move bestMove = null;
         double bestEval = isWhite ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
         double alpha = Double.NEGATIVE_INFINITY;
         double beta = Double.POSITIVE_INFINITY;
         for (Move move : board.getLegalMoves()) {
             board.move(move);
+            // evaluate resulting board from opponent's point of view
+            double eval = evaluate(board, MAX_DEPTH - 1, alpha, beta, !isWhite);
             if (isWhite) {
-                // evaluate resulting board from opponent's point of view
-                double eval = evaluate(board, MAX_DEPTH - 1, alpha, beta, false);
                 if (eval >= bestEval) {
                     bestMove = move;
                     bestEval = eval;
                 }
                 alpha = Math.max(alpha, eval);
             } else {
-                double eval = evaluate(board, MAX_DEPTH - 1, alpha, beta, true);
                 if (eval <= bestEval) {
                     bestMove = move;
                     bestEval = eval;
@@ -72,7 +79,7 @@ public class MinimaxAIPlayer extends Player {
         }
 //        System.out.println("Evaluation: " + bestEval);
 //        System.out.println("Minimax AI plays " + bestMove);
-        return new Action(bestMove);
+        return new EvalMovePair(bestEval, bestMove);
     }
 
     /**
@@ -87,10 +94,6 @@ public class MinimaxAIPlayer extends Player {
      * Postcondition: The state of the board is unchanged.
      */
     private double evaluate(Board board, int depth, double alpha, double beta, boolean maximizing) {
-        String fen = board.toFEN();
-        if (fenToEval.containsKey(fen) && fenToEval.get(fen).containsKey(depth)) {
-            return fenToEval.get(fen).get(depth);
-        }
         if (depth == 0 || board.getWinner() != 'u') {
             // no more depth or game has ended, leaf node
             return evaluator.evaluate(board);
@@ -116,10 +119,6 @@ public class MinimaxAIPlayer extends Player {
                 }
                 alpha = Math.max(alpha, eval);  // tell siblings that the maximizer can achieve at least this alpha
             }
-            if (!fenToEval.containsKey(fen)) {
-                fenToEval.put(fen, new HashMap<>());
-            }
-            fenToEval.get(fen).put(depth, maxEval);
             return maxEval;
         } else {
             // we're the minimizer, and we're trying to choose among the legal moves
@@ -142,10 +141,6 @@ public class MinimaxAIPlayer extends Player {
                 }
                 beta = Math.min(beta, eval);  // tell siblings that the minimizer can achieve at most this beta
             }
-            if (!fenToEval.containsKey(fen)) {
-                fenToEval.put(fen, new HashMap<>());
-            }
-            fenToEval.get(fen).put(depth, minEval);
             return minEval;
         }
     }
