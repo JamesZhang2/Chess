@@ -39,7 +39,7 @@ abstract class EvaluatorTest {
             assertTrue(evaluator.evaluate(new BitmapBoard(fen)) < 0);
         }
         for (String fen : draw) {
-            assertEquals(0, evaluator.evaluate(new BitmapBoard(fen)), 0.001);
+            assertEquals(0, evaluator.evaluate(new BitmapBoard(fen)), 0.0001);
         }
     }
 }

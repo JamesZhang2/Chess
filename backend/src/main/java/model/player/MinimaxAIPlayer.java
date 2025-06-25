@@ -15,10 +15,12 @@ public class MinimaxAIPlayer extends Player {
     private Evaluator evaluator;
     private final int MAX_DEPTH;
     private final double DRAW_CUTOFF = 1.0;  // will draw as black if eval is greater than draw cutoff; mirrored for white
-    private final Map<String, Double> fenToEval;  // evaluation cache
+    private final Map<String, Map<Integer, Double>> fenToEval;  // evaluation cache: fen -> (depth, eval)
 
     // Whether to enable alpha-beta pruning. Usually it's always true. Can be set to false when debugging.
     private final boolean ENABLE_PRUNING;
+
+    // Reference for alpha-beta pruning: https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning
 
     /**
      * Constructs a new Minimax AI Player with pruning enabled.
@@ -32,7 +34,7 @@ public class MinimaxAIPlayer extends Player {
      *
      * @param isWhite   true if the player is playing white, false otherwise
      * @param evaluator the evaluator used for leaf positions
-     * @param maxDepth  the maximum height to run minimax
+     * @param maxDepth  the maximum depth to run minimax. Requires: maxDepth >= 1.
      */
     public MinimaxAIPlayer(boolean isWhite, Evaluator evaluator, int maxDepth, boolean enablePruning) {
         super(isWhite);
@@ -44,28 +46,32 @@ public class MinimaxAIPlayer extends Player {
 
     @Override
     public Action play(Board board) {
-        fenToEval.clear();  // clear the cache so that it can think at higher depth
         Move bestMove = null;
         double bestEval = isWhite ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
+        double alpha = Double.NEGATIVE_INFINITY;
+        double beta = Double.POSITIVE_INFINITY;
         for (Move move : board.getLegalMoves()) {
             board.move(move);
-            // evaluate resulting board from opponent's point of view
-            double eval = evaluate(board, MAX_DEPTH, !isWhite);
             if (isWhite) {
+                // evaluate resulting board from opponent's point of view
+                double eval = evaluate(board, MAX_DEPTH - 1, alpha, beta, false);
                 if (eval >= bestEval) {
                     bestMove = move;
                     bestEval = eval;
                 }
+                alpha = Math.max(alpha, eval);
             } else {
+                double eval = evaluate(board, MAX_DEPTH - 1, alpha, beta, true);
                 if (eval <= bestEval) {
                     bestMove = move;
                     bestEval = eval;
                 }
+                beta = Math.min(beta, eval);
             }
             board.undoLastMove();
         }
-        System.out.println("Evaluation: " + bestEval);
-        System.out.println("Minimax AI plays " + bestMove);
+//        System.out.println("Evaluation: " + bestEval);
+//        System.out.println("Minimax AI plays " + bestMove);
         return new Action(bestMove);
     }
 
@@ -74,53 +80,82 @@ public class MinimaxAIPlayer extends Player {
      *
      * @param board      The board to evaluate.
      * @param depth      The depth of the search. If zero, then we reached a leaf position.
+     * @param alpha      The alpha value (lower bound - the maximizing player can guarantee this value or higher)
+     * @param beta       The beta value (upper bound - the minimizing player can guarantee this value or lower)
      * @param maximizing true if we want to maximize, false otherwise
      * @return the eval
      * Postcondition: The state of the board is unchanged.
      */
-    private double evaluate(Board board, int depth, boolean maximizing) {
+    private double evaluate(Board board, int depth, double alpha, double beta, boolean maximizing) {
         String fen = board.toFEN();
-        if (fenToEval.containsKey(fen)) {
-            return fenToEval.get(fen);
+        if (fenToEval.containsKey(fen) && fenToEval.get(fen).containsKey(depth)) {
+            return fenToEval.get(fen).get(depth);
         }
         if (depth == 0 || board.getWinner() != 'u') {
             // no more depth or game has ended, leaf node
             return evaluator.evaluate(board);
         }
-        double bestEval = maximizing ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
-        for (Move move : board.getLegalMoves()) {
-            board.move(move);
-            // evaluate resulting board from opponent's point of view
-            double eval = evaluate(board, depth - 1, !maximizing);
-            if (maximizing) {
+        if (maximizing) {
+            // we're the maximizer, and we're trying to choose among the legal moves
+            double maxEval = Double.NEGATIVE_INFINITY;
+            for (Move move : board.getLegalMoves()) {
+                board.move(move);
+                // evaluate resulting board from opponent's point of view
+                double eval = evaluate(board, depth - 1, alpha, beta, false);
+                board.undoLastMove();
+
                 if (eval > Util.MATE_EVAL / 2) {
                     // forced mate, prefer lower depth
                     eval--;
                 }
-                if (eval > bestEval) {
-                    bestEval = eval;
+                maxEval = Math.max(maxEval, eval);
+                if (ENABLE_PRUNING && eval >= beta) {
+                    // opponent (minimizer) can already guarantee beta,
+                    // so they won't go down this entire branch.
+                    break;
                 }
-            } else {
+                alpha = Math.max(alpha, eval);  // tell siblings that the maximizer can achieve at least this alpha
+            }
+            if (!fenToEval.containsKey(fen)) {
+                fenToEval.put(fen, new HashMap<>());
+            }
+            fenToEval.get(fen).put(depth, maxEval);
+            return maxEval;
+        } else {
+            // we're the minimizer, and we're trying to choose among the legal moves
+            double minEval = Double.POSITIVE_INFINITY;
+            for (Move move : board.getLegalMoves()) {
+                board.move(move);
+                // evaluate resulting board from opponent's point of view
+                double eval = evaluate(board, depth - 1, alpha, beta, true);
+                board.undoLastMove();
+
                 if (eval < -Util.MATE_EVAL / 2) {
                     // forced mate, prefer lower depth
                     eval++;
                 }
-                if (eval < bestEval) {
-                    bestEval = eval;
+                minEval = Math.min(minEval, eval);
+                if (ENABLE_PRUNING && eval <= alpha) {
+                    // opponent (maximizer) can already guarantee alpha,
+                    // so they won't go down this entire branch.
+                    break;
                 }
+                beta = Math.min(beta, eval);  // tell siblings that the minimizer can achieve at most this beta
             }
-            board.undoLastMove();
+            if (!fenToEval.containsKey(fen)) {
+                fenToEval.put(fen, new HashMap<>());
+            }
+            fenToEval.get(fen).put(depth, minEval);
+            return minEval;
         }
-        fenToEval.put(fen, bestEval);
-        return bestEval;
     }
 
     @Override
     public boolean considerDraw(Board board) {
         if (isWhite) {
-            return evaluate(board, MAX_DEPTH, false) < -DRAW_CUTOFF;
+            return evaluate(board, MAX_DEPTH, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, false) < -DRAW_CUTOFF;
         } else {
-            return evaluate(board, MAX_DEPTH, true) > DRAW_CUTOFF;
+            return evaluate(board, MAX_DEPTH, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, true) > DRAW_CUTOFF;
         }
     }
 

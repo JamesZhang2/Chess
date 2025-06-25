@@ -1,16 +1,15 @@
 package model.player;
 
 import model.Util;
-import model.board.BitmapBoard;
-import model.board.Board;
-import model.board.IllegalBoardException;
-import model.board.MalformedFENException;
+import model.board.*;
 import model.eval.Evaluator;
 import model.eval.MaterialEvaluator;
 import model.eval.TrivialEvaluator;
 import model.eval.WeightedEvaluator;
 import model.move.Move;
 import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -126,6 +125,53 @@ class MinimaxAIPlayerTest {
                 assertEquals(new Action(blackSolutions1[i]), player.play(board), "Incorrect move for " + blackPuzzles1[i]);
 //                System.out.printf("Player with depth %d Finished Puzzle %d\n", depth, i);
             }
+        }
+    }
+
+    /**
+     * Tests that Minimax with or without alpha-beta pruning gives the same answer
+     */
+    @Test
+    void testPruning() throws IllegalBoardException, MalformedFENException {
+        String[] positions = {
+                Util.START_POS,
+                Handicap.WHITE_QUEEN.startPos,
+                Handicap.BLACK_G_KNIGHT.startPos,
+                "r1bqkb1r/pppp1ppp/2n2n2/4p3/4P3/2N2N2/PPPP1PPP/R1BQKB1R w KQkq - 0 1",
+                "8/8/4k3/7Q/4K3/8/8/8 w - - 0 1",
+                "8/8/6k1/8/6K1/8/6p1/6N1 w - - 0 1",
+                "8/8/6k1/4q3/5BK1/8/8/8 b - - 0 1",
+                "r1bqkb1r/pppp1pPp/2n5/8/4P3/2P2N2/PP3PPP/RNBQKB1R w KQkq - 0 1",
+                "5rk1/5ppp/8/8/8/8/5PPP/q4RK1 w - - 0 1",
+                "1k3q1b/6P1/8/8/8/8/8/1K6 w - - 0 1",
+                "1k3b1q/6P1/8/8/8/8/8/1K6 w - - 0 1"
+        };
+
+        Evaluator evaluator = new WeightedEvaluator();
+        System.out.println("Pruning off");
+        for (int depth = 1; depth <= 4; depth++) {
+            System.out.println("Depth: " + depth);
+            long startTime = System.nanoTime();
+            Player pruningOff = new MinimaxAIPlayer(true, evaluator, depth, false);
+            for (String position : positions) {
+                Board board = new BitmapBoard(position);
+                Move pruningOffMove = pruningOff.play(board).getMove();
+            }
+            long endTime = System.nanoTime();
+            System.out.println("Time spent on depth " + depth + ": " + (endTime - startTime) / 1.0e6 + " ms");
+        }
+
+        System.out.println("Pruning on");
+        for (int depth = 1; depth <= 5; depth++) {
+            System.out.println("Depth: " + depth);
+            long startTime = System.nanoTime();
+            Player pruningOn = new MinimaxAIPlayer(true, evaluator, depth, true);
+            for (String position : positions) {
+                Board board = new BitmapBoard(position);
+                Move pruningOnMove = pruningOn.play(board).getMove();
+            }
+            long endTime = System.nanoTime();
+            System.out.println("Time spent on depth " + depth + ": " + (endTime - startTime) / 1.0e6 + " ms");
         }
     }
 }
