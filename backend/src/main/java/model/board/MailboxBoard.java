@@ -1,8 +1,8 @@
 package model.board;
 
-import ch.qos.logback.core.joran.sanity.Pair;
 import model.move.Move;
 import model.Util;
+import model.move.PGN;
 
 import java.util.*;
 
@@ -15,11 +15,14 @@ public class MailboxBoard extends Board {
     // pieces[0][0] is the piece at a1; pieces[7][0] is the piece at a8
     private char[][] pieces;  // capital letter for white, lower-case letter for black, 0 for empty
 
+    private List<char[][]> piecesHistory;
+
     /**
      * Create board from FEN
      */
     public MailboxBoard(String fen) throws MalformedFENException, IllegalBoardException {
         super(fen);
+        this.piecesHistory = new ArrayList<>();
     }
 
     /**
@@ -27,6 +30,7 @@ public class MailboxBoard extends Board {
      */
     public MailboxBoard() {
         super();
+        this.piecesHistory = new ArrayList<>();
     }
 
     /**
@@ -34,6 +38,7 @@ public class MailboxBoard extends Board {
      */
     public MailboxBoard(Handicap handicap) {
         super(handicap);
+        this.piecesHistory = new ArrayList<>();
     }
 
     /**
@@ -41,8 +46,19 @@ public class MailboxBoard extends Board {
      * <p>
      * Requires: The other board is legal
      */
-    public MailboxBoard(Board other) {
-        super(other);
+    public MailboxBoard(MailboxBoard other) {
+        try {
+            parseFen(other.toFEN());
+            checkBoardLegality();
+            this.curFEN = other.curFEN;
+            this.winner = other.winner;
+            this.pgn = new PGN(other.pgn);
+            this.posFreq = new HashMap<>(other.posFreq);
+            this.history = other.history;
+            this.piecesHistory = other.piecesHistory;
+        } catch (Exception e) {
+            assert false;
+        }
     }
 
     @Override
@@ -573,6 +589,19 @@ public class MailboxBoard extends Board {
     }
 
     @Override
+    protected long computeZobristHashPieces() {
+        long ans = 0;
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                if (pieces[r][c] != 0) {
+                    ans ^= Util.zobrist.PIECE_HASH[pieces[r][c]][r * 8 + c];
+                }
+            }
+        }
+        return ans;
+    }
+
+    @Override
     protected boolean insufficientMaterial() {
         Set<List<Integer>> whitePieces = getPieceCoords(true);
         Set<List<Integer>> blackPieces = getPieceCoords(false);
@@ -650,5 +679,34 @@ public class MailboxBoard extends Board {
             }
         }
         return ans;
+    }
+
+    @Override
+    public boolean undoLastMove() {
+        boolean success = super.undoLastMove();
+        if (!success) {
+            return false;
+        }
+        char[][] lastPieces = piecesHistory.removeLast();
+        for (int r = 0; r < 7; r++) {
+            pieces[r] = lastPieces[r].clone();
+        }
+        // TODO: Sanity check, can be removed after fully tested
+        try {
+            checkBoardLegality();
+        } catch (IllegalBoardException e) {
+            e.printStackTrace();
+        }
+        return true;
+    }
+
+    @Override
+    public void takeSnapshot() {
+        super.takeSnapshot();
+        char[][] piecesCopy = new char[8][8];
+        for (int r = 0; r < 7; r++) {
+            piecesCopy[r] = pieces[r].clone();
+        }
+        piecesHistory.add(piecesCopy);
     }
 }

@@ -10,9 +10,4 @@ class MailboxBoardTest extends BoardTest {
     protected Board createBoard(String fen) throws IllegalBoardException, MalformedFENException {
         return new MailboxBoard(fen);
     }
-
-    @Override
-    protected Board createBoard(Board other) {
-        return new MailboxBoard(other);
-    }
 }

@@ -2,6 +2,8 @@ package model;
 
 import model.move.Move;
 
+import java.util.Random;
+
 /**
  * A class for global constants and utilities.
  */
@@ -30,6 +32,50 @@ public class Util {
     public static final long H_FILE = 0x8080808080808080L;
 
     public static final double MATE_EVAL = 100000;  // eval for winning - used instead of infinity to find the fastest mate
+
+    public static final ZobristHashUtil zobrist = new ZobristHashUtil();
+
+    public static class ZobristHashUtil {
+        public final Random random = new Random();
+        // PIECE_HASH[p][i] is the piece hash of piece p at index i
+        public final long[][] PIECE_HASH;
+        public final long SIDE_HASH;  // XORed if white to move
+        public final long WHITE_CASTLE_K_HASH;  // XORed if true
+        public final long WHITE_CASTLE_Q_HASH;
+        public final long BLACK_CASTLE_K_HASH;
+        public final long BLACK_CASTLE_Q_HASH;
+        // WHITE_EP_HASH[c] is the white en passant hash of column c (where 0 means column 'a', etc.)
+        public final long[] WHITE_EP_HASH;
+        public final long[] BLACK_EP_HASH;
+
+        public ZobristHashUtil() {
+            PIECE_HASH = new long['z'][64];
+            for (char p : WHITE_PIECE_NAMES) {
+                for (int i = 0; i < 64; i++) {
+                    PIECE_HASH[p][i] = random.nextLong();
+                }
+            }
+            for (char p : BLACK_PIECE_NAMES) {
+                for (int i = 0; i < 64; i++) {
+                    PIECE_HASH[p][i] = random.nextLong();
+                }
+            }
+            SIDE_HASH = random.nextLong();
+            WHITE_CASTLE_K_HASH = random.nextLong();
+            WHITE_CASTLE_Q_HASH = random.nextLong();
+            BLACK_CASTLE_K_HASH = random.nextLong();
+            BLACK_CASTLE_Q_HASH = random.nextLong();
+
+            WHITE_EP_HASH = new long[8];
+            for (int i = 0; i < 8; i++) {
+                WHITE_EP_HASH[i] = random.nextLong();
+            }
+            BLACK_EP_HASH = new long[8];
+            for (int i = 0; i < 8; i++) {
+                BLACK_EP_HASH[i] = random.nextLong();
+            }
+        }
+    }
 
     /**
      * @return true if input is in [0...7], false otherwise

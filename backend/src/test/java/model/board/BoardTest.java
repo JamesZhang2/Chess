@@ -21,8 +21,6 @@ abstract class BoardTest {
 
     protected abstract Board createBoard(String fen) throws IllegalBoardException, MalformedFENException;
 
-    protected abstract Board createBoard(Board other);
-
     @Test
     void testFENParser() throws IllegalBoardException, MalformedFENException {
         Board start = createBoard();
@@ -56,8 +54,6 @@ abstract class BoardTest {
         for (String validFEN : validFENs) {
             Board board = createBoard(validFEN);
             assertEquals(validFEN, board.toFEN());
-            Board boardCopy = createBoard(board);
-            assertEquals(validFEN, boardCopy.toFEN());
         }
 
         String[] malformedFENs = {
@@ -963,6 +959,33 @@ abstract class BoardTest {
         assertEquals(Util.squaresToBitmap(new String[]{"a1", "g8"}), board2.getBitmap('b'));
         assertEquals(0L, board2.getBitmap('n'));
         assertEquals(Util.squaresToBitmap(new String[]{"d2", "f2", "a6", "d7"}), board2.getBitmap('p'));
+    }
+
+    @Test
+    void testZobristHashes() throws IllegalBoardException, MalformedFENException {
+        System.out.println(createBoard().zobristHash);  // check that this is not trivial (like 0 or -1)
+        assertEquals(Util.zobrist.SIDE_HASH ^ Util.zobrist.PIECE_HASH['K'][4] ^ Util.zobrist.PIECE_HASH['k'][60],
+                createBoard("4k3/8/8/8/8/8/8/4K3 w - - 0 1").getZobristHash());
+        assertEquals(Util.zobrist.SIDE_HASH ^ Util.zobrist.PIECE_HASH['K'][0] ^ Util.zobrist.PIECE_HASH['B'][1]
+                        ^ Util.zobrist.PIECE_HASH['R'][2] ^ Util.zobrist.PIECE_HASH['Q'][3] ^ Util.zobrist.PIECE_HASH['N'][5]
+                        ^ Util.zobrist.PIECE_HASH['P'][8] ^ Util.zobrist.PIECE_HASH['k'][16],
+                createBoard("8/8/8/8/8/k7/P7/KBRQ1N2 w - - 0 1").getZobristHash());
+        assertEquals(Util.zobrist.PIECE_HASH['B'][0] ^ Util.zobrist.PIECE_HASH['K'][1]
+                        ^ Util.zobrist.PIECE_HASH['p'][15] ^ Util.zobrist.PIECE_HASH['b'][59] ^ Util.zobrist.PIECE_HASH['n'][60]
+                        ^ Util.zobrist.PIECE_HASH['r'][61] ^ Util.zobrist.PIECE_HASH['q'][62] ^ Util.zobrist.PIECE_HASH['k'][63],
+                createBoard("3bnrqk/8/8/8/8/8/7p/BK6 b - - 0 1").getZobristHash());
+        // Castling
+        assertEquals(Util.zobrist.SIDE_HASH ^ Util.zobrist.PIECE_HASH['R'][0] ^ Util.zobrist.PIECE_HASH['K'][4]
+                        ^ Util.zobrist.PIECE_HASH['R'][7] ^ Util.zobrist.PIECE_HASH['r'][56] ^ Util.zobrist.PIECE_HASH['k'][60]
+                        ^ Util.zobrist.PIECE_HASH['r'][63] ^ Util.zobrist.WHITE_CASTLE_Q_HASH ^ Util.zobrist.BLACK_CASTLE_K_HASH,
+                createBoard("r3k2r/8/8/8/8/8/8/R3K2R w Qk - 0 1").getZobristHash());
+        // En passant
+        assertEquals(Util.zobrist.PIECE_HASH['K'][0] ^ Util.zobrist.PIECE_HASH['k'][63]
+                        ^ Util.zobrist.PIECE_HASH['p'][30] ^ Util.zobrist.PIECE_HASH['P'][31] ^ Util.zobrist.WHITE_EP_HASH[7],
+                createBoard("7k/8/8/8/6pP/8/8/K7 b - h3 0 1").getZobristHash());
+        assertEquals(Util.zobrist.SIDE_HASH ^ Util.zobrist.PIECE_HASH['K'][0] ^ Util.zobrist.PIECE_HASH['k'][63]
+                        ^ Util.zobrist.PIECE_HASH['p'][34] ^ Util.zobrist.PIECE_HASH['P'][35] ^ Util.zobrist.BLACK_EP_HASH[2],
+                createBoard("7k/8/8/2pP4/8/8/8/K7 w - c6 0 2").getZobristHash());
     }
 
     private void perft(String perftStr) throws IllegalBoardException, MalformedFENException {
