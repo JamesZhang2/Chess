@@ -12,6 +12,7 @@ import java.util.*;
  * The word "Mailbox" comes from <a href="https://www.chessprogramming.org/Mailbox">chess programming wiki</a>.
  */
 public class MailboxBoard extends Board {
+    // pieces[0][0] is the piece at a1; pieces[7][0] is the piece at a8
     private char[][] pieces;  // capital letter for white, lower-case letter for black, 0 for empty
 
     /**
@@ -623,5 +624,31 @@ public class MailboxBoard extends Board {
     @Override
     protected void removePiece(int row, int col, char pieceType) {
         pieces[row][col] = 0;
+    }
+
+    @Override
+    public long getBitmap(char piece) {
+        long ans = 0;
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                if (pieces[r][c] == piece) {
+                    ans += (1L << (8 * r + c));
+                }
+            }
+        }
+        return ans;
+    }
+
+    @Override
+    public long getBitmap(boolean white) {
+        long ans = 0;
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                if (pieces[r][c] != 0 && (Character.isUpperCase(pieces[r][c]) == white)) {
+                    ans += (1L << (8 * r + c));
+                }
+            }
+        }
+        return ans;
     }
 }

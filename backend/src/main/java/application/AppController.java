@@ -196,7 +196,7 @@ public class AppController {
             case "RandomAIPlayer" -> new RandomAIPlayer(false);
             case "MinimaxAIPlayer-1" -> new MinimaxAIPlayer(false, new WeightedEvaluator(), 1);
             case "MinimaxAIPlayer-3" -> new MinimaxAIPlayer(false, new WeightedEvaluator(), 3);
-            case "MinimaxAIPlayer-5" -> new MinimaxAIPlayer(false, new WeightedEvaluator(), 5);
+            case "MinimaxAIPlayer-4" -> new MinimaxAIPlayer(false, new WeightedEvaluator(), 4);
             default -> throw new IllegalArgumentException("Unknown black player: " + blackPlayerType);
         };
         Handicap handicap;

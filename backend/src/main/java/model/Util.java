@@ -180,6 +180,29 @@ public class Util {
     }
 
     /**
+     * Turns a square (like f3) into a bitmap with a 1 at that square and 0 everywhere else.
+     * @throws IllegalArgumentException if square is not a valid square.
+     */
+    public static long squareToBitmap(String square) {
+        int[] coords = squareToCoords(square);
+        return 1L << (coords[0] * 8 + coords[1]);
+    }
+
+    /**
+     * Turns an array of squares (like [e1, f3, g5]) into a bitmap
+     * with a 1 at the squares in the array and 0 everywhere else.
+     * squares is allowed to have duplicates.
+     * @throws IllegalArgumentException if any square in squares is not a valid square.
+     */
+    public static long squaresToBitmap(String[] squares) {
+        long result = 0;
+        for (String square : squares) {
+            result |= squareToBitmap(square);
+        }
+        return result;
+    }
+
+    /**
      * Convenience method for constructing regular and en passant moves
      *
      * @return the move constructed from the given fields

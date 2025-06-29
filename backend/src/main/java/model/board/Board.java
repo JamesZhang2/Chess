@@ -447,14 +447,41 @@ public abstract class Board {
     protected abstract void removePiece(int row, int col, char pieceType);
 
     /**
+     * @param piece the piece to get the bitmap of.
+     *              An uppercase letter represents a white piece
+     *              while a lowercase letter represents a black piece.
+     *              Requires: piece is a valid character representing a piece.
+     * @return the bitmap of the given piece,
+     * where the least significant bit represents a1
+     * and the most significant bit represents h8.
+     */
+    public abstract long getBitmap(char piece);
+
+    /**
+     * @param white whether to get the bitmap of white or black.
+     * @return the bitmap of all white pieces if white is true,
+     * or the bitmap of all black pieces if white is false.
+     * the least significant bit represents a1
+     * and the most significant bit represents h8.
+     */
+    public abstract long getBitmap(boolean white);
+
+    /**
      * If the move is legal, make the move by updating the board state (including the winner) and return true.
      * Otherwise, return false and don't change the board state.
-     * <p>
-     * Requires: move is of type regular, castling, promotion, or en passant.
      *
      * @return whether the move is legal
      */
     public boolean move(Move move) {
+        return move(move, true);
+    }
+
+    /**
+     * Make a move. If checkLegality is set to false, the caller must guarantee that the move is legal.
+     * @param checkLegality whether to check that this move is legal
+     * @return whether the move is legal
+     */
+    public boolean move(Move move, boolean checkLegality) {
         // Can simply check if move is in the set of all legal moves,
         // but checking a specific piece would be more efficient.
         int startRow = move.getStartRow();
@@ -463,24 +490,27 @@ public abstract class Board {
         int endCol = move.getEndCol();
         char curPiece = getPieceAt(startRow, startCol);
         char enemyPiece = getPieceAt(endRow, endCol);  // May be 0
-        if (curPiece == 0 || (curPiece <= 'Z' != whiteToMove)) {
-            // Can only move pieces of your color
-            return false;
-        }
-        if (enemyPiece != 0 && ((int) enemyPiece - 'a') * ((int) curPiece - 'a') > 0) {
-            // Can only take enemy pieces
-            return false;
-        }
-        if (!PERFT) {
-            // All moves tried in perft must be legal, since we iterate through all the legal moves
-            Set<Move> pieceLegalMoves = getLegalMoves(startRow, startCol);
-            if (!pieceLegalMoves.contains(move)) {
+
+        if (checkLegality) {
+            if (curPiece == 0 || (curPiece <= 'Z' != whiteToMove)) {
+                // Can only move pieces of your color
                 return false;
             }
-        }
-        if (getWinner() != 'u') {
-            // Game already ended
-            return false;
+            if (enemyPiece != 0 && ((int) enemyPiece - 'a') * ((int) curPiece - 'a') > 0) {
+                // Can only take enemy pieces
+                return false;
+            }
+            if (!PERFT) {
+                // All moves tried in perft must be legal, since we iterate through all the legal moves
+                Set<Move> pieceLegalMoves = getLegalMoves(startRow, startCol);
+                if (!pieceLegalMoves.contains(move)) {
+                    return false;
+                }
+            }
+            if (getWinner() != 'u') {
+                // Game already ended
+                return false;
+            }
         }
 
         // Move must be legal, make the move by changing board state

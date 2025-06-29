@@ -933,6 +933,38 @@ abstract class BoardTest {
                 Util.moveFromSquares("h7", "h8", false, false), 'w');
     }
 
+    @Test
+    void testGetBitmap() throws IllegalBoardException, MalformedFENException {
+        Board board = createBoard();
+        assertEquals(0x81L, board.getBitmap('R'));
+        assertEquals(0x42L, board.getBitmap('N'));
+        assertEquals(0x24L, board.getBitmap('B'));
+        assertEquals(0x8L, board.getBitmap('Q'));
+        assertEquals(0x10L, board.getBitmap('K'));
+        assertEquals(0xFF00L, board.getBitmap('P'));
+        assertEquals(0x8100000000000000L, board.getBitmap('r'));
+        assertEquals(0x4200000000000000L, board.getBitmap('n'));
+        assertEquals(0x2400000000000000L, board.getBitmap('b'));
+        assertEquals(0x800000000000000L, board.getBitmap('q'));
+        assertEquals(0x1000000000000000L, board.getBitmap('k'));
+        assertEquals(0xFF000000000000L, board.getBitmap('p'));
+        assertEquals(0xFFFF, board.getBitmap(true));
+        assertEquals(0xFFFF000000000000L, board.getBitmap(false));
+        Board board2 = createBoard("4k1b1/P2p2r1/p7/1NP3qR/2qR1K1R/2N4P/3p1pNQ/b6B w - - 0 1");
+        assertEquals(Util.squareToBitmap("f4"), board2.getBitmap('K'));
+        assertEquals(Util.squareToBitmap("h2"), board2.getBitmap('Q'));
+        assertEquals(Util.squaresToBitmap(new String[]{"d4", "h4", "h5"}), board2.getBitmap('R'));
+        assertEquals(Util.squareToBitmap("h1"), board2.getBitmap('B'));
+        assertEquals(Util.squaresToBitmap(new String[]{"g2", "c3", "b5"}), board2.getBitmap('N'));
+        assertEquals(Util.squaresToBitmap(new String[]{"h3", "c5", "a7"}), board2.getBitmap('P'));
+        assertEquals(Util.squareToBitmap("e8"), board2.getBitmap('k'));
+        assertEquals(Util.squaresToBitmap(new String[]{"c4", "g5"}), board2.getBitmap('q'));
+        assertEquals(Util.squareToBitmap("g7"), board2.getBitmap('r'));
+        assertEquals(Util.squaresToBitmap(new String[]{"a1", "g8"}), board2.getBitmap('b'));
+        assertEquals(0L, board2.getBitmap('n'));
+        assertEquals(Util.squaresToBitmap(new String[]{"d2", "f2", "a6", "d7"}), board2.getBitmap('p'));
+    }
+
     private void perft(String perftStr) throws IllegalBoardException, MalformedFENException {
         int last = perftStr.lastIndexOf(' ');
         int secondToLast = perftStr.substring(0, last).lastIndexOf(' ');

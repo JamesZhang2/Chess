@@ -173,6 +173,7 @@ public class LocationEvaluator implements Evaluator {
 
     // TODO: Incorporate castling status. It's more important for the pawns near the castled king to not move
     // TODO: than the ones away from the castled king.
+    // TODO: Also, losing castling rights without castling should be punished in the early game.
 
     @Override
     public double evaluate(Board board) {

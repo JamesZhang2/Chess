@@ -681,4 +681,18 @@ public class BitmapBoard extends Board {
     protected void removePiece(int row, int col, char pieceType) {
         bitmaps[pieceType] = Util.clearBit(bitmaps[pieceType], row, col);
     }
+
+    @Override
+    public long getBitmap(char piece) {
+        return bitmaps[piece];
+    }
+
+    @Override
+    public long getBitmap(boolean white) {
+        if (white) {
+            return bitmaps['K'] | bitmaps['Q'] | bitmaps['R'] | bitmaps['B'] | bitmaps['N'] | bitmaps['P'];
+        } else {
+            return bitmaps['k'] | bitmaps['q'] | bitmaps['r'] | bitmaps['b'] | bitmaps['n'] | bitmaps['p'];
+        }
+    }
 }

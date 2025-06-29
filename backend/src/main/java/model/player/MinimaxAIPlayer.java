@@ -5,9 +5,7 @@ import model.board.Board;
 import model.eval.Evaluator;
 import model.move.Move;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * An AI that plays chess using Minimax.
@@ -20,16 +18,19 @@ public class MinimaxAIPlayer extends Player {
     // TODO: Caching (don't use FEN: computing FEN takes longer than not caching)
     // TODO: Also, with alpha-beta pruning, caching needs to consider which bound it is
 
-    // Whether to enable alpha-beta pruning. Usually it's always true. Can be set to false when debugging.
+    // Whether to enable alpha-beta pruning. Usually it's always true. Can be set to false when debugging or testing.
     private final boolean ENABLE_PRUNING;
+
+    // Whether to enable quiescence search. Usually it's always true. Can be set to false when debugging or testing.
+    private final boolean ENABLE_QUIESCE;
 
     // Reference for alpha-beta pruning: https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning
 
     /**
-     * Constructs a new Minimax AI Player with pruning enabled.
+     * Constructs a new Minimax AI Player with pruning and quiescence search enabled.
      */
     public MinimaxAIPlayer(boolean isWhite, Evaluator evaluator, int maxDepth) {
-        this(isWhite, evaluator, maxDepth, true);
+        this(isWhite, evaluator, maxDepth, true, true);
     }
 
     /**
@@ -39,11 +40,13 @@ public class MinimaxAIPlayer extends Player {
      * @param evaluator the evaluator used for leaf positions
      * @param maxDepth  the maximum depth to run minimax. Requires: maxDepth >= 1.
      */
-    public MinimaxAIPlayer(boolean isWhite, Evaluator evaluator, int maxDepth, boolean enablePruning) {
+    public MinimaxAIPlayer(boolean isWhite, Evaluator evaluator, int maxDepth,
+                           boolean enablePruning, boolean enableQuiesce) {
         super(isWhite);
         this.evaluator = evaluator;
         this.MAX_DEPTH = maxDepth;
         ENABLE_PRUNING = enablePruning;
+        ENABLE_QUIESCE = enableQuiesce;
     }
 
     @Override
@@ -60,17 +63,17 @@ public class MinimaxAIPlayer extends Player {
         double bestEval = isWhite ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
         double alpha = Double.NEGATIVE_INFINITY;
         double beta = Double.POSITIVE_INFINITY;
-        Map<Double, Move> evalMap;
+        PriorityQueue<EvalMovePair> pq;  // used for debugging and getting evals for all legal moves
         if (isWhite) {
-            evalMap = new TreeMap<>((a, b) -> Double.compare(b, a));  // sorted by eval in descending order
+            pq = new PriorityQueue<>((a, b) -> Double.compare(b.eval(), a.eval()));  // sorted by eval in descending order
         } else {
-            evalMap = new TreeMap<>(Double::compareTo);  // sorted by eval in ascending order
+            pq = new PriorityQueue<>((a, b) -> Double.compare(a.eval(), b.eval()));  // sorted by eval in ascending order
         }
         for (Move move : board.getLegalMoves()) {
-            board.move(move);
+            board.move(move, false);  // we already know that the move is legal
             // evaluate resulting board from opponent's point of view
             double eval = evaluate(board, MAX_DEPTH - 1, alpha, beta, !isWhite);
-            evalMap.put(eval, move);
+            pq.add(new EvalMovePair(eval, move));
             if (isWhite) {
                 if (eval >= bestEval) {
                     bestMove = move;
@@ -86,9 +89,12 @@ public class MinimaxAIPlayer extends Player {
             }
             board.undoLastMove();
         }
-        System.out.println(evalMap);
-        System.out.println("Evaluation: " + bestEval);
-        System.out.println("Minimax AI plays " + bestMove);
+        while (!pq.isEmpty()) {
+            System.out.print(pq.poll() + " ");
+        }
+        System.out.println();
+        System.out.printf("%s evaluation: %s\n", isWhite ? "White" : "Black", bestEval);
+        System.out.printf("%s Minimax AI plays %s\n", isWhite ? "White" : "Black", bestMove);
         return new EvalMovePair(bestEval, bestMove);
     }
 
@@ -104,15 +110,22 @@ public class MinimaxAIPlayer extends Player {
      * Postcondition: The state of the board is unchanged.
      */
     private double evaluate(Board board, int depth, double alpha, double beta, boolean maximizing) {
-        if (depth == 0 || board.getWinner() != 'u') {
-            // no more depth or game has ended, leaf node
+        if (board.getWinner() != 'u') {
             return evaluator.evaluate(board);
+        }
+        if (depth == 0) {
+            // no more depth or game has ended, leaf node
+            if (ENABLE_QUIESCE) {
+                return quiesce(board, alpha, beta, maximizing);
+            } else {
+                return evaluator.evaluate(board);
+            }
         }
         if (maximizing) {
             // we're the maximizer, and we're trying to choose among the legal moves
             double maxEval = Double.NEGATIVE_INFINITY;
             for (Move move : board.getLegalMoves()) {
-                board.move(move);
+                board.move(move, false);
                 // evaluate resulting board from opponent's point of view
                 double eval = evaluate(board, depth - 1, alpha, beta, false);
                 board.undoLastMove();
@@ -122,10 +135,10 @@ public class MinimaxAIPlayer extends Player {
                     eval--;
                 }
                 maxEval = Math.max(maxEval, eval);
-                if (ENABLE_PRUNING && eval >= beta) {
+                if (ENABLE_PRUNING && eval > beta + 0.001) {
                     // opponent (minimizer) can already guarantee beta,
                     // so they won't go down this entire branch.
-                    break;
+                    return eval;
                 }
                 alpha = Math.max(alpha, eval);  // tell siblings that the maximizer can achieve at least this alpha
             }
@@ -134,7 +147,7 @@ public class MinimaxAIPlayer extends Player {
             // we're the minimizer, and we're trying to choose among the legal moves
             double minEval = Double.POSITIVE_INFINITY;
             for (Move move : board.getLegalMoves()) {
-                board.move(move);
+                board.move(move, false);
                 // evaluate resulting board from opponent's point of view
                 double eval = evaluate(board, depth - 1, alpha, beta, true);
                 board.undoLastMove();
@@ -144,12 +157,65 @@ public class MinimaxAIPlayer extends Player {
                     eval++;
                 }
                 minEval = Math.min(minEval, eval);
-                if (ENABLE_PRUNING && eval <= alpha) {
+                if (ENABLE_PRUNING && eval < alpha - 0.001) {
                     // opponent (maximizer) can already guarantee alpha,
                     // so they won't go down this entire branch.
-                    break;
+                    return eval;
                 }
                 beta = Math.min(beta, eval);  // tell siblings that the minimizer can achieve at most this beta
+            }
+            return minEval;
+        }
+    }
+
+    /**
+     * Keep searching until we reach a quiet position, then evaluate.
+     * See <a href="https://www.chessprogramming.org/Quiescence_Search">this link</a> for details.
+     */
+    private double quiesce(Board board, double alpha, double beta, boolean maximizing) {
+        double staticEval = evaluator.evaluate(board);
+        // only consider captures
+        Set<Move> legalCaptures = board.getLegalMoves(true);
+        if (legalCaptures.isEmpty()) {
+            return staticEval;
+        }
+
+        if (maximizing) {
+            // stand pat
+            double maxEval = staticEval;
+            if (maxEval >= beta) {
+                return maxEval;
+            }
+
+            for (Move move : legalCaptures) {
+                board.move(move, false);
+                double eval = quiesce(board, alpha, beta, false);
+                board.undoLastMove();
+
+                if (ENABLE_PRUNING && eval > beta + 0.001) {
+                    return eval;
+                }
+                maxEval = Math.max(maxEval, eval);
+                alpha = Math.max(alpha, eval);
+            }
+            return maxEval;
+        } else {
+            // stand pat
+            double minEval = staticEval;
+            if (minEval <= alpha) {
+                return minEval;
+            }
+
+            for (Move move : legalCaptures) {
+                board.move(move, false);
+                double eval = quiesce(board, alpha, beta, true);
+                board.undoLastMove();
+
+                if (ENABLE_PRUNING && eval < alpha - 0.001) {
+                    return eval;
+                }
+                minEval = Math.min(minEval, eval);
+                beta = Math.min(beta, eval);
             }
             return minEval;
         }
@@ -165,6 +231,6 @@ public class MinimaxAIPlayer extends Player {
     }
 
     public void win(Board board) {
-        System.out.println("won");
+        System.out.println(isWhite ? "White won" : "Black won");
     }
 }

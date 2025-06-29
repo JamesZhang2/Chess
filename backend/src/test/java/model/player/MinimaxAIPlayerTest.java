@@ -157,12 +157,12 @@ class MinimaxAIPlayerTest {
 
         List<Map<String, Double>> evalOff = new ArrayList<>();  // depth -> (fen, eval)
         evalOff.add(new HashMap<>());
-        System.out.println("Pruning off");
+        System.out.println("Pruning off, quiesce off");
         for (int depth = 1; depth <= 4; depth++) {
             evalOff.add(new HashMap<>());
             System.out.println("Depth: " + depth);
             long startTime = System.nanoTime();
-            MinimaxAIPlayer pruningOff = new MinimaxAIPlayer(true, evaluator, depth, false);
+            MinimaxAIPlayer pruningOff = new MinimaxAIPlayer(true, evaluator, depth, false, false);
             for (String position : positions) {
                 Board board = new BitmapBoard(position);
                 EvalMovePair pair = pruningOff.getBestEvalMove(board);
@@ -174,12 +174,12 @@ class MinimaxAIPlayerTest {
 
         List<Map<String, Double>> evalOn = new ArrayList<>();  // depth -> (fen, eval)
         evalOn.add(new HashMap<>());
-        System.out.println("Pruning on");
+        System.out.println("Pruning on, quiesce off");
         for (int depth = 1; depth <= 5; depth++) {
             evalOn.add(new HashMap<>());
             System.out.println("Depth: " + depth);
             long startTime = System.nanoTime();
-            MinimaxAIPlayer pruningOn = new MinimaxAIPlayer(true, evaluator, depth, true);
+            MinimaxAIPlayer pruningOn = new MinimaxAIPlayer(true, evaluator, depth, true, false);
             for (String position : positions) {
                 Board board = new BitmapBoard(position);
                 EvalMovePair pair = pruningOn.getBestEvalMove(board);
@@ -188,6 +188,25 @@ class MinimaxAIPlayerTest {
             long endTime = System.nanoTime();
             System.out.println("Time spent on depth " + depth + ": " + (endTime - startTime) / 1.0e6 + " ms");
         }
+
+        // Turn quiesce on to evaluate performance
+        List<Map<String, Double>> evalOnWithQuiesce = new ArrayList<>();  // depth -> (fen, eval)
+        evalOnWithQuiesce.add(new HashMap<>());
+        System.out.println("Pruning on, quiesce on");
+        for (int depth = 1; depth <= 4; depth++) {
+            evalOnWithQuiesce.add(new HashMap<>());
+            System.out.println("Depth: " + depth);
+            long startTime = System.nanoTime();
+            MinimaxAIPlayer pruningOnWithQuiesce = new MinimaxAIPlayer(true, evaluator, depth, true, true);
+            for (String position : positions) {
+                Board board = new BitmapBoard(position);
+                EvalMovePair pair = pruningOnWithQuiesce.getBestEvalMove(board);
+                evalOnWithQuiesce.get(depth).put(position, pair.eval());
+            }
+            long endTime = System.nanoTime();
+            System.out.println("Time spent on depth " + depth + ": " + (endTime - startTime) / 1.0e6 + " ms");
+        }
+
         for (int depth = 1; depth <= 4; depth++) {
             System.out.println("Testing depth " + depth);
             assertEquals(evalOff.get(depth), evalOn.get(depth));
@@ -195,29 +214,29 @@ class MinimaxAIPlayerTest {
     }
 
     @Test
-    void test() throws IllegalBoardException, MalformedFENException {
-        String fen = "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2";
-        Evaluator evaluator = new WeightedEvaluator();
-        MinimaxAIPlayer pruneOff3 = new MinimaxAIPlayer(true, evaluator, 3, false);
-        MinimaxAIPlayer pruneOn3 = new MinimaxAIPlayer(true, evaluator, 3, true);
-        MinimaxAIPlayer pruneOff4 = new MinimaxAIPlayer(true, evaluator, 4, false);
-        MinimaxAIPlayer pruneOn4 = new MinimaxAIPlayer(true, evaluator, 4, true);
-//        MinimaxAIPlayer pruneOff5 = new MinimaxAIPlayer(true, evaluator, 5, false);
-//        MinimaxAIPlayer pruneOn5 = new MinimaxAIPlayer(true, evaluator, 5, true);
-        Board board = new BitmapBoard(fen);
-        EvalMovePair pair1 = pruneOff3.getBestEvalMove(board);
-        EvalMovePair pair2 = pruneOn3.getBestEvalMove(board);
-        EvalMovePair pair3 = pruneOff4.getBestEvalMove(board);
-        EvalMovePair pair4 = pruneOn4.getBestEvalMove(board);
-//        EvalMovePair pair5 = pruneOff5.getBestEvalMove(board);
-//        EvalMovePair pair6 = pruneOn5.getBestEvalMove(board);
+    void testQuiescence() throws IllegalBoardException, MalformedFENException {
+        Evaluator evaluator = new MaterialEvaluator();
+        Board board = new BitmapBoard("4k3/8/6p1/5b2/8/8/5Q2/4K3 w - - 0 1");
+        // In this position, without quiescence search, Qxf5 would seem like a good idea at the horizon (depth 1).
+        // However, with quiescence search, it's a terrible idea since black can capture back.
+
+        MinimaxAIPlayer noQuiesce = new MinimaxAIPlayer(true, evaluator, 1, false, false);
+        MinimaxAIPlayer withQuiesce = new MinimaxAIPlayer(true, evaluator, 1, false, true);
+        System.out.println("Without quiescence search: " + noQuiesce.getBestEvalMove(board));
+        System.out.println("With quiescence search: " + withQuiesce.getBestEvalMove(board));
+        assertEquals(Util.moveFromSquares("f2", "f5", false, true), noQuiesce.getBestEvalMove(board).move());
+        assertNotEquals(Util.moveFromSquares("f2", "f5", false, true), withQuiesce.getBestEvalMove(board).move());
     }
 
     @Test
-    void test2() throws IllegalBoardException, MalformedFENException {
-        String fen = "rnbqkbnr/pppp1ppp/8/4p3/P3P3/8/1PPP1PPP/RNBQKBNR b KQkq a3 0 2";
-        Evaluator evaluator = new WeightedEvaluator();
-        Board board = new BitmapBoard(fen);
-        System.out.println(evaluator.evaluate(board));
+    void test() throws IllegalBoardException, MalformedFENException {
+        MinimaxAIPlayer player = new MinimaxAIPlayer(true, new WeightedEvaluator(), 4, true, false);
+        Board board = new BitmapBoard("r1bqkbnr/pppppppp/2n5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 1 2");
+        System.out.println(player.getBestEvalMove(board));
+        System.out.println();
+
+        MinimaxAIPlayer player2 = new MinimaxAIPlayer(false, new WeightedEvaluator(), 3, true, false);
+        Board board2 = new BitmapBoard("r1bqkbnr/pppppppp/B1n5/8/4P3/8/PPPP1PPP/RNBQK1NR b KQkq - 2 2");
+        System.out.println(player2.getBestEvalMove(board2));
     }
 }
