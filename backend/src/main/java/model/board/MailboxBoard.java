@@ -50,12 +50,12 @@ public class MailboxBoard extends Board {
         try {
             parseFen(other.toFEN());
             checkBoardLegality();
-            this.curFEN = other.curFEN;
             this.winner = other.winner;
             this.pgn = new PGN(other.pgn);
             this.posFreq = new HashMap<>(other.posFreq);
             this.history = other.history;
             this.piecesHistory = other.piecesHistory;
+            this.zobristHash = other.zobristHash;
         } catch (Exception e) {
             assert false;
         }
@@ -647,11 +647,13 @@ public class MailboxBoard extends Board {
 
     @Override
     protected void setPiece(int row, int col, char pieceType) {
+        super.setPiece(row, col, pieceType);
         pieces[row][col] = pieceType;
     }
 
     @Override
     protected void removePiece(int row, int col, char pieceType) {
+        super.removePiece(row, col, pieceType);
         pieces[row][col] = 0;
     }
 
@@ -688,15 +690,15 @@ public class MailboxBoard extends Board {
             return false;
         }
         char[][] lastPieces = piecesHistory.removeLast();
-        for (int r = 0; r < 7; r++) {
+        for (int r = 0; r < 8; r++) {
             pieces[r] = lastPieces[r].clone();
         }
         // TODO: Sanity check, can be removed after fully tested
-        try {
-            checkBoardLegality();
-        } catch (IllegalBoardException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            checkBoardLegality();
+//        } catch (IllegalBoardException e) {
+//            e.printStackTrace();
+//        }
         return true;
     }
 
@@ -704,7 +706,7 @@ public class MailboxBoard extends Board {
     public void takeSnapshot() {
         super.takeSnapshot();
         char[][] piecesCopy = new char[8][8];
-        for (int r = 0; r < 7; r++) {
+        for (int r = 0; r < 8; r++) {
             piecesCopy[r] = pieces[r].clone();
         }
         piecesHistory.add(piecesCopy);

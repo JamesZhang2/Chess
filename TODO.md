@@ -15,8 +15,11 @@
   - [ ] Timer
 - Bitmap Board
   - [ ] Lookup tables for rook and bishop attacks: (square, direction, allPieces bitmap) -> attack bitmap
-  - [ ] Implement [Zobrist Hashing](https://www.chessprogramming.org/Zobrist_Hashing)
-  - [ ] Modify move() to make incremental updates so that undoLastMove() can undo the incremental updates instead of parsing FEN
+  - [X] Implement [Zobrist Hashing](https://www.chessprogramming.org/Zobrist_Hashing)
+    - [X] Compute from scratch
+    - [X] Incrementally update in `move()`
+    - [X] Store in history and restore in `undoLastMove()`
+  - [X] Modify move() to store the state of the previous position so that undoLastMove() can restore the state instead of parsing FEN
 - Minimax
   - [X] Alpha-beta pruning
   - [ ] Transposition tables: Cache searched positions and their evaluations (using FEN is too slow, should use Zobrist hashing instead; with alpha-beta pruning, need to consider whether we computed an upper or lower bound)

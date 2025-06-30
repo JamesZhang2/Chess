@@ -34,9 +34,8 @@ public abstract class Board {
     protected int halfMove;
     protected int fullMove;
 
-    protected Map<String, Integer> posFreq;  // Position frequency: How many times has a position occurred
-    // Maps the FEN string (except the halfMove and fullMove fields) to the number of times the position occurred
-    // TODO: Use Zobrist hashes instead of FEN.
+    protected Map<Long, Integer> posFreq;  // Position frequency: How many times has a position occurred
+    // Maps Zobrist hashes to the number of times the position occurred
     // This may potentially result in false positives for threefold repetition if there are hash collisions,
     // but this is very unlikely since the space of hash values is much larger than the number of moves in a game.
     // (The expected number of positions for which a collision will happen can be computed using the birthday paradox.)
@@ -48,9 +47,9 @@ public abstract class Board {
 
     protected List<BoardHistoryEntry> history;
 
-    protected String curFEN;  // cache the current FEN to improve efficiency
-
     protected long zobristHash;  // Zobrist hash; see https://www.chessprogramming.org/Zobrist_Hashing
+    // Invariant: the zobrist hash is up-to-date with the current board state
+    // after the constructor, move(), and undoLastMove()
 
     // When running perft, set this to true. Otherwise, don't touch it!
     public boolean PERFT = false;
@@ -58,25 +57,23 @@ public abstract class Board {
     public Board(String fen) throws MalformedFENException, IllegalBoardException {
         parseFen(fen);
         checkBoardLegality();
-        this.curFEN = fen;
-        this.pgn = new PGN(fullMove, whiteToMove, getResult());
-        this.history = new ArrayList<>();
-        this.posFreq = new HashMap<>();
-        posFreq.put(getUnclockedFEN(), 1);
+        pgn = new PGN(fullMove, whiteToMove, getResult());
+        history = new ArrayList<>();
+        posFreq = new HashMap<>();
+        zobristHash = computeZobristHash();
+        posFreq.put(zobristHash, 1);
         updateWinner(false);
-        this.zobristHash = computeZobristHash();
     }
 
     public Board() {
         try {
             parseFen(Util.START_POS);
             checkBoardLegality();
-            this.curFEN = Util.START_POS;
-            this.pgn = new PGN(1, true, "*");
-            this.history = new ArrayList<>();
-            this.posFreq = new HashMap<>();
-            posFreq.put(getUnclockedFEN(), 1);
-            this.zobristHash = computeZobristHash();
+            pgn = new PGN(1, true, "*");
+            history = new ArrayList<>();
+            posFreq = new HashMap<>();
+            zobristHash = computeZobristHash();
+            posFreq.put(zobristHash, 1);
         } catch (Exception e) {
             assert false;
         }
@@ -86,12 +83,11 @@ public abstract class Board {
         try {
             parseFen(handicap.startPos);
             checkBoardLegality();
-            this.curFEN = handicap.startPos;
-            this.pgn = new PGN(1, true, "*");
-            this.history = new ArrayList<>();
-            this.posFreq = new HashMap<>();
-            posFreq.put(getUnclockedFEN(), 1);
-            this.zobristHash = computeZobristHash();
+            pgn = new PGN(1, true, "*");
+            history = new ArrayList<>();
+            posFreq = new HashMap<>();
+            zobristHash = computeZobristHash();
+            posFreq.put(zobristHash, 1);
         } catch (Exception e) {
             assert false;
         }
@@ -163,12 +159,13 @@ public abstract class Board {
      * @return return the FEN string representing the current board state
      * without the halfMove and fullMove fields
      */
+    @Deprecated
     protected String getUnclockedFEN() {
         // Find index of second-to-last space
-        assert curFEN.equals(toFEN());
-        int idx = curFEN.lastIndexOf(' ');
-        idx = curFEN.substring(0, idx).lastIndexOf(' ');
-        return curFEN.substring(0, idx);
+        String fen = toFEN();
+        int idx = fen.lastIndexOf(' ');
+        idx = fen.substring(0, idx).lastIndexOf(' ');
+        return fen.substring(0, idx);
     }
 
     /**
@@ -434,13 +431,19 @@ public abstract class Board {
 
     /**
      * Place a piece of pieceType at (row, col)
+     * This method should be overridden by subclasses if they have additional states that need to be updated.
      */
-    protected abstract void setPiece(int row, int col, char pieceType);
+    protected void setPiece(int row, int col, char pieceType) {
+        zobristHash ^= Util.zobrist.PIECE_HASH[pieceType][row * 8 + col];
+    }
 
     /**
      * Remove a piece of pieceType at (row, col)
+     * This method should be overridden by subclasses if they have additional states that need to be updated.
      */
-    protected abstract void removePiece(int row, int col, char pieceType);
+    protected void removePiece(int row, int col, char pieceType) {
+        zobristHash ^= Util.zobrist.PIECE_HASH[pieceType][row * 8 + col];
+    }
 
     /**
      * Take a snapshot of the current state and store it in history.
@@ -521,7 +524,6 @@ public abstract class Board {
 
         // Move must be legal, make the move by changing board state
         // Take a snapshot of the current state and put it in history
-        assert toFEN().equals(curFEN);
         takeSnapshot();
 
         // For now, we're using a verbose version of the Standard Algebraic Notation for the PGN
@@ -657,12 +659,40 @@ public abstract class Board {
         }
         whiteToMove = !whiteToMove;
 
-        curFEN = toFEN();
+        // Update Zobrist hash
+        // The Zobrist hash for pieces have already been updated with setPiece and removePiece
+        zobristHash ^= Util.zobrist.SIDE_HASH;
+
+        BoardHistoryEntry lastPos = history.getLast();
+        if (lastPos.whiteCastleK() != whiteCastleK) {
+            zobristHash ^= Util.zobrist.WHITE_CASTLE_K_HASH;
+        }
+        if (lastPos.whiteCastleQ() != whiteCastleQ) {
+            zobristHash ^= Util.zobrist.WHITE_CASTLE_Q_HASH;
+        }
+        if (lastPos.blackCastleK() != blackCastleK) {
+            zobristHash ^= Util.zobrist.BLACK_CASTLE_K_HASH;
+        }
+        if (lastPos.blackCastleQ() != blackCastleQ) {
+            zobristHash ^= Util.zobrist.BLACK_CASTLE_Q_HASH;
+        }
+
+        if (lastPos.enPassantWhite() != '-') {
+            zobristHash ^= Util.zobrist.WHITE_EP_HASH[lastPos.enPassantWhite() - 'a'];
+        }
+        if (enPassantWhite != '-') {
+            zobristHash ^= Util.zobrist.WHITE_EP_HASH[enPassantWhite - 'a'];
+        }
+        if (lastPos.enPassantBlack() != '-') {
+            zobristHash ^= Util.zobrist.BLACK_EP_HASH[lastPos.enPassantBlack() - 'a'];
+        }
+        if (enPassantBlack != '-') {
+            zobristHash ^= Util.zobrist.BLACK_EP_HASH[enPassantBlack - 'a'];
+        }
 
         // Update posFreq
         if (!PERFT) {
-            String unclockedFEN = getUnclockedFEN();
-            posFreq.put(unclockedFEN, posFreq.getOrDefault(unclockedFEN, 0) + 1);
+            posFreq.put(zobristHash, posFreq.getOrDefault(zobristHash, 0) + 1);
         }
 
         boolean changed = updateWinner(true);
@@ -715,13 +745,12 @@ public abstract class Board {
 
         // Update posFreq
         if (!PERFT) {
-            String unclockedFEN = getUnclockedFEN();
-            assert posFreq.containsKey(unclockedFEN) && posFreq.get(unclockedFEN) > 0 :
-                    String.format("unclockedFEN: %s\n posFreq: %s\n", unclockedFEN, posFreq);
-            if (posFreq.get(unclockedFEN) == 1) {
-                posFreq.remove(unclockedFEN);
+            assert posFreq.containsKey(zobristHash) && posFreq.get(zobristHash) > 0 :
+                    "Previous position must have frequency at least 1 in posFreq";
+            if (posFreq.get(zobristHash) == 1) {
+                posFreq.remove(zobristHash);
             } else {
-                posFreq.put(unclockedFEN, posFreq.get(unclockedFEN) - 1);
+                posFreq.put(zobristHash, posFreq.get(zobristHash) - 1);
             }
         }
 
@@ -850,7 +879,7 @@ public abstract class Board {
 
         // Threefold repetition
         if (incremental) {
-            if (posFreq.get(getUnclockedFEN()) == 3) {
+            if (posFreq.get(zobristHash) == 3) {
                 winner = 'd';
                 return true;
             }

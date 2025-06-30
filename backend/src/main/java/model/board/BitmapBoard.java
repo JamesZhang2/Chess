@@ -55,12 +55,12 @@ public class BitmapBoard extends Board {
         try {
             parseFen(other.toFEN());
             checkBoardLegality();
-            this.curFEN = other.curFEN;
             this.winner = other.winner;
             this.pgn = new PGN(other.pgn);
             this.posFreq = new HashMap<>(other.posFreq);
             this.history = other.history;
             this.bitmapsHistory = other.bitmapsHistory;
+            this.zobristHash = other.zobristHash;
         } catch (Exception e) {
             assert false;
         }
@@ -716,11 +716,13 @@ public class BitmapBoard extends Board {
 
     @Override
     protected void setPiece(int row, int col, char pieceType) {
+        super.setPiece(row, col, pieceType);
         bitmaps[pieceType] = Util.setBit(bitmaps[pieceType], row, col);
     }
 
     @Override
     protected void removePiece(int row, int col, char pieceType) {
+        super.removePiece(row, col, pieceType);
         bitmaps[pieceType] = Util.clearBit(bitmaps[pieceType], row, col);
     }
 
@@ -747,11 +749,11 @@ public class BitmapBoard extends Board {
         long[] lastBitmaps = bitmapsHistory.removeLast();
         bitmaps = lastBitmaps.clone();
         // TODO: Sanity check, can be removed after fully tested
-        try {
-            checkBoardLegality();
-        } catch (IllegalBoardException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            checkBoardLegality();
+//        } catch (IllegalBoardException e) {
+//            e.printStackTrace();
+//        }
         return true;
     }
 
