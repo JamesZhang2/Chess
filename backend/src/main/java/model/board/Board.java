@@ -732,6 +732,17 @@ public abstract class Board {
         }
         BoardHistoryEntry lastPos = history.removeLast();
 
+        // Update posFreq
+        if (!PERFT) {
+            assert posFreq.containsKey(zobristHash) && posFreq.get(zobristHash) > 0 :
+                    "Current position (to be undone) must have frequency at least 1 in posFreq\n" + zobristHash;
+            if (posFreq.get(zobristHash) == 1) {
+                posFreq.remove(zobristHash);
+            } else {
+                posFreq.put(zobristHash, posFreq.get(zobristHash) - 1);
+            }
+        }
+
         whiteToMove = !whiteToMove;
         whiteCastleK = lastPos.whiteCastleK();
         whiteCastleQ = lastPos.whiteCastleQ();
@@ -742,17 +753,6 @@ public abstract class Board {
         halfMove = lastPos.halfMove();
         fullMove = lastPos.fullMove();
         zobristHash = lastPos.zobristHash();
-
-        // Update posFreq
-        if (!PERFT) {
-            assert posFreq.containsKey(zobristHash) && posFreq.get(zobristHash) > 0 :
-                    "Previous position must have frequency at least 1 in posFreq";
-            if (posFreq.get(zobristHash) == 1) {
-                posFreq.remove(zobristHash);
-            } else {
-                posFreq.put(zobristHash, posFreq.get(zobristHash) - 1);
-            }
-        }
 
         pgn.undoLastMove();
         winner = 'u';

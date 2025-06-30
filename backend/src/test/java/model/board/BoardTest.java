@@ -582,6 +582,18 @@ abstract class BoardTest {
         Board board = createBoard();
         assertFalse(board.undoLastMove());
         assertEquals(Util.START_POS, board.toFEN());
+
+        // move, undo, move, undo should lead to the same position
+        board = createBoard();
+        assertTrue(board.move(Util.moveFromSquares("e2", "e4", false, false)));
+        assertTrue(board.undoLastMove());
+        assertEquals(Util.START_POS, board.toFEN());
+        assertTrue(board.move(Util.moveFromSquares("e2", "e4", false, false)));
+        assertTrue(board.undoLastMove());
+        assertEquals(Util.START_POS, board.toFEN());
+        assertTrue(board.move(Util.moveFromSquares("d2", "d4", false, false)));
+        assertTrue(board.undoLastMove());
+        assertEquals(Util.START_POS, board.toFEN());
     }
 
     /**
@@ -996,69 +1008,69 @@ abstract class BoardTest {
                         ^ Util.zobrist.PIECE_HASH['P'][28] ^ Util.zobrist.WHITE_EP_HASH[4],
                 board.getZobristHash());
 
-//        assertZobristMatches("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-//                Util.moveFromSquares("a2", "a4", false, false),
-//                "rnbqkbnr/pppppppp/8/8/P7/8/1PPPPPPP/RNBQKBNR b KQkq a3 0 1");
-//        assertZobristMatches("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-//                Util.moveFromSquares("b1", "c3", false, false),
-//                "rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR b KQkq - 1 1");
-//
-//        // Captures
-//        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr w - - 0 1",
-//                Util.moveFromSquares("g1", "h1", false, true),
-//                "kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/7Q b - - 0 1");
-//        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr w - - 0 1",
-//                Util.moveFromSquares("f5", "d4", false, true),
-//                "kb6/2P3n1/8/7p/3N2B1/4RK2/1Nrp2n1/6Qr b - - 0 1");
-//        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr w - - 0 1",
-//                Util.moveFromSquares("g4", "h5", false, true),
-//                "kb6/2P3n1/8/5N1B/3q4/4RK2/1Nrp2n1/6Qr b - - 0 1");
-//        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr b - - 0 1",
-//                Util.moveFromSquares("h5", "g4", false, true),
-//                "kb6/2P3n1/8/5N2/3q2p1/4RK2/1Nrp2n1/6Qr w - - 0 2");
-//        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr b - - 0 1",
-//                Util.moveFromSquares("d4", "e3", false, true),
-//                "kb6/2P3n1/8/5N1p/6B1/4qK2/1Nrp2n1/6Qr w - - 0 2");
-//
-//        // Promotions
-//        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr w - - 0 1",
-//                Util.moveFromSquares("c7", "c8", 'N', false),
-//                "kbN5/6n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr b - - 0 1");
-//        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr w - - 0 1",
-//                Util.moveFromSquares("c7", "b8", 'R', true),
-//                "kR6/6n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr b - - 0 1");
-//        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr b - - 0 1",
-//                Util.moveFromSquares("d2", "d1", 'b', false),
-//                "kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nr3n1/3b2Qr w - - 0 2");
-//        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr b - - 0 1",
-//                Util.moveFromSquares("d2", "d1", 'q', false),
-//                "kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nr3n1/3q2Qr w - - 0 2");
-//
-//
-//        // Castling
-//        assertZobristMatches("r3k2r/8/8/8/8/8/8/R3K2R w KQq - 0 1",
-//                new Move('K'),
-//                "r3k2r/8/8/8/8/8/8/R4RK1 b q - 1 1");
-//        assertZobristMatches("r3k2r/8/8/8/8/8/8/R4RK1 b q - 1 1",
-//                new Move('q'),
-//                "2kr3r/8/8/8/8/8/8/R4RK1 w - - 2 2");
+        assertZobristMatches("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                Util.moveFromSquares("a2", "a4", false, false),
+                "rnbqkbnr/pppppppp/8/8/P7/8/1PPPPPPP/RNBQKBNR b KQkq a3 0 1");
+        assertZobristMatches("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                Util.moveFromSquares("b1", "c3", false, false),
+                "rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR b KQkq - 1 1");
+
+        // Captures
+        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr w - - 0 1",
+                Util.moveFromSquares("g1", "h1", false, true),
+                "kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/7Q b - - 0 1");
+        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr w - - 0 1",
+                Util.moveFromSquares("f5", "d4", false, true),
+                "kb6/2P3n1/8/7p/3N2B1/4RK2/1Nrp2n1/6Qr b - - 0 1");
+        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr w - - 0 1",
+                Util.moveFromSquares("g4", "h5", false, true),
+                "kb6/2P3n1/8/5N1B/3q4/4RK2/1Nrp2n1/6Qr b - - 0 1");
+        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr b - - 0 1",
+                Util.moveFromSquares("h5", "g4", false, true),
+                "kb6/2P3n1/8/5N2/3q2p1/4RK2/1Nrp2n1/6Qr w - - 0 2");
+        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr b - - 0 1",
+                Util.moveFromSquares("d4", "e3", false, true),
+                "kb6/2P3n1/8/5N1p/6B1/4qK2/1Nrp2n1/6Qr w - - 0 2");
+
+        // Promotions
+        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr w - - 0 1",
+                Util.moveFromSquares("c7", "c8", 'N', false),
+                "kbN5/6n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr b - - 0 1");
+        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr w - - 0 1",
+                Util.moveFromSquares("c7", "b8", 'R', true),
+                "kR6/6n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr b - - 0 1");
+        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr b - - 0 1",
+                Util.moveFromSquares("d2", "d1", 'b', false),
+                "kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nr3n1/3b2Qr w - - 0 2");
+        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr b - - 0 1",
+                Util.moveFromSquares("d2", "d1", 'q', false),
+                "kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nr3n1/3q2Qr w - - 0 2");
+
+
+        // Castling
+        assertZobristMatches("r3k2r/8/8/8/8/8/8/R3K2R w KQq - 0 1",
+                new Move('K'),
+                "r3k2r/8/8/8/8/8/8/R4RK1 b q - 1 1");
+        assertZobristMatches("r3k2r/8/8/8/8/8/8/R4RK1 b q - 1 1",
+                new Move('q'),
+                "2kr3r/8/8/8/8/8/8/R4RK1 w - - 2 2");
         assertZobristMatches("r3k2r/8/8/8/8/8/8/R3K2R w KQq - 0 1",
                 Util.moveFromSquares("a1", "a8", false, true),
                 "R3k2r/8/8/8/8/8/8/4K2R b K - 0 1");
 
-//        // En passant
-//        assertZobristMatches("4k3/8/8/8/2p1p3/8/3P4/4K3 w - - 0 1",
-//                Util.moveFromSquares("d2", "d4", false, false),
-//                "4k3/8/8/8/2pPp3/8/8/4K3 b - d3 0 1");
-//        assertZobristMatches("4k3/8/8/8/2pPp3/8/8/4K3 b - d3 0 1",
-//                Util.moveFromSquares("c4", "d3", true, true),
-//                "4k3/8/8/8/4p3/3p4/8/4K3 w - - 0 2");
-//        assertZobristMatches("rnbqkb1r/pppppppp/5n2/3P4/8/2N2N2/PPP1PPPP/R1BQKB1R b KQkq - 0 1",
-//                Util.moveFromSquares("e7", "e5", false, false),
-//                "rnbqkb1r/pppp1ppp/5n2/3Pp3/8/2N2N2/PPP1PPPP/R1BQKB1R w KQkq e6 0 2");
-//        assertZobristMatches("rnbqkb1r/pppp1ppp/5n2/3Pp3/8/2N2N2/PPP1PPPP/R1BQKB1R w KQkq e6 0 2",
-//                Util.moveFromSquares("d5", "e6", true, true),
-//                "rnbqkb1r/pppp1ppp/4Pn2/8/8/2N2N2/PPP1PPPP/R1BQKB1R b KQkq - 0 2");
+        // En passant
+        assertZobristMatches("4k3/8/8/8/2p1p3/8/3P4/4K3 w - - 0 1",
+                Util.moveFromSquares("d2", "d4", false, false),
+                "4k3/8/8/8/2pPp3/8/8/4K3 b - d3 0 1");
+        assertZobristMatches("4k3/8/8/8/2pPp3/8/8/4K3 b - d3 0 1",
+                Util.moveFromSquares("c4", "d3", true, true),
+                "4k3/8/8/8/4p3/3p4/8/4K3 w - - 0 2");
+        assertZobristMatches("rnbqkb1r/pppppppp/5n2/3P4/8/2N2N2/PPP1PPPP/R1BQKB1R b KQkq - 0 1",
+                Util.moveFromSquares("e7", "e5", false, false),
+                "rnbqkb1r/pppp1ppp/5n2/3Pp3/8/2N2N2/PPP1PPPP/R1BQKB1R w KQkq e6 0 2");
+        assertZobristMatches("rnbqkb1r/pppp1ppp/5n2/3Pp3/8/2N2N2/PPP1PPPP/R1BQKB1R w KQkq e6 0 2",
+                Util.moveFromSquares("d5", "e6", true, true),
+                "rnbqkb1r/pppp1ppp/4Pn2/8/8/2N2N2/PPP1PPPP/R1BQKB1R b KQkq - 0 2");
     }
 
     /**
