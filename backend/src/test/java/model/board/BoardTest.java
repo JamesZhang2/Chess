@@ -1113,7 +1113,7 @@ abstract class BoardTest {
             count = board.getLegalMoves().size();
         } else {
             for (Move move : board.getLegalMoves()) {
-                board.move(move);
+                board.move(move, false);
                 count += countLeafPos(board, depth - 1, memo);
                 board.undoLastMove();
             }
