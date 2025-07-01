@@ -30,7 +30,7 @@
     - [ ] Pawn structure (passed pawns, backward pawns, isolated pawns, doubled pawns, candidate passed pawns)
       - [ ] Use pawn hash table
     - [ ] Pattern detection (central pawns blocked, uncastled king blocking rook)
-  - [ ] Better search function: Look deeper for forcing moves, promotions, etc.
+  - [ ] Better search: Move ordering & iterative deepening: Look deeper for more promising moves (captures, forcing moves, promotions, etc.)
   - [X] Quiescence search: Only evaluate quiet moves at the end of a search - if there are captures, keep recursing
   - [ ] Simulations to tune hyperparameters
 - Database integration

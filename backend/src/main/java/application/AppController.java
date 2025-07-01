@@ -188,7 +188,7 @@ public class AppController {
             case "RandomAIPlayer" -> new RandomAIPlayer(true);
             case "MinimaxAIPlayer-1" -> new MinimaxAIPlayer(true, new WeightedEvaluator(), 1);
             case "MinimaxAIPlayer-3" -> new MinimaxAIPlayer(true, new WeightedEvaluator(), 3);
-            case "MinimaxAIPlayer-5" -> new MinimaxAIPlayer(true, new WeightedEvaluator(), 5);
+            case "MinimaxAIPlayer-4" -> new MinimaxAIPlayer(true, new WeightedEvaluator(), 4, true, true, true, 10);
             default -> throw new IllegalArgumentException("Unknown white player: " + whitePlayerType);
         };
         blackPlayer = switch (blackPlayerType) {
@@ -196,7 +196,7 @@ public class AppController {
             case "RandomAIPlayer" -> new RandomAIPlayer(false);
             case "MinimaxAIPlayer-1" -> new MinimaxAIPlayer(false, new WeightedEvaluator(), 1);
             case "MinimaxAIPlayer-3" -> new MinimaxAIPlayer(false, new WeightedEvaluator(), 3);
-            case "MinimaxAIPlayer-4" -> new MinimaxAIPlayer(false, new WeightedEvaluator(), 4);
+            case "MinimaxAIPlayer-4" -> new MinimaxAIPlayer(false, new WeightedEvaluator(), 4, true, true, true, 10);
             default -> throw new IllegalArgumentException("Unknown black player: " + blackPlayerType);
         };
         Handicap handicap;
@@ -276,7 +276,7 @@ public class AppController {
         GUIGameController gameController = gameControllers.get(gameId);
         synchronized (gameController) {
             OpponentMoveResponse response = gameController.playOneMove();
-            System.out.println(response.fen());
+            System.out.println("Current board state: " + response.fen());
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
     }
