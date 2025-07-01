@@ -32,6 +32,10 @@ public class Util {
     public static final long H_FILE = 0x8080808080808080L;
 
     public static final double MATE_EVAL = 100000;  // eval for winning - used instead of infinity to find the fastest mate
+    // If white already won, the eval should be MATE_EVAL;
+    // If white has mate in 1, the eval should be MATE_EVAL - 1, and so on.
+    // If black already won, the eval should be -MATE_EVAL;
+    // If black has mate in 1, the eval should be -MATE_EVAL + 1, and so on.
 
     public static final ZobristHashUtil zobrist = new ZobristHashUtil();
 

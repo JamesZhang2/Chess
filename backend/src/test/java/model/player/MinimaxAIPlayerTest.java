@@ -8,7 +8,6 @@ import model.eval.TrivialEvaluator;
 import model.eval.WeightedEvaluator;
 import model.move.Move;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.method.support.HandlerMethodReturnValueHandler;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -156,20 +155,26 @@ class MinimaxAIPlayerTest {
      * Ask the Minimax AI player with the given parameters to compute the best eval and move
      * for the test positions, and prints information about runtime.
      * depth will be from 1 to maxDepth, inclusive.
+     *
      * @return a list of depth -> (fen, evalMovePair) maps; can be used to compare with the results
      * of the runs with different parameters.
      */
     private List<Map<String, EvalMovePair>> runEvalTests(Evaluator evaluator, int maxDepth,
-                                                   boolean enablePruning, boolean enableQuiesce, boolean enableTpnTable)
+                                                         boolean enablePruning, boolean enableQuiesce, boolean enableTpnTable,
+                                                         int quiesceMaxDepth)
             throws IllegalBoardException, MalformedFENException {
         List<Map<String, EvalMovePair>> results = new ArrayList<>();  // depth -> (fen, eval)
         results.add(new HashMap<>());  // for depth 0, which is unused
-        System.out.printf("Pruning: %b, Quiesce: %b, TpnTable: %b\n", enablePruning, enableQuiesce, enableTpnTable);
+        if (enableQuiesce) {
+            System.out.printf("Pruning: %b, Quiesce: %b (max depth %d), TpnTable: %b\n", enablePruning, enableQuiesce, quiesceMaxDepth, enableTpnTable);
+        } else {
+            System.out.printf("Pruning: %b, Quiesce: %b, TpnTable: %b\n", enablePruning, enableQuiesce, enableTpnTable);
+        }
         for (int depth = 1; depth <= maxDepth; depth++) {
             results.add(new HashMap<>());
             System.out.println("Running on depth " + depth);
             long startTime = System.nanoTime();
-            MinimaxAIPlayer player = new MinimaxAIPlayer(true, evaluator, depth, enablePruning, enableQuiesce, enableTpnTable);
+            MinimaxAIPlayer player = new MinimaxAIPlayer(true, evaluator, depth, enablePruning, enableQuiesce, enableTpnTable, quiesceMaxDepth);
             for (String position : EVAL_TEST_POSITIONS) {
                 Board board = new BitmapBoard(position);
                 EvalMovePair pair = player.getBestEvalMove(board);
@@ -178,8 +183,8 @@ class MinimaxAIPlayerTest {
             long endTime = System.nanoTime();
             System.out.println("Time spent on depth " + depth + ": " + (endTime - startTime) / 1.0e6 + " ms");
             if (enableTpnTable) {
-                System.out.printf("Tpn table stats: exact hit: %d, lower bound hit: %d, upper bound hit: %d\n",
-                        player.getExactHit(), player.getLowerBoundHit(), player.getUpperBoundHit());
+                System.out.printf("Tpn table stats: exact hits: %d, lower bound hits: %d, upper bound hits: %d\n",
+                        player.getExactHits(), player.getLowerBoundHits(), player.getUpperBoundHits());
             }
         }
         return results;
@@ -190,9 +195,9 @@ class MinimaxAIPlayerTest {
      */
     @Test
     void testPruning() throws IllegalBoardException, MalformedFENException {
-        List<Map<String, EvalMovePair>> results000 = runEvalTests(new WeightedEvaluator(), 4, false, false, false);
+        List<Map<String, EvalMovePair>> results000 = runEvalTests(new WeightedEvaluator(), 4, false, false, false, 0);
         System.out.println();
-        List<Map<String, EvalMovePair>> results100 = runEvalTests(new WeightedEvaluator(), 5, true, false, false);
+        List<Map<String, EvalMovePair>> results100 = runEvalTests(new WeightedEvaluator(), 5, true, false, false, 0);
         System.out.println();
 
         for (int depth = 1; depth <= 4; depth++) {
@@ -213,8 +218,8 @@ class MinimaxAIPlayerTest {
         // In this position, without quiescence search, Qxf5 would seem like a good idea at the horizon (depth 1).
         // However, with quiescence search, it's a terrible idea since black can capture back.
 
-        MinimaxAIPlayer noQuiesce = new MinimaxAIPlayer(true, evaluator, 1, false, false, false);
-        MinimaxAIPlayer withQuiesce = new MinimaxAIPlayer(true, evaluator, 1, false, true, false);
+        MinimaxAIPlayer noQuiesce = new MinimaxAIPlayer(true, evaluator, 1, false, false, false, 0);
+        MinimaxAIPlayer withQuiesce = new MinimaxAIPlayer(true, evaluator, 1, false, true, false, 30);
         System.out.println("Without quiescence search: " + noQuiesce.getBestEvalMove(board));
         System.out.println("With quiescence search: " + withQuiesce.getBestEvalMove(board));
         assertEquals(Util.moveFromSquares("f2", "f5", false, true), noQuiesce.getBestEvalMove(board).move());
@@ -226,9 +231,15 @@ class MinimaxAIPlayerTest {
      */
     @Test
     void testQuiescencePerformance() throws IllegalBoardException, MalformedFENException {
-        List<Map<String, EvalMovePair>> results100 = runEvalTests(new WeightedEvaluator(), 4, true, false, false);
+        List<Map<String, EvalMovePair>> results0 = runEvalTests(new WeightedEvaluator(), 4, true, false, false, 0);
         System.out.println();
-        List<Map<String, EvalMovePair>> results110 = runEvalTests(new WeightedEvaluator(), 4, true, true, false);
+        List<Map<String, EvalMovePair>> results3 = runEvalTests(new WeightedEvaluator(), 4, true, true, false, 3);
+        System.out.println();
+        List<Map<String, EvalMovePair>> results5 = runEvalTests(new WeightedEvaluator(), 4, true, true, false, 5);
+        System.out.println();
+        List<Map<String, EvalMovePair>> results10 = runEvalTests(new WeightedEvaluator(), 4, true, true, false, 10);
+        System.out.println();
+        List<Map<String, EvalMovePair>> results30 = runEvalTests(new WeightedEvaluator(), 4, true, true, false, 30);
     }
 
     /**
@@ -238,9 +249,9 @@ class MinimaxAIPlayerTest {
      */
     @Test
     void testTpnTable() throws IllegalBoardException, MalformedFENException {
-        List<Map<String, EvalMovePair>> results000 = runEvalTests(new WeightedEvaluator(), 4, false, false, false);
+        List<Map<String, EvalMovePair>> results000 = runEvalTests(new WeightedEvaluator(), 4, false, false, false, 0);
         System.out.println();
-        List<Map<String, EvalMovePair>> results001 = runEvalTests(new WeightedEvaluator(), 4, false, false, true);
+        List<Map<String, EvalMovePair>> results001 = runEvalTests(new WeightedEvaluator(), 4, false, false, true, 0);
         System.out.println();
 
         for (int depth = 1; depth <= 4; depth++) {
@@ -254,9 +265,14 @@ class MinimaxAIPlayerTest {
         }
         System.out.println();
 
-        List<Map<String, EvalMovePair>> results100 = runEvalTests(new WeightedEvaluator(), 5, true, false, false);
+        List<Map<String, EvalMovePair>> results100 = runEvalTests(new WeightedEvaluator(), 5, true, false, false, 0);
         System.out.println();
-        List<Map<String, EvalMovePair>> results101 = runEvalTests(new WeightedEvaluator(), 5, true, false, true);
+        List<Map<String, EvalMovePair>> results101 = runEvalTests(new WeightedEvaluator(), 5, true, false, true, 0);
+        System.out.println();
+
+        List<Map<String, EvalMovePair>> results110 = runEvalTests(new WeightedEvaluator(), 4, true, true, false, 30);
+        System.out.println();
+        List<Map<String, EvalMovePair>> results111 = runEvalTests(new WeightedEvaluator(), 4, true, true, true, 30);
     }
 
     /**
@@ -264,12 +280,12 @@ class MinimaxAIPlayerTest {
      */
     @Test
     void tempTest() throws IllegalBoardException, MalformedFENException {
-        MinimaxAIPlayer player = new MinimaxAIPlayer(true, new WeightedEvaluator(), 4, true, false, false);
+        MinimaxAIPlayer player = new MinimaxAIPlayer(true, new WeightedEvaluator(), 4, true, false, false, 0);
         Board board = new BitmapBoard("r1bqkbnr/pppppppp/2n5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 1 2");
         System.out.println(player.getBestEvalMove(board));
         System.out.println();
 
-        MinimaxAIPlayer player2 = new MinimaxAIPlayer(false, new WeightedEvaluator(), 3, true, false, false);
+        MinimaxAIPlayer player2 = new MinimaxAIPlayer(false, new WeightedEvaluator(), 3, true, false, false, 0);
         Board board2 = new BitmapBoard("r1bqkbnr/pppppppp/B1n5/8/4P3/8/PPPP1PPP/RNBQK1NR b KQkq - 2 2");
         System.out.println(player2.getBestEvalMove(board2));
     }
