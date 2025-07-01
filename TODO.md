@@ -4,6 +4,7 @@
   - [X] Login page
   - [X] Home page
     - [X] Play vs. AI
+      - [ ] Add advanced options with different parameters (like depth for quiescence search)
     - [X] Play vs. Human - Challenge system
   - [ ] Game page
     - [ ] Implement resigning/offer draw in frontend
@@ -22,15 +23,15 @@
   - [X] Modify move() to store the state of the previous position so that undoLastMove() can restore the state instead of parsing FEN
 - Minimax
   - [X] Alpha-beta pruning
-  - [ ] Transposition tables: Cache searched positions and their evaluations (using FEN is too slow, should use Zobrist hashing instead; with alpha-beta pruning, need to consider whether we computed an upper or lower bound)
+  - [X] Transposition tables: Cache searched positions and their evaluations (using FEN is too slow, should use Zobrist hashing instead; with alpha-beta pruning, need to consider whether we computed an upper or lower bound)
   - [ ] Better evaluation function: Piece location, pawn structure, mobility, center control, etc.
     - [X] Piece location
+      - [X] Phases: Endgame vs. Non-endgame
     - [ ] Pawn structure (passed pawns, backward pawns, isolated pawns, doubled pawns, candidate passed pawns)
       - [ ] Use pawn hash table
     - [ ] Pattern detection (central pawns blocked, uncastled king blocking rook)
   - [ ] Better search function: Look deeper for forcing moves, promotions, etc.
-  - [ ] Quiet moves at end of search
-  - [ ] Endgame vs. Non-endgame position maps for kings
+  - [X] Quiescence search: Only evaluate quiet moves at the end of a search - if there are captures, keep recursing
   - [ ] Simulations to tune hyperparameters
 - Database integration
   - [ ] Research how to connect backend to database (needed for storing user info, opening book, and endgame tablebase)
