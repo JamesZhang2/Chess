@@ -281,7 +281,7 @@ Then, we can call axios with (for example) `/api/addUser` rather than `http://lo
 
 See this [Medium post](https://medium.com/@eric_abell/simplifying-api-proxies-in-vite-a-guide-to-vite-config-js-a5cc3a091a2f) and this [StackOverflow post](https://stackoverflow.com/questions/64677212/how-to-configure-proxy-in-vite) for more details.
 
-Important: The `vite.config.js` **must be at the root of the project** (i.e. under `vite-project`) rather than being in `src`. It should already be created by Vite for us. I spent hours figuring out why Vite is not redirecting my api calls, only to find out that my `vite.config.js` is in `src` and it's not even being read by Vite! We can also check `DevTool > Network` to make sure that the status code of your API endpoint is 200 (OK), rather than 304 (Not Modified).
+Important: The `vite.config.js` **must be at the root of the project** (i.e. under `vite-project`) rather than being in `src`. It should already be created by Vite for us. I spent hours figuring out why Vite is not redirecting my api calls, only to find out that my `vite.config.js` is in `src` and it's not even being read by Vite! We can also check `DevTool > Network` to make sure that the status code of our API endpoint is 200 (OK), rather than 304 (Not Modified).
 
 ## Adding Spring Boot to Existing Java Project
 

@@ -8,12 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class MaterialEvaluatorTest extends EvaluatorTest {
-
-    @Override
-    protected Evaluator getEvaluator() {
-        return new MaterialEvaluator();
-    }
+class MaterialEvaluatorTest {
 
     @Test
     void testMaterialEvaluation() throws IllegalBoardException, MalformedFENException {

@@ -41,6 +41,7 @@ public class PGN {
                 sb.append(curMove++).append(". ");
             }
             sb.append(move).append(" ");
+            whiteToMove = !whiteToMove;
         }
         if (!result.equals("*")) {
             sb.append(result);

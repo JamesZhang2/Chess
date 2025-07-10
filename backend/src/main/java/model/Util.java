@@ -2,6 +2,8 @@ package model;
 
 import model.move.Move;
 
+import java.util.Random;
+
 /**
  * A class for global constants and utilities.
  */
@@ -29,6 +31,55 @@ public class Util {
     public static final long A_FILE = 0x0101010101010101L;
     public static final long H_FILE = 0x8080808080808080L;
 
+    public static final double MATE_EVAL = 100000;  // eval for winning - used instead of infinity to find the fastest mate
+    // If white already won, the eval should be MATE_EVAL;
+    // If white has mate in 1, the eval should be MATE_EVAL - 1, and so on.
+    // If black already won, the eval should be -MATE_EVAL;
+    // If black has mate in 1, the eval should be -MATE_EVAL + 1, and so on.
+
+    public static final ZobristHashUtil zobrist = new ZobristHashUtil();
+
+    public static class ZobristHashUtil {
+        public final Random random = new Random();
+        // PIECE_HASH[p][i] is the piece hash of piece p at index i
+        public final long[][] PIECE_HASH;
+        public final long SIDE_HASH;  // XORed if white to move
+        public final long WHITE_CASTLE_K_HASH;  // XORed if true
+        public final long WHITE_CASTLE_Q_HASH;
+        public final long BLACK_CASTLE_K_HASH;
+        public final long BLACK_CASTLE_Q_HASH;
+        // WHITE_EP_HASH[c] is the white en passant hash of column c (where 0 means column 'a', etc.)
+        public final long[] WHITE_EP_HASH;
+        public final long[] BLACK_EP_HASH;
+
+        public ZobristHashUtil() {
+            PIECE_HASH = new long['z'][64];
+            for (char p : WHITE_PIECE_NAMES) {
+                for (int i = 0; i < 64; i++) {
+                    PIECE_HASH[p][i] = random.nextLong();
+                }
+            }
+            for (char p : BLACK_PIECE_NAMES) {
+                for (int i = 0; i < 64; i++) {
+                    PIECE_HASH[p][i] = random.nextLong();
+                }
+            }
+            SIDE_HASH = random.nextLong();
+            WHITE_CASTLE_K_HASH = random.nextLong();
+            WHITE_CASTLE_Q_HASH = random.nextLong();
+            BLACK_CASTLE_K_HASH = random.nextLong();
+            BLACK_CASTLE_Q_HASH = random.nextLong();
+
+            WHITE_EP_HASH = new long[8];
+            for (int i = 0; i < 8; i++) {
+                WHITE_EP_HASH[i] = random.nextLong();
+            }
+            BLACK_EP_HASH = new long[8];
+            for (int i = 0; i < 8; i++) {
+                BLACK_EP_HASH[i] = random.nextLong();
+            }
+        }
+    }
 
     /**
      * @return true if input is in [0...7], false otherwise
@@ -163,6 +214,25 @@ public class Util {
     }
 
     /**
+     * Turns a square (like f3) into index (like 21),
+     * where a1 corresponds to 0, h1 corresponds to 7, and h8 corresponds to 63
+     * @throws IllegalArgumentException if square is not a valid square.
+     */
+    public static int squareToIndex(String square) {
+        int[] coords = squareToCoords(square);
+        return coords[0] * 8 + coords[1];
+    }
+
+    /**
+     * Turns an index (like 21) into a square (like f3),
+     * where a1 corresponds to 0, h1 corresponds to 7, and h8 corresponds to 63
+     * @throws IllegalArgumentException if square is not a valid square.
+     */
+    public static String indexToSquare(int idx) {
+        return coordsToSquare(idx / 8, idx % 8);
+    }
+
+    /**
      * Converts {row, col} into a square (like f3).
      * @param r row value, must satisfy 0 <= r <= 7
      * @param c column value, must satisfy 0 <= c <= 7
@@ -176,6 +246,29 @@ public class Util {
             throw new IllegalArgumentException("Illegal column: " + c);
         }
         return String.valueOf((char)('a' + c)) + (r + 1);
+    }
+
+    /**
+     * Turns a square (like f3) into a bitmap with a 1 at that square and 0 everywhere else.
+     * @throws IllegalArgumentException if square is not a valid square.
+     */
+    public static long squareToBitmap(String square) {
+        int[] coords = squareToCoords(square);
+        return 1L << (coords[0] * 8 + coords[1]);
+    }
+
+    /**
+     * Turns an array of squares (like [e1, f3, g5]) into a bitmap
+     * with a 1 at the squares in the array and 0 everywhere else.
+     * squares is allowed to have duplicates.
+     * @throws IllegalArgumentException if any square in squares is not a valid square.
+     */
+    public static long squaresToBitmap(String[] squares) {
+        long result = 0;
+        for (String square : squares) {
+            result |= squareToBitmap(square);
+        }
+        return result;
     }
 
     /**

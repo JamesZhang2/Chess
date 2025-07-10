@@ -1,6 +1,7 @@
 package controller;
 
 import model.board.*;
+import model.move.PGN;
 import model.player.Player;
 
 /**
@@ -39,5 +40,9 @@ public class GameController {
         this.whitePlayer = whitePlayer;
         this.blackPlayer = blackPlayer;
         this.board = new BitmapBoard(FEN);
+    }
+
+    public String getPGN() {
+        return board.toPGN();
     }
 }

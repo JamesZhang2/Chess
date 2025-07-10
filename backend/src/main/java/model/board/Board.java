@@ -34,15 +34,22 @@ public abstract class Board {
     protected int halfMove;
     protected int fullMove;
 
-    protected Map<String, Integer> posFreq;  // Position frequency: How many times has a position occurred
-    // Maps the FEN string (except the halfMove and fullMove fields) to the number of times the position occurred
+    protected Map<Long, Integer> posFreq;  // Position frequency: How many times has a position occurred
+    // Maps Zobrist hashes to the number of times the position occurred
+    // This may potentially result in false positives for threefold repetition if there are hash collisions,
+    // but this is very unlikely since the space of hash values is much larger than the number of moves in a game.
+    // (The expected number of positions for which a collision will happen can be computed using the birthday paradox.)
 
     // w: white, b: black, d: draw, u: unknown
     protected char winner = 'u';
 
     protected PGN pgn;
 
-    protected List<String> history;  // history positions stored in FEN form
+    protected List<BoardHistoryEntry> history;
+
+    protected long zobristHash;  // Zobrist hash; see https://www.chessprogramming.org/Zobrist_Hashing
+    // Invariant: the zobrist hash is up-to-date with the current board state
+    // after the constructor, move(), and undoLastMove()
 
     // When running perft, set this to true. Otherwise, don't touch it!
     public boolean PERFT = false;
@@ -50,10 +57,11 @@ public abstract class Board {
     public Board(String fen) throws MalformedFENException, IllegalBoardException {
         parseFen(fen);
         checkBoardLegality();
-        this.pgn = new PGN(fullMove, whiteToMove, getResult());
-        this.history = new ArrayList<>();
-        this.posFreq = new HashMap<>();
-        posFreq.put(getUnclockedFEN(), 1);
+        pgn = new PGN(fullMove, whiteToMove, getResult());
+        history = new ArrayList<>();
+        posFreq = new HashMap<>();
+        zobristHash = computeZobristHash();
+        posFreq.put(zobristHash, 1);
         updateWinner(false);
     }
 
@@ -61,10 +69,11 @@ public abstract class Board {
         try {
             parseFen(Util.START_POS);
             checkBoardLegality();
-            this.pgn = new PGN(1, true, "*");
-            this.history = new ArrayList<>();
-            this.posFreq = new HashMap<>();
-            posFreq.put(getUnclockedFEN(), 1);
+            pgn = new PGN(1, true, "*");
+            history = new ArrayList<>();
+            posFreq = new HashMap<>();
+            zobristHash = computeZobristHash();
+            posFreq.put(zobristHash, 1);
         } catch (Exception e) {
             assert false;
         }
@@ -74,23 +83,11 @@ public abstract class Board {
         try {
             parseFen(handicap.startPos);
             checkBoardLegality();
-            this.pgn = new PGN(1, true, "*");
-            this.history = new ArrayList<>();
-            this.posFreq = new HashMap<>();
-            posFreq.put(getUnclockedFEN(), 1);
-        } catch (Exception e) {
-            assert false;
-        }
-    }
-
-    public Board(Board other) {
-        try {
-            parseFen(other.toFEN());
-            checkBoardLegality();
-            this.winner = other.winner;
-            this.pgn = new PGN(other.pgn);
-            this.history = new ArrayList<>(other.history);
-            this.posFreq = new HashMap<>(other.posFreq);
+            pgn = new PGN(1, true, "*");
+            history = new ArrayList<>();
+            posFreq = new HashMap<>();
+            zobristHash = computeZobristHash();
+            posFreq.put(zobristHash, 1);
         } catch (Exception e) {
             assert false;
         }
@@ -157,12 +154,15 @@ public abstract class Board {
     }
 
     /**
+     * Requires: curFEN is up to date
+     *
      * @return return the FEN string representing the current board state
      * without the halfMove and fullMove fields
      */
+    @Deprecated
     protected String getUnclockedFEN() {
         // Find index of second-to-last space
-        String fen = this.toFEN();
+        String fen = toFEN();
         int idx = fen.lastIndexOf(' ');
         idx = fen.substring(0, idx).lastIndexOf(' ');
         return fen.substring(0, idx);
@@ -431,23 +431,66 @@ public abstract class Board {
 
     /**
      * Place a piece of pieceType at (row, col)
+     * This method should be overridden by subclasses if they have additional states that need to be updated.
      */
-    protected abstract void setPiece(int row, int col, char pieceType);
+    protected void setPiece(int row, int col, char pieceType) {
+        zobristHash ^= Util.zobrist.PIECE_HASH[pieceType][row * 8 + col];
+    }
 
     /**
      * Remove a piece of pieceType at (row, col)
+     * This method should be overridden by subclasses if they have additional states that need to be updated.
      */
-    protected abstract void removePiece(int row, int col, char pieceType);
+    protected void removePiece(int row, int col, char pieceType) {
+        zobristHash ^= Util.zobrist.PIECE_HASH[pieceType][row * 8 + col];
+    }
+
+    /**
+     * Take a snapshot of the current state and store it in history.
+     * This method should be overridden by subclasses if they have additional states that need to be stored in history.
+     */
+    protected void takeSnapshot() {
+        history.add(new BoardHistoryEntry(whiteCastleK, whiteCastleQ, blackCastleK, blackCastleQ,
+                enPassantWhite, enPassantBlack, halfMove, fullMove, zobristHash));
+    }
+
+    /**
+     * @param piece the piece to get the bitmap of.
+     *              An uppercase letter represents a white piece
+     *              while a lowercase letter represents a black piece.
+     *              Requires: piece is a valid character representing a piece.
+     * @return the bitmap of the given piece,
+     * where the least significant bit represents a1
+     * and the most significant bit represents h8.
+     */
+    public abstract long getBitmap(char piece);
+
+    /**
+     * @param white whether to get the bitmap of white or black.
+     * @return the bitmap of all white pieces if white is true,
+     * or the bitmap of all black pieces if white is false.
+     * the least significant bit represents a1
+     * and the most significant bit represents h8.
+     */
+    public abstract long getBitmap(boolean white);
 
     /**
      * If the move is legal, make the move by updating the board state (including the winner) and return true.
      * Otherwise, return false and don't change the board state.
-     * <p>
-     * Requires: move is of type regular, castling, promotion, or en passant.
      *
      * @return whether the move is legal
      */
     public boolean move(Move move) {
+        return move(move, true);
+    }
+
+    /**
+     * Make a move. If checkLegality is set to false, the caller must guarantee that the move is legal.
+     *
+     * @param checkLegality whether to check that this move is legal
+     * @return whether the move is legal
+     */
+    public boolean move(Move move, boolean checkLegality) {
         // Can simply check if move is in the set of all legal moves,
         // but checking a specific piece would be more efficient.
         int startRow = move.getStartRow();
@@ -456,29 +499,32 @@ public abstract class Board {
         int endCol = move.getEndCol();
         char curPiece = getPieceAt(startRow, startCol);
         char enemyPiece = getPieceAt(endRow, endCol);  // May be 0
-        if (curPiece == 0 || (curPiece <= 'Z' != whiteToMove)) {
-            // Can only move pieces of your color
-            return false;
-        }
-        if (enemyPiece != 0 && ((int) enemyPiece - 'a') * ((int) curPiece - 'a') > 0) {
-            // Can only take enemy pieces
-            return false;
-        }
-        if (!PERFT) {
-            // All moves tried in perft must be legal, since we iterate through all the legal moves
-            Set<Move> pieceLegalMoves = getLegalMoves(startRow, startCol);
-            if (!pieceLegalMoves.contains(move)) {
+
+        if (checkLegality) {
+            if (curPiece == 0 || (curPiece <= 'Z' != whiteToMove)) {
+                // Can only move pieces of your color
+                return false;
+            }
+            if (enemyPiece != 0 && ((int) enemyPiece - 'a') * ((int) curPiece - 'a') > 0) {
+                // Can only take enemy pieces
+                return false;
+            }
+            if (!PERFT) {
+                // All moves tried in perft must be legal, since we iterate through all the legal moves
+                Set<Move> pieceLegalMoves = getLegalMoves(startRow, startCol);
+                if (!pieceLegalMoves.contains(move)) {
+                    return false;
+                }
+            }
+            if (getWinner() != 'u') {
+                // Game already ended
                 return false;
             }
         }
-        if (getWinner() != 'u') {
-            // Game already ended
-            return false;
-        }
 
         // Move must be legal, make the move by changing board state
-        // Take a snapshot of the current state (in FEN form) and put it in history
-        history.add(this.toFEN());
+        // Take a snapshot of the current state and put it in history
+        takeSnapshot();
 
         // For now, we're using a verbose version of the Standard Algebraic Notation for the PGN
         // For every non-pawn move, we include the entire starting square regardless of ambiguity
@@ -613,10 +659,40 @@ public abstract class Board {
         }
         whiteToMove = !whiteToMove;
 
+        // Update Zobrist hash
+        // The Zobrist hash for pieces have already been updated with setPiece and removePiece
+        zobristHash ^= Util.zobrist.SIDE_HASH;
+
+        BoardHistoryEntry lastPos = history.getLast();
+        if (lastPos.whiteCastleK() != whiteCastleK) {
+            zobristHash ^= Util.zobrist.WHITE_CASTLE_K_HASH;
+        }
+        if (lastPos.whiteCastleQ() != whiteCastleQ) {
+            zobristHash ^= Util.zobrist.WHITE_CASTLE_Q_HASH;
+        }
+        if (lastPos.blackCastleK() != blackCastleK) {
+            zobristHash ^= Util.zobrist.BLACK_CASTLE_K_HASH;
+        }
+        if (lastPos.blackCastleQ() != blackCastleQ) {
+            zobristHash ^= Util.zobrist.BLACK_CASTLE_Q_HASH;
+        }
+
+        if (lastPos.enPassantWhite() != '-') {
+            zobristHash ^= Util.zobrist.WHITE_EP_HASH[lastPos.enPassantWhite() - 'a'];
+        }
+        if (enPassantWhite != '-') {
+            zobristHash ^= Util.zobrist.WHITE_EP_HASH[enPassantWhite - 'a'];
+        }
+        if (lastPos.enPassantBlack() != '-') {
+            zobristHash ^= Util.zobrist.BLACK_EP_HASH[lastPos.enPassantBlack() - 'a'];
+        }
+        if (enPassantBlack != '-') {
+            zobristHash ^= Util.zobrist.BLACK_EP_HASH[enPassantBlack - 'a'];
+        }
+
         // Update posFreq
         if (!PERFT) {
-            String unclockedFEN = getUnclockedFEN();
-            posFreq.put(unclockedFEN, posFreq.getOrDefault(unclockedFEN, 0) + 1);
+            posFreq.put(zobristHash, posFreq.getOrDefault(zobristHash, 0) + 1);
         }
 
         boolean changed = updateWinner(true);
@@ -646,6 +722,7 @@ public abstract class Board {
     /**
      * Undo the last move and restore the board to the same state as the one before the move.
      * If the current board state is already the initial state (when the board was loaded), do nothing.
+     * This method should be overridden by subclasses if they have additional states that need to be restored.
      *
      * @return false if the board state is already the initial state, true otherwise.
      */
@@ -653,29 +730,30 @@ public abstract class Board {
         if (history.isEmpty()) {
             return false;
         }
-        String prevFEN = history.removeLast();
+        BoardHistoryEntry lastPos = history.removeLast();
 
         // Update posFreq
         if (!PERFT) {
-            String unclockedFEN = getUnclockedFEN();
-            assert posFreq.containsKey(unclockedFEN) && posFreq.get(unclockedFEN) > 0 :
-                    String.format("unclockedFEN: %s\n posFreq: %s\n", unclockedFEN, posFreq);
-            if (posFreq.get(unclockedFEN) == 1) {
-                posFreq.remove(unclockedFEN);
+            assert posFreq.containsKey(zobristHash) && posFreq.get(zobristHash) > 0 :
+                    "Current position (to be undone) must have frequency at least 1 in posFreq\n" + zobristHash;
+            if (posFreq.get(zobristHash) == 1) {
+                posFreq.remove(zobristHash);
             } else {
-                posFreq.put(unclockedFEN, posFreq.get(unclockedFEN) - 1);
+                posFreq.put(zobristHash, posFreq.get(zobristHash) - 1);
             }
         }
 
-        try {
-            parseFen(prevFEN);
-//            checkBoardLegality();  // Sanity check, TODO: Can be removed after fully tested
-        } catch (MalformedFENException e) {
-            assert false;
-//        } catch (IllegalBoardException e) {
-//            e.printStackTrace();
-//            assert false;
-        }
+        whiteToMove = !whiteToMove;
+        whiteCastleK = lastPos.whiteCastleK();
+        whiteCastleQ = lastPos.whiteCastleQ();
+        blackCastleK = lastPos.blackCastleK();
+        blackCastleQ = lastPos.blackCastleQ();
+        enPassantWhite = lastPos.enPassantWhite();
+        enPassantBlack = lastPos.enPassantBlack();
+        halfMove = lastPos.halfMove();
+        fullMove = lastPos.fullMove();
+        zobristHash = lastPos.zobristHash();
+
         pgn.undoLastMove();
         winner = 'u';
         return true;
@@ -684,7 +762,18 @@ public abstract class Board {
     /**
      * @return the set of legal moves in the current position
      */
-    public abstract Set<Move> getLegalMoves();
+    public Set<Move> getLegalMoves() {
+        return getLegalMoves(false);
+    }
+
+    /**
+     * This method is useful for quiescence search.
+     *
+     * @param capturesOnly whether to only consider captures.
+     * @return if capturesOnly is true, return the set of all legal captures.
+     * Otherwise, return the set of all legal moves in the current position.
+     */
+    public abstract Set<Move> getLegalMoves(boolean capturesOnly);
 
     /**
      * @return the set of legal moves for the piece at position {row, col}.
@@ -692,7 +781,21 @@ public abstract class Board {
      * Requires: There is a piece at {row, col} and the color of the piece is the same
      * as the current player
      */
-    public abstract Set<Move> getLegalMoves(int row, int col);
+    public Set<Move> getLegalMoves(int row, int col) {
+        return getLegalMoves(row, col, false);
+    }
+
+    /**
+     * This method is useful for quiescence search.
+     *
+     * @param capturesOnly whether to only consider captures.
+     * @return if capturesOnly is true, return the set of legal captures for the piece at position {row, col}.
+     * Otherwise, return the set of all legal moves for the piece at position {row, col}.
+     * <p>
+     * Requires: There is a piece at {row, col} and the color of the piece is the same
+     * as the current player
+     */
+    public abstract Set<Move> getLegalMoves(int row, int col, boolean capturesOnly);
 
     /**
      * Only checks whether move is legal or not, does not change the board state.
@@ -739,6 +842,7 @@ public abstract class Board {
 
     /**
      * Check if the game ended and update the winner variable.
+     * Requires: curFEN is up to date.
      *
      * @param incremental true if we only need to consider the last move;
      *                    false if we need to consider the whole game (for threefold repetition)
@@ -775,7 +879,7 @@ public abstract class Board {
 
         // Threefold repetition
         if (incremental) {
-            if (posFreq.get(getUnclockedFEN()) == 3) {
+            if (posFreq.get(zobristHash) == 3) {
                 winner = 'd';
                 return true;
             }
@@ -830,6 +934,49 @@ public abstract class Board {
      * @return the chessboard notation for the square at {row, col}. (for example: a1, e4)
      */
     private String toSquare(int row, int col) {
-        return "" + ('a' + col) + (row + 1);
+        return "" + (char)('a' + col) + (row + 1);
+    }
+
+    /**
+     * @return the Zobrist hash only for piece placement.
+     */
+    protected abstract long computeZobristHashPieces();
+
+    /**
+     * Computes the Zobrist hash of this position from scratch.
+     * move() should not use this method, but rather update the Zobrist hash incrementally.
+     * @return the Zobrist hash
+     */
+    private long computeZobristHash() {
+        long ans = computeZobristHashPieces();
+        if (whiteToMove) {
+            ans ^= Util.zobrist.SIDE_HASH;
+        }
+        if (whiteCastleK) {
+            ans ^= Util.zobrist.WHITE_CASTLE_K_HASH;
+        }
+        if (whiteCastleQ) {
+            ans ^= Util.zobrist.WHITE_CASTLE_Q_HASH;
+        }
+        if (blackCastleK) {
+            ans ^= Util.zobrist.BLACK_CASTLE_K_HASH;
+        }
+        if (blackCastleQ) {
+            ans ^= Util.zobrist.BLACK_CASTLE_Q_HASH;
+        }
+        if (enPassantWhite != '-') {
+            ans ^= Util.zobrist.WHITE_EP_HASH[enPassantWhite - 'a'];
+        }
+        if (enPassantBlack != '-') {
+            ans ^= Util.zobrist.BLACK_EP_HASH[enPassantBlack - 'a'];
+        }
+        return ans;
+    }
+
+    /**
+     * @return the Zobrist hash of the current position
+     */
+    public long getZobristHash() {
+        return zobristHash;
     }
 }

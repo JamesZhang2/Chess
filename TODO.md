@@ -4,9 +4,11 @@
   - [X] Login page
   - [X] Home page
     - [X] Play vs. AI
+      - [ ] Add advanced options with different parameters (like depth for quiescence search)
     - [X] Play vs. Human - Challenge system
   - [ ] Game page
     - [ ] Implement resigning/offer draw in frontend
+    - [ ] Better UX to show last move (print PNG or use colors or both)
   - [X] Update the board after user input while waiting for opponent's response so the game doesn't appear frozen
     - Create two separate endpoints, one for trying a move, the other for polling periodically until the board state is updated. This will require some synchronization if we're storing the games in memory - otherwise there might be data-race issues.
   - [X] Lock the board orientation so it doesn't flip back and forth when two players are playing on the same webpage (or when playing against AI)
@@ -14,13 +16,23 @@
   - [ ] Timer
 - Bitmap Board
   - [ ] Lookup tables for rook and bishop attacks: (square, direction, allPieces bitmap) -> attack bitmap
+  - [X] Implement [Zobrist Hashing](https://www.chessprogramming.org/Zobrist_Hashing)
+    - [X] Compute from scratch
+    - [X] Incrementally update in `move()`
+    - [X] Store in history and restore in `undoLastMove()`
+  - [X] Modify move() to store the state of the previous position so that undoLastMove() can restore the state instead of parsing FEN
 - Minimax
-  - [ ] Alpha-beta pruning
-  - [X] Cache searched positions and their evaluations
+  - [X] Alpha-beta pruning
+  - [X] Transposition tables: Cache searched positions and their evaluations (using FEN is too slow, should use Zobrist hashing instead; with alpha-beta pruning, need to consider whether we computed an upper or lower bound)
+    - [X] Use fixed-size array instead of HashMap to avoid out-of-memory error
   - [ ] Better evaluation function: Piece location, pawn structure, mobility, center control, etc.
-  - [ ] Better search function: Look deeper for forcing moves, promotions, etc.
-  - [ ] Quiet moves at end of search
-  - [ ] Endgame vs. Non-endgame position maps for kings
+    - [X] Piece location
+      - [X] Phases: Endgame vs. Non-endgame
+    - [X] Pawn structure (passed pawns, backward pawns, isolated pawns, doubled pawns, candidate passed pawns)
+      - [ ] Use pawn hash table
+    - [ ] Pattern detection (central pawns blocked, uncastled king blocking rook)
+  - [ ] Better search: Move ordering & iterative deepening: Look deeper for more promising moves (captures, forcing moves, promotions, etc.)
+  - [X] Quiescence search: Only evaluate quiet moves at the end of a search - if there are captures, keep recursing
   - [ ] Simulations to tune hyperparameters
 - Database integration
   - [ ] Research how to connect backend to database (needed for storing user info, opening book, and endgame tablebase)
@@ -29,3 +41,5 @@
 - Endgame tablebase
   - [ ] Create endgame tablebase using dynamic programming
     - [ ] Implement unmove method
+- Stockfish
+  - [ ] Incorporate Stockfish for better benchmarking

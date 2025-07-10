@@ -2,9 +2,9 @@ package model.board;
 
 import model.move.Move;
 import model.Util;
+import model.move.PGN;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 
 /**
@@ -20,11 +20,14 @@ public class BitmapBoard extends Board {
     // Most significant bit represents h8
     long[] bitmaps;  // for example, bitmaps['P'] is the bitmap for the white pawn
 
+    private List<long[]> bitmapsHistory;
+
     /**
      * Create board from FEN
      */
     public BitmapBoard(String fen) throws MalformedFENException, IllegalBoardException {
         super(fen);
+        this.bitmapsHistory = new ArrayList<>();
     }
 
     /**
@@ -32,13 +35,15 @@ public class BitmapBoard extends Board {
      */
     public BitmapBoard() {
         super();
+        this.bitmapsHistory = new ArrayList<>();
     }
 
     /**
      * With handicap
      */
-    public BitmapBoard(Handicap handicap){
+    public BitmapBoard(Handicap handicap) {
         super(handicap);
+        this.bitmapsHistory = new ArrayList<>();
     }
 
     /**
@@ -46,8 +51,19 @@ public class BitmapBoard extends Board {
      * <p>
      * Requires: The other board is legal
      */
-    public BitmapBoard(Board other) {
-        super(other);
+    public BitmapBoard(BitmapBoard other) {
+        try {
+            parseFen(other.toFEN());
+            checkBoardLegality();
+            this.winner = other.winner;
+            this.pgn = new PGN(other.pgn);
+            this.posFreq = new HashMap<>(other.posFreq);
+            this.history = other.history;
+            this.bitmapsHistory = other.bitmapsHistory;
+            this.zobristHash = other.zobristHash;
+        } catch (Exception e) {
+            assert false;
+        }
     }
 
     @Override
@@ -193,14 +209,14 @@ public class BitmapBoard extends Board {
     private long attacks(boolean white) {
         long allPieces = getAllPieces();
         long attacked = 0;
-        for (char pieceType: (white ? Util.WHITE_PIECE_NAMES : Util.BLACK_PIECE_NAMES)) {
+        for (char pieceType : (white ? Util.WHITE_PIECE_NAMES : Util.BLACK_PIECE_NAMES)) {
             attacked |= attacks(bitmaps[pieceType], pieceType, allPieces);
         }
         return attacked;
     }
 
     /**
-     * @param bitmap the bitmap of a certain type of piece
+     * @param bitmap    the bitmap of a certain type of piece
      * @param pieceType the type of piece (case-sensitive to represent white or black)
      * @param allPieces the bitmap for all pieces on the board
      * @return the bitmap of squares that is attacked by the pieces with type pieceType
@@ -216,7 +232,7 @@ public class BitmapBoard extends Board {
     }
 
     /**
-     * @param idx the index of a piece
+     * @param idx       the index of a piece
      * @param pieceType the type of piece (case-sensitive to represent white or black)
      * @param allPieces the bitmap for all pieces on the board
      * @return the bitmap of squares that is attacked by the piece at idx
@@ -266,8 +282,9 @@ public class BitmapBoard extends Board {
 
     /**
      * Get attacks in a specific direction
-     * @param idx index of piece to generate attacks for
-     * @param step the amount to add in each loop iteration; represents the direction
+     *
+     * @param idx       index of piece to generate attacks for
+     * @param step      the amount to add in each loop iteration; represents the direction
      * @param condition condition on the index to stay in the loop
      * @param allPieces the bitmap of all pieces on the board
      * @return the bitmap of attacks of the piece at idx in the direction indicated by step
@@ -318,7 +335,7 @@ public class BitmapBoard extends Board {
     }
 
     @Override
-    public Set<Move> getLegalMoves() {
+    public Set<Move> getLegalMoves(boolean capturesOnly) {
         if (winner != 'u') {
             return new HashSet<>();
         }
@@ -327,46 +344,54 @@ public class BitmapBoard extends Board {
         long enemyAttacks = attacks(!whiteToMove);
         Set<Move> legalMoves = new HashSet<>();
         for (char pieceType : whiteToMove ? Util.WHITE_PIECE_NAMES : Util.BLACK_PIECE_NAMES) {
-            accLegalMoves(bitmaps[pieceType], pieceType, friendly, enemy, enemyAttacks, legalMoves);
+            accLegalMoves(bitmaps[pieceType], pieceType, friendly, enemy, enemyAttacks, legalMoves, capturesOnly);
         }
         return legalMoves;
     }
 
     /**
      * Add the set of legal moves of a certain piece type to legalMoves
-     * @param bitmap the bitmap of the pieceType
-     * @param pieceType the type of piece (case-sensitive to represent white or black)
-     * @param friendly the bitmap of friendly pieces
-     * @param enemy the bitmap of enemy pieces
+     *
+     * @param bitmap       the bitmap of the pieceType
+     * @param pieceType    the type of piece (case-sensitive to represent white or black)
+     * @param friendly     the bitmap of friendly pieces
+     * @param enemy        the bitmap of enemy pieces
      * @param enemyAttacks the bitmap of enemy attacks
-     * @param legalMoves accumulator
+     * @param legalMoves   accumulator
+     * @param capturesOnly whether to only consider captures
      */
     private void accLegalMoves(long bitmap, char pieceType, long friendly, long enemy, long enemyAttacks,
-                               Set<Move> legalMoves) {
+                               Set<Move> legalMoves, boolean capturesOnly) {
         while (bitmap != 0) {
             int ls1b = Util.getLS1BIdx(bitmap);
-            accLegalMoves(ls1b, pieceType, friendly, enemy, enemyAttacks, legalMoves);
+            accLegalMoves(ls1b, pieceType, friendly, enemy, enemyAttacks, legalMoves, capturesOnly);
             bitmap = Util.resetLS1B(bitmap);
         }
     }
 
     /**
      * Add the set of legal moves for the piece at idx to legalMoves.
-     * @param idx the index of the piece
-     * @param pieceType the type of piece (case-sensitive to represent white or black)
-     * @param friendly the bitmap of friendly pieces
-     * @param enemy the bitmap of enemy pieces
+     *
+     * @param idx          the index of the piece
+     * @param pieceType    the type of piece (case-sensitive to represent white or black)
+     * @param friendly     the bitmap of friendly pieces
+     * @param enemy        the bitmap of enemy pieces
      * @param enemyAttacks the bitmap of enemy attacks
-     * @param legalMoves accumulator
-     * <p>
-     * Requires: There is a piece at idx and the color of the piece is the same
-     * as the current player
+     * @param legalMoves   accumulator
+     * @param capturesOnly whether to only consider captures
+     *                     <p>
+     *                     Requires: There is a piece at idx and the color of the piece is the same
+     *                     as the current player
      */
     private void accLegalMoves(int idx, char pieceType, long friendly, long enemy, long enemyAttacks,
-                               Set<Move> legalMoves) {
+                               Set<Move> legalMoves, boolean capturesOnly) {
         assert Util.getBit(bitmaps[pieceType], idx) && (pieceType <= 'Z') == whiteToMove;
         long allPieces = friendly | enemy;
         long attacks = attacks(idx, pieceType, allPieces);  // candidate target squares
+        if (capturesOnly) {
+            // only consider target squares where enemy is present
+            attacks &= enemy;
+        }
         int row = idx / 8;
         int col = idx % 8;
 
@@ -398,18 +423,18 @@ public class BitmapBoard extends Board {
             int advance = whiteToMove ? 1 : -1;
             int enPassantRow = whiteToMove ? 4 : 3;
 
-            if (row != promRow - advance && !Util.getBit(allPieces, row + advance, col)) {
+            if (!capturesOnly && row != promRow - advance && !Util.getBit(allPieces, row + advance, col)) {
                 tryRegularMove(row, col, pieceType, row + advance, col, legalMoves);
             }
             // Pawns on starting position can move two squares
-            if (row == startRow && !Util.getBit(allPieces, row + advance, col)
+            if (!capturesOnly && row == startRow && !Util.getBit(allPieces, row + advance, col)
                     && !Util.getBit(allPieces, row + 2 * advance, col)) {
                 tryRegularMove(row, col, pieceType, row + 2 * advance, col, legalMoves);
             }
             // Promotion - Note that we don't need to specify which piece to promote to
             // because if one of the promotions is legal, then so are all others.
             if (row == promRow - advance) {
-                if (!Util.getBit(allPieces, promRow, col)) {
+                if (!capturesOnly && !Util.getBit(allPieces, promRow, col)) {
                     tryPromotion(row, col, pieceType, row + advance, col, legalMoves);
                 }
                 if (col != 0 && Util.getBit(enemy, promRow, col - 1)) {
@@ -437,6 +462,11 @@ public class BitmapBoard extends Board {
                     }
                 }
             }
+        }
+
+        if (capturesOnly) {
+            // Castling can't be captures
+            return;
         }
 
         // Special rules for king
@@ -481,14 +511,14 @@ public class BitmapBoard extends Board {
     }
 
     @Override
-    public Set<Move> getLegalMoves(int row, int col) {
+    public Set<Move> getLegalMoves(int row, int col, boolean capturesOnly) {
         long friendly = getFriendlyPieces(whiteToMove);
         long enemy = getEnemyPieces(whiteToMove);
         long enemyAttacks = attacks(!whiteToMove);
         char pieceType = getPieceAt(row, col);
         assert pieceType != 0 && (pieceType <= 'Z') == whiteToMove;
         Set<Move> legalMoves = new HashSet<>();
-        accLegalMoves(row * 8 + col, pieceType, friendly, enemy, enemyAttacks, legalMoves);
+        accLegalMoves(row * 8 + col, pieceType, friendly, enemy, enemyAttacks, legalMoves, capturesOnly);
         return legalMoves;
     }
 
@@ -612,7 +642,7 @@ public class BitmapBoard extends Board {
             long bitmap = bitmaps[type];
             while (bitmap != 0) {
                 int idx = Util.getLS1BIdx(bitmap);
-                accLegalMoves(idx, type, friendly, enemy, enemyAttacks, acc);
+                accLegalMoves(idx, type, friendly, enemy, enemyAttacks, acc, false);
                 if (!acc.isEmpty()) {
                     return true;
                 }
@@ -620,6 +650,29 @@ public class BitmapBoard extends Board {
             }
         }
         return false;
+    }
+
+    @Override
+    protected long computeZobristHashPieces() {
+        long ans = 0;
+        for (char p : Util.WHITE_PIECE_NAMES) {
+            long bitmap = bitmaps[p];
+            while (bitmap != 0) {
+                int idx = Util.getLS1BIdx(bitmap);
+                ans ^= Util.zobrist.PIECE_HASH[p][idx];
+                bitmap = Util.resetLS1B(bitmap);
+            }
+        }
+
+        for (char p : Util.BLACK_PIECE_NAMES) {
+            long bitmap = bitmaps[p];
+            while (bitmap != 0) {
+                int idx = Util.getLS1BIdx(bitmap);
+                ans ^= Util.zobrist.PIECE_HASH[p][idx];
+                bitmap = Util.resetLS1B(bitmap);
+            }
+        }
+        return ans;
     }
 
     @Override
@@ -663,11 +716,50 @@ public class BitmapBoard extends Board {
 
     @Override
     protected void setPiece(int row, int col, char pieceType) {
+        super.setPiece(row, col, pieceType);
         bitmaps[pieceType] = Util.setBit(bitmaps[pieceType], row, col);
     }
 
     @Override
     protected void removePiece(int row, int col, char pieceType) {
+        super.removePiece(row, col, pieceType);
         bitmaps[pieceType] = Util.clearBit(bitmaps[pieceType], row, col);
+    }
+
+    @Override
+    public long getBitmap(char piece) {
+        return bitmaps[piece];
+    }
+
+    @Override
+    public long getBitmap(boolean white) {
+        if (white) {
+            return bitmaps['K'] | bitmaps['Q'] | bitmaps['R'] | bitmaps['B'] | bitmaps['N'] | bitmaps['P'];
+        } else {
+            return bitmaps['k'] | bitmaps['q'] | bitmaps['r'] | bitmaps['b'] | bitmaps['n'] | bitmaps['p'];
+        }
+    }
+
+    @Override
+    public boolean undoLastMove() {
+        boolean success = super.undoLastMove();
+        if (!success) {
+            return false;
+        }
+        long[] lastBitmaps = bitmapsHistory.removeLast();
+        bitmaps = lastBitmaps.clone();
+        // TODO: Sanity check, can be removed after fully tested
+//        try {
+//            checkBoardLegality();
+//        } catch (IllegalBoardException e) {
+//            e.printStackTrace();
+//        }
+        return true;
+    }
+
+    @Override
+    public void takeSnapshot() {
+        super.takeSnapshot();
+        bitmapsHistory.add(bitmaps.clone());
     }
 }

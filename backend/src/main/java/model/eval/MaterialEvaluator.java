@@ -3,7 +3,7 @@ package model.eval;
 import model.board.Board;
 
 /**
- * An evaluator based solely on material.
+ * An evaluator for material.
  */
 public class MaterialEvaluator implements Evaluator {
     public static final double PAWN_VALUE = 1.0;
@@ -14,18 +14,10 @@ public class MaterialEvaluator implements Evaluator {
 
     @Override
     public double evaluate(Board board) {
-        if (board.getWinner() == 'w') {
-            return Double.POSITIVE_INFINITY;
-        } else if (board.getWinner() == 'b') {
-            return Double.NEGATIVE_INFINITY;
-        } else if (board.getWinner() == 'd') {
-            return 0;
-        }
-        char[][] pieces = board.getPieces();
         double score = 0;
-        for (char[] row : pieces) {
-            for (char piece : row) {
-                score += getPieceValue(piece);
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                score += getPieceValue(board.getPieceAt(r, c));
             }
         }
         return score;

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -581,10 +582,24 @@ abstract class BoardTest {
         Board board = createBoard();
         assertFalse(board.undoLastMove());
         assertEquals(Util.START_POS, board.toFEN());
+
+        // move, undo, move, undo should lead to the same position
+        board = createBoard();
+        assertTrue(board.move(Util.moveFromSquares("e2", "e4", false, false)));
+        assertTrue(board.undoLastMove());
+        assertEquals(Util.START_POS, board.toFEN());
+        assertTrue(board.move(Util.moveFromSquares("e2", "e4", false, false)));
+        assertTrue(board.undoLastMove());
+        assertEquals(Util.START_POS, board.toFEN());
+        assertTrue(board.move(Util.moveFromSquares("d2", "d4", false, false)));
+        assertTrue(board.undoLastMove());
+        assertEquals(Util.START_POS, board.toFEN());
     }
 
     /**
      * Asserts that the number of legal moves in the position is equal to expected.
+     * Also asserts that the legal captures are the same as
+     * all legal moves filtered by captures.
      */
     private void assertLegalCount(String fen, int expected)
             throws MalformedFENException, IllegalBoardException {
@@ -598,14 +613,22 @@ abstract class BoardTest {
             }
             Collections.sort(sorted);
             System.out.println("All legal moves: " + sorted);
-            System.out.println();
         }
         assertEquals(expected, legalMoves.size(), board.toString());
+
+        Set<Move> legalCaptures = board.getLegalMoves(true);
+        if (printMoves) {
+            System.out.println("All legal captures: " + legalCaptures + "\n");
+        }
+        Set<Move> expectedLegalCaptures = legalMoves.stream().filter(Move::getIsCapture).collect(Collectors.toSet());
+        assertEquals(expectedLegalCaptures, legalCaptures, "Expected legal captures is not the same as actual");
     }
 
     /**
      * Asserts that the number of legal moves in the position
      * for the piece at the given square is equal to expected.
+     * Also asserts that the legal captures are the same as
+     * all legal moves filtered by captures.
      */
     private void assertLegalCount(String fen, String square, int expected)
             throws MalformedFENException, IllegalBoardException {
@@ -620,9 +643,15 @@ abstract class BoardTest {
             }
             Collections.sort(sorted);
             System.out.println("Legal moves for piece at " + square + ": " + sorted);
-            System.out.println();
         }
         assertEquals(expected, legalMoves.size(), board.toString());
+
+        Set<Move> legalCaptures = board.getLegalMoves(coord[0], coord[1], true);
+        Set<Move> expectedLegalCaptures = legalMoves.stream().filter(Move::getIsCapture).collect(Collectors.toSet());
+        if (printMoves) {
+            System.out.println("Legal captures for piece at " + square + ": " + legalCaptures + "\n");
+        }
+        assertEquals(expectedLegalCaptures, legalCaptures, "Expected legal captures is not the same as actual");
     }
 
     @Test
@@ -799,6 +828,10 @@ abstract class BoardTest {
         // En passant mate
         assertLegalCount("rn1q1bkr/pppp2pp/8/4P3/2B5/8/8/4K3 b - - 0 1", 1);
         assertLegalCount("rn1q1bkr/ppp3pp/8/3pP3/2B5/8/8/4K3 w - d6 0 2", 15);
+
+        // Lots of captures
+        assertLegalCount("4k3/r1n1p1p1/1PR2p2/3r1b2/2q1Q1p1/n3N2r/1Bp2nK1/6b1 w - - 0 1", 36);
+        assertLegalCount("5BkN/1P6/2qQ4/3b4/PpR5/2Nr1B2/3R2p1/Kn3n1Q b - a3 0 1", 40);
     }
 
     /**
@@ -908,6 +941,154 @@ abstract class BoardTest {
                 Util.moveFromSquares("h7", "h8", false, false), 'w');
     }
 
+    @Test
+    void testGetBitmap() throws IllegalBoardException, MalformedFENException {
+        Board board = createBoard();
+        assertEquals(0x81L, board.getBitmap('R'));
+        assertEquals(0x42L, board.getBitmap('N'));
+        assertEquals(0x24L, board.getBitmap('B'));
+        assertEquals(0x8L, board.getBitmap('Q'));
+        assertEquals(0x10L, board.getBitmap('K'));
+        assertEquals(0xFF00L, board.getBitmap('P'));
+        assertEquals(0x8100000000000000L, board.getBitmap('r'));
+        assertEquals(0x4200000000000000L, board.getBitmap('n'));
+        assertEquals(0x2400000000000000L, board.getBitmap('b'));
+        assertEquals(0x800000000000000L, board.getBitmap('q'));
+        assertEquals(0x1000000000000000L, board.getBitmap('k'));
+        assertEquals(0xFF000000000000L, board.getBitmap('p'));
+        assertEquals(0xFFFF, board.getBitmap(true));
+        assertEquals(0xFFFF000000000000L, board.getBitmap(false));
+        Board board2 = createBoard("4k1b1/P2p2r1/p7/1NP3qR/2qR1K1R/2N4P/3p1pNQ/b6B w - - 0 1");
+        assertEquals(Util.squareToBitmap("f4"), board2.getBitmap('K'));
+        assertEquals(Util.squareToBitmap("h2"), board2.getBitmap('Q'));
+        assertEquals(Util.squaresToBitmap(new String[]{"d4", "h4", "h5"}), board2.getBitmap('R'));
+        assertEquals(Util.squareToBitmap("h1"), board2.getBitmap('B'));
+        assertEquals(Util.squaresToBitmap(new String[]{"g2", "c3", "b5"}), board2.getBitmap('N'));
+        assertEquals(Util.squaresToBitmap(new String[]{"h3", "c5", "a7"}), board2.getBitmap('P'));
+        assertEquals(Util.squareToBitmap("e8"), board2.getBitmap('k'));
+        assertEquals(Util.squaresToBitmap(new String[]{"c4", "g5"}), board2.getBitmap('q'));
+        assertEquals(Util.squareToBitmap("g7"), board2.getBitmap('r'));
+        assertEquals(Util.squaresToBitmap(new String[]{"a1", "g8"}), board2.getBitmap('b'));
+        assertEquals(0L, board2.getBitmap('n'));
+        assertEquals(Util.squaresToBitmap(new String[]{"d2", "f2", "a6", "d7"}), board2.getBitmap('p'));
+    }
+
+    @Test
+    void testZobristHashes() throws IllegalBoardException, MalformedFENException {
+        // Static: Compute from scratch
+        System.out.println(createBoard().zobristHash);  // check that this is not trivial (like 0 or -1)
+        assertEquals(Util.zobrist.SIDE_HASH ^ Util.zobrist.PIECE_HASH['K'][4] ^ Util.zobrist.PIECE_HASH['k'][60],
+                createBoard("4k3/8/8/8/8/8/8/4K3 w - - 0 1").getZobristHash());
+        assertEquals(Util.zobrist.SIDE_HASH ^ Util.zobrist.PIECE_HASH['K'][0] ^ Util.zobrist.PIECE_HASH['B'][1]
+                        ^ Util.zobrist.PIECE_HASH['R'][2] ^ Util.zobrist.PIECE_HASH['Q'][3] ^ Util.zobrist.PIECE_HASH['N'][5]
+                        ^ Util.zobrist.PIECE_HASH['P'][8] ^ Util.zobrist.PIECE_HASH['k'][16],
+                createBoard("8/8/8/8/8/k7/P7/KBRQ1N2 w - - 0 1").getZobristHash());
+        assertEquals(Util.zobrist.PIECE_HASH['B'][0] ^ Util.zobrist.PIECE_HASH['K'][1]
+                        ^ Util.zobrist.PIECE_HASH['p'][15] ^ Util.zobrist.PIECE_HASH['b'][59] ^ Util.zobrist.PIECE_HASH['n'][60]
+                        ^ Util.zobrist.PIECE_HASH['r'][61] ^ Util.zobrist.PIECE_HASH['q'][62] ^ Util.zobrist.PIECE_HASH['k'][63],
+                createBoard("3bnrqk/8/8/8/8/8/7p/BK6 b - - 0 1").getZobristHash());
+        // Castling
+        assertEquals(Util.zobrist.SIDE_HASH ^ Util.zobrist.PIECE_HASH['R'][0] ^ Util.zobrist.PIECE_HASH['K'][4]
+                        ^ Util.zobrist.PIECE_HASH['R'][7] ^ Util.zobrist.PIECE_HASH['r'][56] ^ Util.zobrist.PIECE_HASH['k'][60]
+                        ^ Util.zobrist.PIECE_HASH['r'][63] ^ Util.zobrist.WHITE_CASTLE_Q_HASH ^ Util.zobrist.BLACK_CASTLE_K_HASH,
+                createBoard("r3k2r/8/8/8/8/8/8/R3K2R w Qk - 0 1").getZobristHash());
+        // En passant
+        assertEquals(Util.zobrist.PIECE_HASH['K'][0] ^ Util.zobrist.PIECE_HASH['k'][63]
+                        ^ Util.zobrist.PIECE_HASH['p'][30] ^ Util.zobrist.PIECE_HASH['P'][31] ^ Util.zobrist.WHITE_EP_HASH[7],
+                createBoard("7k/8/8/8/6pP/8/8/K7 b - h3 0 1").getZobristHash());
+        assertEquals(Util.zobrist.SIDE_HASH ^ Util.zobrist.PIECE_HASH['K'][0] ^ Util.zobrist.PIECE_HASH['k'][63]
+                        ^ Util.zobrist.PIECE_HASH['p'][34] ^ Util.zobrist.PIECE_HASH['P'][35] ^ Util.zobrist.BLACK_EP_HASH[2],
+                createBoard("7k/8/8/2pP4/8/8/8/K7 w - c6 0 2").getZobristHash());
+
+        // Dynamic: Compute incrementally
+        Board board = createBoard();
+        long oldZobrist = board.getZobristHash();
+        board.move(Util.moveFromSquares("e2", "e4", false, false));
+        assertEquals(oldZobrist ^ Util.zobrist.SIDE_HASH ^ Util.zobrist.PIECE_HASH['P'][12]
+                        ^ Util.zobrist.PIECE_HASH['P'][28] ^ Util.zobrist.WHITE_EP_HASH[4],
+                board.getZobristHash());
+
+        assertZobristMatches("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                Util.moveFromSquares("a2", "a4", false, false),
+                "rnbqkbnr/pppppppp/8/8/P7/8/1PPPPPPP/RNBQKBNR b KQkq a3 0 1");
+        assertZobristMatches("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                Util.moveFromSquares("b1", "c3", false, false),
+                "rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR b KQkq - 1 1");
+
+        // Captures
+        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr w - - 0 1",
+                Util.moveFromSquares("g1", "h1", false, true),
+                "kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/7Q b - - 0 1");
+        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr w - - 0 1",
+                Util.moveFromSquares("f5", "d4", false, true),
+                "kb6/2P3n1/8/7p/3N2B1/4RK2/1Nrp2n1/6Qr b - - 0 1");
+        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr w - - 0 1",
+                Util.moveFromSquares("g4", "h5", false, true),
+                "kb6/2P3n1/8/5N1B/3q4/4RK2/1Nrp2n1/6Qr b - - 0 1");
+        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr b - - 0 1",
+                Util.moveFromSquares("h5", "g4", false, true),
+                "kb6/2P3n1/8/5N2/3q2p1/4RK2/1Nrp2n1/6Qr w - - 0 2");
+        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr b - - 0 1",
+                Util.moveFromSquares("d4", "e3", false, true),
+                "kb6/2P3n1/8/5N1p/6B1/4qK2/1Nrp2n1/6Qr w - - 0 2");
+
+        // Promotions
+        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr w - - 0 1",
+                Util.moveFromSquares("c7", "c8", 'N', false),
+                "kbN5/6n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr b - - 0 1");
+        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr w - - 0 1",
+                Util.moveFromSquares("c7", "b8", 'R', true),
+                "kR6/6n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr b - - 0 1");
+        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr b - - 0 1",
+                Util.moveFromSquares("d2", "d1", 'b', false),
+                "kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nr3n1/3b2Qr w - - 0 2");
+        assertZobristMatches("kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr b - - 0 1",
+                Util.moveFromSquares("d2", "d1", 'q', false),
+                "kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nr3n1/3q2Qr w - - 0 2");
+
+
+        // Castling
+        assertZobristMatches("r3k2r/8/8/8/8/8/8/R3K2R w KQq - 0 1",
+                new Move('K'),
+                "r3k2r/8/8/8/8/8/8/R4RK1 b q - 1 1");
+        assertZobristMatches("r3k2r/8/8/8/8/8/8/R4RK1 b q - 1 1",
+                new Move('q'),
+                "2kr3r/8/8/8/8/8/8/R4RK1 w - - 2 2");
+        assertZobristMatches("r3k2r/8/8/8/8/8/8/R3K2R w KQq - 0 1",
+                Util.moveFromSquares("a1", "a8", false, true),
+                "R3k2r/8/8/8/8/8/8/4K2R b K - 0 1");
+
+        // En passant
+        assertZobristMatches("4k3/8/8/8/2p1p3/8/3P4/4K3 w - - 0 1",
+                Util.moveFromSquares("d2", "d4", false, false),
+                "4k3/8/8/8/2pPp3/8/8/4K3 b - d3 0 1");
+        assertZobristMatches("4k3/8/8/8/2pPp3/8/8/4K3 b - d3 0 1",
+                Util.moveFromSquares("c4", "d3", true, true),
+                "4k3/8/8/8/4p3/3p4/8/4K3 w - - 0 2");
+        assertZobristMatches("rnbqkb1r/pppppppp/5n2/3P4/8/2N2N2/PPP1PPPP/R1BQKB1R b KQkq - 0 1",
+                Util.moveFromSquares("e7", "e5", false, false),
+                "rnbqkb1r/pppp1ppp/5n2/3Pp3/8/2N2N2/PPP1PPPP/R1BQKB1R w KQkq e6 0 2");
+        assertZobristMatches("rnbqkb1r/pppp1ppp/5n2/3Pp3/8/2N2N2/PPP1PPPP/R1BQKB1R w KQkq e6 0 2",
+                Util.moveFromSquares("d5", "e6", true, true),
+                "rnbqkb1r/pppp1ppp/4Pn2/8/8/2N2N2/PPP1PPPP/R1BQKB1R b KQkq - 0 2");
+    }
+
+    /**
+     * Make a move from startFen and assert that the Zobrist hash of the result
+     * is the same as the Zobrist hash of endFen.
+     * Also, undo the last move and assert that the Zobrist hash of the result
+     * is the same as the Zobrist hash of the original.
+     */
+    private void assertZobristMatches(String startFen, Move move, String endFen) throws IllegalBoardException, MalformedFENException {
+        Board board = createBoard(startFen);
+        long oldZobrist = board.getZobristHash();
+        board.move(move);
+        Board endBoard = createBoard(endFen);
+        assertEquals(endBoard.getZobristHash(), board.getZobristHash());
+        board.undoLastMove();
+        assertEquals(oldZobrist, board.getZobristHash());
+    }
+
     private void perft(String perftStr) throws IllegalBoardException, MalformedFENException {
         int last = perftStr.lastIndexOf(' ');
         int secondToLast = perftStr.substring(0, last).lastIndexOf(' ');
@@ -944,7 +1125,7 @@ abstract class BoardTest {
             count = board.getLegalMoves().size();
         } else {
             for (Move move : board.getLegalMoves()) {
-                board.move(move);
+                board.move(move, false);
                 count += countLeafPos(board, depth - 1, memo);
                 board.undoLastMove();
             }

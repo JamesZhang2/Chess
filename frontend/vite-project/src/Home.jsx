@@ -139,6 +139,7 @@ function Home({ username }) {
                         <button id="random-ai-btn" className={aiType === "RandomAIPlayer" ? "pressed" : ""} onClick={() => setAIType("RandomAIPlayer")}>Random</button>
                         <button id="minimax-1-ai-btn" className={aiType === "MinimaxAIPlayer-1" ? "pressed" : ""} onClick={() => setAIType("MinimaxAIPlayer-1")}>Minimax Depth 1</button>
                         <button id="minimax-3-ai-btn" className={aiType === "MinimaxAIPlayer-3" ? "pressed" : ""} onClick={() => setAIType("MinimaxAIPlayer-3")}>Minimax Depth 3</button>
+                        <button id="minimax-5-ai-btn" className={aiType === "MinimaxAIPlayer-4" ? "pressed" : ""} onClick={() => setAIType("MinimaxAIPlayer-4")}>Minimax Depth 4</button>
                     </div>
                 </div>
 

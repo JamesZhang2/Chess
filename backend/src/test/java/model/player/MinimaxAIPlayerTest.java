@@ -1,19 +1,42 @@
 package model.player;
 
 import model.Util;
-import model.board.BitmapBoard;
-import model.board.Board;
-import model.board.IllegalBoardException;
-import model.board.MalformedFENException;
+import model.board.*;
 import model.eval.Evaluator;
 import model.eval.MaterialEvaluator;
 import model.eval.TrivialEvaluator;
+import model.eval.WeightedEvaluator;
 import model.move.Move;
 import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class MinimaxAIPlayerTest {
+    /**
+     * Positions to test evaluations.
+     */
+    public final String[] EVAL_TEST_POSITIONS = {
+            Util.START_POS,
+            Handicap.WHITE_QUEEN.startPos,
+            Handicap.BLACK_G_KNIGHT.startPos,
+            "r1bqkb1r/pppp1ppp/2n2n2/4p3/4P3/2N2N2/PPPP1PPP/R1BQKB1R w KQkq - 0 1",
+            "8/8/4k3/7Q/4K3/8/8/8 w - - 0 1",
+            "8/8/6k1/8/6K1/8/6p1/6N1 w - - 0 1",
+            "r1bqkb1r/pppp1pPp/2n5/8/4P3/2P2N2/PP3PPP/RNBQKB1R w KQkq - 0 1",
+            "5rk1/5ppp/8/8/8/8/5PPP/q4RK1 w - - 0 1",
+            "1k3q1b/6P1/8/8/8/8/8/1K6 w - - 0 1",
+            "1k3b1q/6P1/8/8/8/8/8/1K6 w - - 0 1",
+            "7k/8/8/8/8/8/7n/6rK w - - 0 1",
+            "7k/8/8/8/8/8/6n1/5rK1 w - - 0 1",
+            "r3k2r/8/8/8/8/8/8/R3K2R w KQq - 0 1",
+            "kb6/2P3n1/8/5N1p/3q2B1/4RK2/1Nrp2n1/6Qr w - - 0 1"
+    };
+
     @Test
     void mateIn1() throws IllegalBoardException, MalformedFENException {
         // Based on the spec for Evaluator.evaluate,
@@ -21,15 +44,15 @@ class MinimaxAIPlayerTest {
         // as long as the implementation of the evaluator is correct!
         Evaluator[] evaluators = {
                 new TrivialEvaluator(),
-                new MaterialEvaluator()
-                // add more evaluators here...
+                new WeightedEvaluator()
         };
         String[] whiteM1 = {
                 "6k1/1q3ppp/8/8/8/8/8/3R2K1 w - - 0 1",
                 "q3k3/4p3/4P3/4K1R1/8/8/8/8 w - - 0 1",
                 "8/8/8/8/1B6/8/2K5/k1N5 w - - 0 1",
                 "8/3R4/6pk/8/6PK/8/8/8 w - - 0 1",
-                "8/8/pppppppK/NBBR1NRp/nbbrqnrP/PPPPPPPk/8/Q7 w - - 0 1", // https://www.stmintz.com/ccc/index.php?id=123825
+                // Quiescence on the following test case will take a very long time - need to implement move ordering
+                "8/8/pppppppK/NBBR1NRp/nbbrqnrP/PPPPPPPk/8/Q7 w - - 0 1", // https://www.stmintz.com/ccc/index.php?id=123825S
                 "n7/k1PK4/p7/8/8/8/8/1R6 w - - 0 1",
                 "n1q5/k2PK3/r7/8/8/8/8/1R6 w - - 0 1",
                 "4q1kq/6p1/6K1/4R3/8/8/8/8 w - - 0 1"
@@ -127,5 +150,139 @@ class MinimaxAIPlayerTest {
 //                System.out.printf("Player with depth %d Finished Puzzle %d\n", depth, i);
             }
         }
+    }
+
+    /**
+     * Ask the Minimax AI player with the given parameters to compute the best eval and move
+     * for the test positions, and prints information about runtime.
+     * depth will be from 1 to maxDepth, inclusive.
+     *
+     * @return a list of depth -> (fen, evalMovePair) maps; can be used to compare with the results
+     * of the runs with different parameters.
+     */
+    private List<Map<String, EvalMovePair>> runEvalTests(Evaluator evaluator, int maxDepth,
+                                                         boolean enablePruning, boolean enableQuiesce, boolean enableTpnTable,
+                                                         int quiesceMaxDepth)
+            throws IllegalBoardException, MalformedFENException {
+        List<Map<String, EvalMovePair>> results = new ArrayList<>();  // depth -> (fen, eval)
+        results.add(new HashMap<>());  // for depth 0, which is unused
+        if (enableQuiesce) {
+            System.out.printf("Pruning: %b, Quiesce: %b (max depth %d), TpnTable: %b\n", enablePruning, enableQuiesce, quiesceMaxDepth, enableTpnTable);
+        } else {
+            System.out.printf("Pruning: %b, Quiesce: %b, TpnTable: %b\n", enablePruning, enableQuiesce, enableTpnTable);
+        }
+        for (int depth = 1; depth <= maxDepth; depth++) {
+            results.add(new HashMap<>());
+            System.out.println("Running on depth " + depth);
+            long startTime = System.nanoTime();
+            MinimaxAIPlayer player = new MinimaxAIPlayer(true, evaluator, depth, enablePruning, enableQuiesce, enableTpnTable, quiesceMaxDepth, 0);
+            for (String position : EVAL_TEST_POSITIONS) {
+                Board board = new BitmapBoard(position);
+                EvalMovePair pair = player.getBestEvalMove(board);
+                results.get(depth).put(position, pair);
+            }
+            long endTime = System.nanoTime();
+            System.out.println("Time spent on depth " + depth + ": " + (endTime - startTime) / 1.0e6 + " ms");
+            if (enableTpnTable) {
+                System.out.printf("Tpn table stats: exact hits: %d, lower bound hits: %d, upper bound hits: %d\n",
+                        player.getExactHits(), player.getLowerBoundHits(), player.getUpperBoundHits());
+            }
+        }
+        return results;
+    }
+
+    /**
+     * Tests that Minimax with or without alpha-beta pruning gives the same answer
+     */
+    @Test
+    void testPruning() throws IllegalBoardException, MalformedFENException {
+        List<Map<String, EvalMovePair>> results000 = runEvalTests(new WeightedEvaluator(), 4, false, false, false, 0);
+        System.out.println();
+        List<Map<String, EvalMovePair>> results100 = runEvalTests(new WeightedEvaluator(), 5, true, false, false, 0);
+        System.out.println();
+
+        for (int depth = 1; depth <= 4; depth++) {
+            System.out.println("Testing equality of results 000 and results100 for depth " + depth);
+            for (String fen : results000.get(depth).keySet()) {
+                assertEquals(results000.get(depth).get(fen).eval(),
+                        results100.get(depth).get(fen).eval(),
+                        String.format("Mismatch on depth %d, fen %s: no pruning gives %s while pruning gives %s",
+                                depth, fen, results000.get(depth).get(fen), results100.get(depth).get(fen)));
+            }
+        }
+    }
+
+    @Test
+    void testQuiescence() throws IllegalBoardException, MalformedFENException {
+        Evaluator evaluator = new MaterialEvaluator();
+        Board board = new BitmapBoard("4k3/8/6p1/5b2/8/8/5Q2/4K3 w - - 0 1");
+        // In this position, without quiescence search, Qxf5 would seem like a good idea at the horizon (depth 1).
+        // However, with quiescence search, it's a terrible idea since black can capture back.
+
+        MinimaxAIPlayer noQuiesce = new MinimaxAIPlayer(true, evaluator, 1, false, false, false, 0, 0);
+        MinimaxAIPlayer withQuiesce = new MinimaxAIPlayer(true, evaluator, 1, false, true, false, 30, 0);
+        System.out.println("Without quiescence search: " + noQuiesce.getBestEvalMove(board));
+        System.out.println("With quiescence search: " + withQuiesce.getBestEvalMove(board));
+        assertEquals(Util.moveFromSquares("f2", "f5", false, true), noQuiesce.getBestEvalMove(board).move());
+        assertNotEquals(Util.moveFromSquares("f2", "f5", false, true), withQuiesce.getBestEvalMove(board).move());
+    }
+
+    /**
+     * Tests the performance hit after enabling quiescence search
+     */
+    @Test
+    void testQuiescencePerformance() throws IllegalBoardException, MalformedFENException {
+        List<Map<String, EvalMovePair>> results0 = runEvalTests(new WeightedEvaluator(), 4, true, false, false, 0);
+        System.out.println();
+        List<Map<String, EvalMovePair>> results3 = runEvalTests(new WeightedEvaluator(), 4, true, true, false, 3);
+        System.out.println();
+        List<Map<String, EvalMovePair>> results5 = runEvalTests(new WeightedEvaluator(), 4, true, true, false, 5);
+        System.out.println();
+        List<Map<String, EvalMovePair>> results10 = runEvalTests(new WeightedEvaluator(), 4, true, true, false, 10);
+        System.out.println();
+        List<Map<String, EvalMovePair>> results30 = runEvalTests(new WeightedEvaluator(), 4, true, true, false, 30);
+    }
+
+    /**
+     * Tests that a Minimax player with or without transposition tables give the same answer (for exact).
+     * For pruning, they might give different answers since the tpn table entry may have a different bound
+     * than the bound we get from searching the tree.
+     */
+    @Test
+    void testTpnTable() throws IllegalBoardException, MalformedFENException {
+        List<Map<String, EvalMovePair>> results000 = runEvalTests(new WeightedEvaluator(), 4, false, false, false, 0);
+        System.out.println();
+        List<Map<String, EvalMovePair>> results001 = runEvalTests(new WeightedEvaluator(), 4, false, false, true, 0);
+        System.out.println();
+
+        for (int depth = 1; depth <= 4; depth++) {
+            System.out.println("Testing equality of results000 and results001 for depth " + depth);
+            for (String fen : results000.get(depth).keySet()) {
+                assertEquals(results001.get(depth).get(fen).eval(),
+                        results000.get(depth).get(fen).eval(),
+                        String.format("Mismatch on depth %d, fen %s: no tpn table gives %s while using tpn table gives %s",
+                                depth, fen, results000.get(depth).get(fen), results001.get(depth).get(fen)));
+            }
+        }
+        System.out.println();
+
+        List<Map<String, EvalMovePair>> results100 = runEvalTests(new WeightedEvaluator(), 5, true, false, false, 0);
+        System.out.println();
+        List<Map<String, EvalMovePair>> results101 = runEvalTests(new WeightedEvaluator(), 5, true, false, true, 0);
+        System.out.println();
+
+        List<Map<String, EvalMovePair>> results110 = runEvalTests(new WeightedEvaluator(), 4, true, true, false, 30);
+        System.out.println();
+        List<Map<String, EvalMovePair>> results111 = runEvalTests(new WeightedEvaluator(), 4, true, true, true, 30);
+    }
+
+    /**
+     * Temporary test on some positions with different settings
+     */
+    @Test
+    void tempTest() throws IllegalBoardException, MalformedFENException {
+        MinimaxAIPlayer player = new MinimaxAIPlayer(true, new WeightedEvaluator(), 1, true, true, true, 10, 2);
+        Board board = new BitmapBoard("rnbqkbnr/pppppppp/8/8/4P3/4P3/PPP1P1PP/RNBQKBNR w KQkq - 0 1");
+        player.getBestEvalMove(board);
     }
 }

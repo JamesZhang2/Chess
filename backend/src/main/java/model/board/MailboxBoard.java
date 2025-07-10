@@ -2,6 +2,7 @@ package model.board;
 
 import model.move.Move;
 import model.Util;
+import model.move.PGN;
 
 import java.util.*;
 
@@ -11,13 +12,17 @@ import java.util.*;
  * The word "Mailbox" comes from <a href="https://www.chessprogramming.org/Mailbox">chess programming wiki</a>.
  */
 public class MailboxBoard extends Board {
+    // pieces[0][0] is the piece at a1; pieces[7][0] is the piece at a8
     private char[][] pieces;  // capital letter for white, lower-case letter for black, 0 for empty
+
+    private List<char[][]> piecesHistory;
 
     /**
      * Create board from FEN
      */
     public MailboxBoard(String fen) throws MalformedFENException, IllegalBoardException {
         super(fen);
+        this.piecesHistory = new ArrayList<>();
     }
 
     /**
@@ -25,13 +30,15 @@ public class MailboxBoard extends Board {
      */
     public MailboxBoard() {
         super();
+        this.piecesHistory = new ArrayList<>();
     }
 
     /**
      * With handicap
      */
-    public MailboxBoard(Handicap handicap){
+    public MailboxBoard(Handicap handicap) {
         super(handicap);
+        this.piecesHistory = new ArrayList<>();
     }
 
     /**
@@ -39,8 +46,19 @@ public class MailboxBoard extends Board {
      * <p>
      * Requires: The other board is legal
      */
-    public MailboxBoard(Board other) {
-        super(other);
+    public MailboxBoard(MailboxBoard other) {
+        try {
+            parseFen(other.toFEN());
+            checkBoardLegality();
+            this.winner = other.winner;
+            this.pgn = new PGN(other.pgn);
+            this.posFreq = new HashMap<>(other.posFreq);
+            this.history = other.history;
+            this.piecesHistory = other.piecesHistory;
+            this.zobristHash = other.zobristHash;
+        } catch (Exception e) {
+            assert false;
+        }
     }
 
     @Override
@@ -269,24 +287,23 @@ public class MailboxBoard extends Board {
     }
 
     @Override
-    public Set<Move> getLegalMoves() {
+    public Set<Move> getLegalMoves(boolean capturesOnly) {
         if (winner != 'u') {
             return new HashSet<>();
         }
         Set<Move> legalMoves = new HashSet<>();
         for (List<Integer> coord : getPieceCoords(whiteToMove)) {
-            legalMoves.addAll(getLegalMoves(coord.get(0), coord.get(1)));
+            legalMoves.addAll(getLegalMoves(coord.get(0), coord.get(1), capturesOnly));
         }
         return legalMoves;
     }
 
     @Override
-    public Set<Move> getLegalMoves(int row, int col) {
+    public Set<Move> getLegalMoves(int row, int col, boolean capturesOnly) {
         Set<Move> legalMoves = new HashSet<>();
         assert pieces[row][col] != 0 && (pieces[row][col] <= 'Z') == whiteToMove;
         Set<List<Integer>> candidates = attacks(row, col);
         char pieceTypeUpper = Character.toUpperCase(pieces[row][col]);
-
         for (List<Integer> target : candidates) {
             int endRow = target.get(0);
             int endCol = target.get(1);
@@ -294,6 +311,9 @@ public class MailboxBoard extends Board {
                 // Can't capture your own piece
                 continue;
             }
+            // already checked that the destination is not our own piece,
+            // so if there is a piece it must be a regular capture (not en passant)
+            boolean isCapture = pieces[endRow][endCol] != 0;
             if (pieceTypeUpper == 'P') {
                 // Pawns can only capture diagonally (which is what they attack)
                 // so if there isn't a piece diagonal to the pawn, it's not a legal move
@@ -302,7 +322,9 @@ public class MailboxBoard extends Board {
                     continue;
                 }
             }
-            tryRegularMove(row, col, endRow, endCol, legalMoves);
+            if (!capturesOnly || isCapture) {
+                tryRegularMove(row, col, endRow, endCol, legalMoves);
+            }
         }
 
         // Special rules for pawn
@@ -313,23 +335,26 @@ public class MailboxBoard extends Board {
             int advance = whiteToMove ? 1 : -1;
             int enPassantRow = whiteToMove ? 4 : 3;
 
-            if (row != promRow - advance && pieces[row + advance][col] == 0) {
+            if (!capturesOnly && row != promRow - advance && pieces[row + advance][col] == 0) {
                 tryRegularMove(row, col, row + advance, col, legalMoves);
             }
             // Pawns on starting position can move two squares
-            if (row == startRow && pieces[row + advance][col] == 0 && pieces[row + 2 * advance][col] == 0) {
+            if (!capturesOnly && row == startRow && pieces[row + advance][col] == 0 && pieces[row + 2 * advance][col] == 0) {
                 tryRegularMove(row, col, row + 2 * advance, col, legalMoves);
             }
             // Promotion - Note that we don't need to specify which piece to promote to
             // because if one of the promotions is legal, then so are all others.
             if (row == promRow - advance) {
-                if (pieces[promRow][col] == 0) {
+                if (!capturesOnly && pieces[promRow][col] == 0) {
+                    // promotion without capture
                     tryPromotion(row, col, row + advance, col, legalMoves);
                 }
                 if (col != 0 && pieces[promRow][col - 1] != 0 && pieces[promRow][col - 1] <= 'Z' != whiteToMove) {
+                    // promotion with capture
                     tryPromotion(row, col, row + advance, col - 1, legalMoves);
                 }
                 if (col != 7 && pieces[promRow][col + 1] != 0 && pieces[promRow][col + 1] <= 'Z' != whiteToMove) {
+                    // promotion with capture
                     tryPromotion(row, col, row + advance, col + 1, legalMoves);
                 }
             }
@@ -352,6 +377,11 @@ public class MailboxBoard extends Board {
                     }
                 }
             }
+        }
+
+        if (capturesOnly) {
+            // Castling can't be captures
+            return legalMoves;
         }
 
         // Special rules for king
@@ -559,6 +589,19 @@ public class MailboxBoard extends Board {
     }
 
     @Override
+    protected long computeZobristHashPieces() {
+        long ans = 0;
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                if (pieces[r][c] != 0) {
+                    ans ^= Util.zobrist.PIECE_HASH[pieces[r][c]][r * 8 + c];
+                }
+            }
+        }
+        return ans;
+    }
+
+    @Override
     protected boolean insufficientMaterial() {
         Set<List<Integer>> whitePieces = getPieceCoords(true);
         Set<List<Integer>> blackPieces = getPieceCoords(false);
@@ -604,11 +647,68 @@ public class MailboxBoard extends Board {
 
     @Override
     protected void setPiece(int row, int col, char pieceType) {
+        super.setPiece(row, col, pieceType);
         pieces[row][col] = pieceType;
     }
 
     @Override
     protected void removePiece(int row, int col, char pieceType) {
+        super.removePiece(row, col, pieceType);
         pieces[row][col] = 0;
+    }
+
+    @Override
+    public long getBitmap(char piece) {
+        long ans = 0;
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                if (pieces[r][c] == piece) {
+                    ans += (1L << (8 * r + c));
+                }
+            }
+        }
+        return ans;
+    }
+
+    @Override
+    public long getBitmap(boolean white) {
+        long ans = 0;
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                if (pieces[r][c] != 0 && (Character.isUpperCase(pieces[r][c]) == white)) {
+                    ans += (1L << (8 * r + c));
+                }
+            }
+        }
+        return ans;
+    }
+
+    @Override
+    public boolean undoLastMove() {
+        boolean success = super.undoLastMove();
+        if (!success) {
+            return false;
+        }
+        char[][] lastPieces = piecesHistory.removeLast();
+        for (int r = 0; r < 8; r++) {
+            pieces[r] = lastPieces[r].clone();
+        }
+        // TODO: Sanity check, can be removed after fully tested
+//        try {
+//            checkBoardLegality();
+//        } catch (IllegalBoardException e) {
+//            e.printStackTrace();
+//        }
+        return true;
+    }
+
+    @Override
+    public void takeSnapshot() {
+        super.takeSnapshot();
+        char[][] piecesCopy = new char[8][8];
+        for (int r = 0; r < 8; r++) {
+            piecesCopy[r] = pieces[r].clone();
+        }
+        piecesHistory.add(piecesCopy);
     }
 }
