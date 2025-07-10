@@ -21,8 +21,8 @@ public class MinimaxAIPlayer extends Player {
     // when one of them can potentially be much worse than the returned eval.
 
     // Maps Zobrist keys to transposition table entries
-    private final Map<Long, TpnTableEntry> regularTpnTable;  // transposition table for regular moves
-    private final Map<Long, TpnTableEntry> quiesceTpnTable;  // transposition table for quiescence (captures only)
+    private final TpnTable regularTpnTable;  // transposition table for regular moves
+    private final TpnTable quiesceTpnTable;  // transposition table for quiescence (captures only)
 
     // Whether to enable alpha-beta pruning. Usually it's always true. Can be set to false when debugging or testing.
     // Reference: https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning
@@ -64,8 +64,13 @@ public class MinimaxAIPlayer extends Player {
         this.ENABLE_PRUNING = enablePruning;
         this.ENABLE_QUIESCE = enableQuiesce;
         this.ENABLE_TPN_TABLE = enableTpnTable;
-        this.regularTpnTable = new HashMap<>();
-        this.quiesceTpnTable = new HashMap<>();
+        if (enableTpnTable) {
+            this.regularTpnTable = new TpnTable(5_000_000);
+            this.quiesceTpnTable = new TpnTable(5_000_000);
+        } else {
+            this.regularTpnTable = null;
+            this.quiesceTpnTable = null;
+        }
         this.QUIESCE_MAX_DEPTH = quiesceMaxDepth;
     }
 
@@ -136,7 +141,7 @@ public class MinimaxAIPlayer extends Player {
         }
 
         // which transposition table to use
-        Map<Long, TpnTableEntry> tpnTable = capturesOnly ? quiesceTpnTable : regularTpnTable;
+        TpnTable tpnTable = capturesOnly ? quiesceTpnTable : regularTpnTable;
 
         long zobristHash = board.getZobristHash();
         if (ENABLE_TPN_TABLE) {
@@ -166,7 +171,7 @@ public class MinimaxAIPlayer extends Player {
                 // so they won't go down this entire branch.
                 if (ENABLE_TPN_TABLE) {
                     tpnTable.put(zobristHash,
-                            new TpnTableEntry(zobristHash, TpnTableEntry.Type.LOWER_BOUND, maxEval, depth, null));
+                            new TpnTable.Entry(zobristHash, TpnTable.Entry.Type.LOWER_BOUND, maxEval, depth, null));
                 }
                 return maxEval;
             }
@@ -189,7 +194,7 @@ public class MinimaxAIPlayer extends Player {
                 if (ENABLE_PRUNING && eval > beta + EPSILON) {
                     if (ENABLE_TPN_TABLE) {
                         tpnTable.put(zobristHash,
-                                new TpnTableEntry(zobristHash, TpnTableEntry.Type.LOWER_BOUND, eval, depth, null));
+                                new TpnTable.Entry(zobristHash, TpnTable.Entry.Type.LOWER_BOUND, eval, depth, null));
                     }
                     return eval;
                 }
@@ -197,7 +202,7 @@ public class MinimaxAIPlayer extends Player {
             }
             if (ENABLE_TPN_TABLE) {
                 tpnTable.put(zobristHash,
-                        new TpnTableEntry(zobristHash, TpnTableEntry.Type.EXACT, maxEval, depth, bestMove));
+                        new TpnTable.Entry(zobristHash, TpnTable.Entry.Type.EXACT, maxEval, depth, bestMove));
             }
             return maxEval;
         } else {
@@ -208,7 +213,7 @@ public class MinimaxAIPlayer extends Player {
                 // so they won't go down this entire branch.
                 if (ENABLE_TPN_TABLE) {
                     tpnTable.put(zobristHash,
-                            new TpnTableEntry(zobristHash, TpnTableEntry.Type.UPPER_BOUND, minEval, depth, null));
+                            new TpnTable.Entry(zobristHash, TpnTable.Entry.Type.UPPER_BOUND, minEval, depth, null));
                 }
                 return minEval;
             }
@@ -230,7 +235,7 @@ public class MinimaxAIPlayer extends Player {
                 if (ENABLE_PRUNING && eval < alpha - EPSILON) {
                     if (ENABLE_TPN_TABLE) {
                         tpnTable.put(zobristHash,
-                                new TpnTableEntry(zobristHash, TpnTableEntry.Type.UPPER_BOUND, eval, depth, null));
+                                new TpnTable.Entry(zobristHash, TpnTable.Entry.Type.UPPER_BOUND, eval, depth, null));
                     }
                     return eval;
                 }
@@ -238,7 +243,7 @@ public class MinimaxAIPlayer extends Player {
             }
             if (ENABLE_TPN_TABLE) {
                 tpnTable.put(zobristHash,
-                        new TpnTableEntry(zobristHash, TpnTableEntry.Type.EXACT, minEval, depth, bestMove));
+                        new TpnTable.Entry(zobristHash, TpnTable.Entry.Type.EXACT, minEval, depth, bestMove));
             }
             return minEval;
         }
@@ -248,18 +253,18 @@ public class MinimaxAIPlayer extends Player {
      * @param tpnTable the transposition table to use
      * @return the eval from the transposition table if it can be used; otherwise return null
      */
-    private Double evalFromTpnTable(Map<Long, TpnTableEntry> tpnTable, long zobristHash, int depth, double alpha, double beta, boolean maximizing) {
-        if (tpnTable.containsKey(zobristHash)) {
-            TpnTableEntry entry = tpnTable.get(zobristHash);
+    private Double evalFromTpnTable(TpnTable tpnTable, long zobristHash, int depth, double alpha, double beta, boolean maximizing) {
+        TpnTable.Entry entry = tpnTable.get(zobristHash);
+        if (entry != null) {
             if (entry.depth() >= depth) {
-                if (entry.type() == TpnTableEntry.Type.EXACT) {
+                if (entry.type() == TpnTable.Entry.Type.EXACT) {
                     exactHits++;
                     return entry.eval();
-                } else if (ENABLE_PRUNING && entry.type() == TpnTableEntry.Type.LOWER_BOUND
+                } else if (ENABLE_PRUNING && entry.type() == TpnTable.Entry.Type.LOWER_BOUND
                         && maximizing && entry.eval() > beta + EPSILON) {
                     lowerBoundHits++;
                     return entry.eval();
-                } else if (ENABLE_PRUNING && entry.type() == TpnTableEntry.Type.UPPER_BOUND
+                } else if (ENABLE_PRUNING && entry.type() == TpnTable.Entry.Type.UPPER_BOUND
                         && !maximizing && entry.eval() < alpha - EPSILON) {
                     upperBoundHits++;
                     return entry.eval();
