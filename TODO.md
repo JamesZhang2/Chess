@@ -24,6 +24,7 @@
 - Minimax
   - [X] Alpha-beta pruning
   - [X] Transposition tables: Cache searched positions and their evaluations (using FEN is too slow, should use Zobrist hashing instead; with alpha-beta pruning, need to consider whether we computed an upper or lower bound)
+    - [X] Use fixed-size array instead of HashMap to avoid out-of-memory error
   - [ ] Better evaluation function: Piece location, pawn structure, mobility, center control, etc.
     - [X] Piece location
       - [X] Phases: Endgame vs. Non-endgame
