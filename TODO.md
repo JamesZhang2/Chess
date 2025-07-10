@@ -27,7 +27,7 @@
   - [ ] Better evaluation function: Piece location, pawn structure, mobility, center control, etc.
     - [X] Piece location
       - [X] Phases: Endgame vs. Non-endgame
-    - [ ] Pawn structure (passed pawns, backward pawns, isolated pawns, doubled pawns, candidate passed pawns)
+    - [X] Pawn structure (passed pawns, backward pawns, isolated pawns, doubled pawns, candidate passed pawns)
       - [ ] Use pawn hash table
     - [ ] Pattern detection (central pawns blocked, uncastled king blocking rook)
   - [ ] Better search: Move ordering & iterative deepening: Look deeper for more promising moves (captures, forcing moves, promotions, etc.)
@@ -40,3 +40,5 @@
 - Endgame tablebase
   - [ ] Create endgame tablebase using dynamic programming
     - [ ] Implement unmove method
+- Stockfish
+  - [ ] Incorporate Stockfish for better benchmarking
