@@ -258,6 +258,9 @@ public class AppController {
             } else {
                 System.out.println("Illegal");
             }
+            if (gameController.getWinner() != 'u') {
+                System.out.println(gameController.getPGN());
+            }
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
     }
@@ -277,6 +280,9 @@ public class AppController {
         synchronized (gameController) {
             OpponentMoveResponse response = gameController.playOneMove();
             System.out.println("Current board state: " + response.fen());
+            if (gameController.getWinner() != 'u') {
+                System.out.println(gameController.getPGN());
+            }
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
     }

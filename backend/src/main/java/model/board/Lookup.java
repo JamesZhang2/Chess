@@ -8,6 +8,9 @@ import model.Util;
  * (with a small tradeoff in memory).
  */
 public class Lookup {
+    public static final int PAWN_MIN_IDX = 8;  // minimum index that a pawn can be at
+    public static final int PAWN_MAX_IDX = 55;  // maximum index that a pawn can be at
+
     public static final long[] WHITE_PAWN_ATTACK = {
             0x0000000000000000L,
             0x0000000000000000L,
@@ -276,13 +279,355 @@ public class Lookup {
             0x40C0000000000000L,
     };
 
+    // A white pawn at index idx is a doubled pawn
+    // if (bitmap of white pawns & WHITE_DOUBLED_PAWN_MASK[idx]) is nonzero
+    public static final long[] WHITE_DOUBLED_PAWN_MASK = {
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0001010101010000L,
+            0x0002020202020000L,
+            0x0004040404040000L,
+            0x0008080808080000L,
+            0x0010101010100000L,
+            0x0020202020200000L,
+            0x0040404040400000L,
+            0x0080808080800000L,
+            0x0001010101000000L,
+            0x0002020202000000L,
+            0x0004040404000000L,
+            0x0008080808000000L,
+            0x0010101010000000L,
+            0x0020202020000000L,
+            0x0040404040000000L,
+            0x0080808080000000L,
+            0x0001010100000000L,
+            0x0002020200000000L,
+            0x0004040400000000L,
+            0x0008080800000000L,
+            0x0010101000000000L,
+            0x0020202000000000L,
+            0x0040404000000000L,
+            0x0080808000000000L,
+            0x0001010000000000L,
+            0x0002020000000000L,
+            0x0004040000000000L,
+            0x0008080000000000L,
+            0x0010100000000000L,
+            0x0020200000000000L,
+            0x0040400000000000L,
+            0x0080800000000000L,
+            0x0001000000000000L,
+            0x0002000000000000L,
+            0x0004000000000000L,
+            0x0008000000000000L,
+            0x0010000000000000L,
+            0x0020000000000000L,
+            0x0040000000000000L,
+            0x0080000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+    };
+
+    public static final long[] BLACK_DOUBLED_PAWN_MASK = {
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000100L,
+            0x0000000000000200L,
+            0x0000000000000400L,
+            0x0000000000000800L,
+            0x0000000000001000L,
+            0x0000000000002000L,
+            0x0000000000004000L,
+            0x0000000000008000L,
+            0x0000000000010100L,
+            0x0000000000020200L,
+            0x0000000000040400L,
+            0x0000000000080800L,
+            0x0000000000101000L,
+            0x0000000000202000L,
+            0x0000000000404000L,
+            0x0000000000808000L,
+            0x0000000001010100L,
+            0x0000000002020200L,
+            0x0000000004040400L,
+            0x0000000008080800L,
+            0x0000000010101000L,
+            0x0000000020202000L,
+            0x0000000040404000L,
+            0x0000000080808000L,
+            0x0000000101010100L,
+            0x0000000202020200L,
+            0x0000000404040400L,
+            0x0000000808080800L,
+            0x0000001010101000L,
+            0x0000002020202000L,
+            0x0000004040404000L,
+            0x0000008080808000L,
+            0x0000010101010100L,
+            0x0000020202020200L,
+            0x0000040404040400L,
+            0x0000080808080800L,
+            0x0000101010101000L,
+            0x0000202020202000L,
+            0x0000404040404000L,
+            0x0000808080808000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+    };
+
+    // A pawn at index idx is an isolated pawn
+    // if (bitmap of friendly pawns & ISOLATED_PAWN_MASK[idx]) is zero
+    public static final long[] ISOLATED_PAWN_MASK = {
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0202020202020202L,
+            0x0505050505050505L,
+            0x0A0A0A0A0A0A0A0AL,
+            0x1414141414141414L,
+            0x2828282828282828L,
+            0x5050505050505050L,
+            0xA0A0A0A0A0A0A0A0L,
+            0x4040404040404040L,
+            0x0202020202020202L,
+            0x0505050505050505L,
+            0x0A0A0A0A0A0A0A0AL,
+            0x1414141414141414L,
+            0x2828282828282828L,
+            0x5050505050505050L,
+            0xA0A0A0A0A0A0A0A0L,
+            0x4040404040404040L,
+            0x0202020202020202L,
+            0x0505050505050505L,
+            0x0A0A0A0A0A0A0A0AL,
+            0x1414141414141414L,
+            0x2828282828282828L,
+            0x5050505050505050L,
+            0xA0A0A0A0A0A0A0A0L,
+            0x4040404040404040L,
+            0x0202020202020202L,
+            0x0505050505050505L,
+            0x0A0A0A0A0A0A0A0AL,
+            0x1414141414141414L,
+            0x2828282828282828L,
+            0x5050505050505050L,
+            0xA0A0A0A0A0A0A0A0L,
+            0x4040404040404040L,
+            0x0202020202020202L,
+            0x0505050505050505L,
+            0x0A0A0A0A0A0A0A0AL,
+            0x1414141414141414L,
+            0x2828282828282828L,
+            0x5050505050505050L,
+            0xA0A0A0A0A0A0A0A0L,
+            0x4040404040404040L,
+            0x0202020202020202L,
+            0x0505050505050505L,
+            0x0A0A0A0A0A0A0A0AL,
+            0x1414141414141414L,
+            0x2828282828282828L,
+            0x5050505050505050L,
+            0xA0A0A0A0A0A0A0A0L,
+            0x4040404040404040L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+    };
+
+    // A white pawn at index idx is a passed pawn
+    // if it's not (the back sibling of) a doubled pawn
+    // and (bitmap of enemy pawns & WHITE_PASSED_PAWN_MASK[idx]) is zero
+    public static final long[] WHITE_PASSED_PAWN_MASK = {
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0003030303030000L,
+            0x0007070707070000L,
+            0x000E0E0E0E0E0000L,
+            0x001C1C1C1C1C0000L,
+            0x0038383838380000L,
+            0x0070707070700000L,
+            0x00E0E0E0E0E00000L,
+            0x00C0C0C0C0C00000L,
+            0x0003030303000000L,
+            0x0007070707000000L,
+            0x000E0E0E0E000000L,
+            0x001C1C1C1C000000L,
+            0x0038383838000000L,
+            0x0070707070000000L,
+            0x00E0E0E0E0000000L,
+            0x00C0C0C0C0000000L,
+            0x0003030300000000L,
+            0x0007070700000000L,
+            0x000E0E0E00000000L,
+            0x001C1C1C00000000L,
+            0x0038383800000000L,
+            0x0070707000000000L,
+            0x00E0E0E000000000L,
+            0x00C0C0C000000000L,
+            0x0003030000000000L,
+            0x0007070000000000L,
+            0x000E0E0000000000L,
+            0x001C1C0000000000L,
+            0x0038380000000000L,
+            0x0070700000000000L,
+            0x00E0E00000000000L,
+            0x00C0C00000000000L,
+            0x0003000000000000L,
+            0x0007000000000000L,
+            0x000E000000000000L,
+            0x001C000000000000L,
+            0x0038000000000000L,
+            0x0070000000000000L,
+            0x00E0000000000000L,
+            0x00C0000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+    };
+
+    public static final long[] BLACK_PASSED_PAWN_MASK = {
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000300L,
+            0x0000000000000700L,
+            0x0000000000000E00L,
+            0x0000000000001C00L,
+            0x0000000000003800L,
+            0x0000000000007000L,
+            0x000000000000E000L,
+            0x000000000000C000L,
+            0x0000000000030300L,
+            0x0000000000070700L,
+            0x00000000000E0E00L,
+            0x00000000001C1C00L,
+            0x0000000000383800L,
+            0x0000000000707000L,
+            0x0000000000E0E000L,
+            0x0000000000C0C000L,
+            0x0000000003030300L,
+            0x0000000007070700L,
+            0x000000000E0E0E00L,
+            0x000000001C1C1C00L,
+            0x0000000038383800L,
+            0x0000000070707000L,
+            0x00000000E0E0E000L,
+            0x00000000C0C0C000L,
+            0x0000000303030300L,
+            0x0000000707070700L,
+            0x0000000E0E0E0E00L,
+            0x0000001C1C1C1C00L,
+            0x0000003838383800L,
+            0x0000007070707000L,
+            0x000000E0E0E0E000L,
+            0x000000C0C0C0C000L,
+            0x0000030303030300L,
+            0x0000070707070700L,
+            0x00000E0E0E0E0E00L,
+            0x00001C1C1C1C1C00L,
+            0x0000383838383800L,
+            0x0000707070707000L,
+            0x0000E0E0E0E0E000L,
+            0x0000C0C0C0C0C000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+            0x0000000000000000L,
+    };
+
     /**
      * Generate the lookup table for pawn attacks
      */
     private static void computePawnAttack(boolean white) {
         long[] bitmaps = new long[64];
         // Can ignore rank 1 and rank 8
-        for (int idx = 8; idx < 56; idx++) {
+        for (int idx = PAWN_MIN_IDX; idx <= PAWN_MAX_IDX; idx++) {
             if (idx % 8 != 0) {
                 // not a file
                 bitmaps[idx] |= white ? 1L << (idx + 7) : 1L << (idx - 9);
@@ -402,6 +747,92 @@ public class Lookup {
     }
 
     /**
+     * Generate the lookup tables for pawn masks for doubled pawns
+     */
+    private static void computeDoubledPawnMasks() {
+        long[] whiteBitmaps = new long[64];
+        long[] blackBitmaps = new long[64];
+        for (int idx = PAWN_MIN_IDX; idx <= PAWN_MAX_IDX; idx++) {
+            long whiteBitmap = 0;
+            long blackBitmap = 0;
+            for (int cur = idx + 8; cur <= PAWN_MAX_IDX; cur += 8) {
+                whiteBitmap |= 1L << cur;
+            }
+            for (int cur = idx - 8; cur >= PAWN_MIN_IDX; cur -= 8) {
+                blackBitmap |= 1L << cur;
+            }
+            whiteBitmaps[idx] = whiteBitmap;
+            blackBitmaps[idx] = blackBitmap;
+        }
+        printResults("WHITE_DOUBLED_PAWN_MASK", whiteBitmaps);
+        printResults("BLACK_DOUBLED_PAWN_MASK", blackBitmaps);
+    }
+
+    /**
+     * Generate the lookup tables for pawn masks for isolated pawns
+     */
+    private static void computeIsolatedPawnMasks() {
+        long[] bitmaps = new long[64];
+        for (int idx = PAWN_MIN_IDX; idx <= PAWN_MAX_IDX; idx++) {
+            long bitmap = 0;
+            if (idx % 8 != 0) {
+                // not a file, add left
+                for (int cur = idx % 8 - 1; cur < 64; cur += 8) {
+                    bitmap |= 1L << cur;
+                }
+            }
+            if (idx % 8 != 7) {
+                // not h file, add right
+                for (int cur = idx % 8 + 1; cur < 64; cur += 8) {
+                    bitmap |= 1L << cur;
+                }
+            }
+            bitmaps[idx] = bitmap;
+        }
+        printResults("ISOLATED_PAWN_MASK", bitmaps);
+    }
+
+    /**
+     * Generate the lookup tables for pawn masks for passed pawns
+     */
+    private static void computePassedPawnMasks() {
+        long[] whiteBitmaps = new long[64];
+        long[] blackBitmaps = new long[64];
+        for (int idx = PAWN_MIN_IDX; idx <= PAWN_MAX_IDX; idx++) {
+            long whiteBitmap = 0;
+            long blackBitmap = 0;
+            if (idx % 8 != 0) {
+                // not a file, add left
+                for (int cur = idx + 7; cur <= PAWN_MAX_IDX; cur += 8) {
+                    whiteBitmap |= 1L << cur;
+                }
+                for (int cur = idx - 9; cur >= PAWN_MIN_IDX; cur -= 8) {
+                    blackBitmap |= 1L << cur;
+                }
+            }
+            for (int cur = idx + 8; cur <= PAWN_MAX_IDX; cur += 8) {
+                whiteBitmap |= 1L << cur;
+            }
+            for (int cur = idx - 8; cur >= PAWN_MIN_IDX; cur -= 8) {
+                blackBitmap |= 1L << cur;
+            }
+            if (idx % 8 != 7) {
+                // not h file, add right
+                for (int cur = idx + 9; cur <= PAWN_MAX_IDX; cur += 8) {
+                    whiteBitmap |= 1L << cur;
+                }
+                for (int cur = idx - 7; cur >= PAWN_MIN_IDX; cur -= 8) {
+                    blackBitmap |= 1L << cur;
+                }
+            }
+            whiteBitmaps[idx] = whiteBitmap;
+            blackBitmaps[idx] = blackBitmap;
+        }
+        printResults("WHITE_PASSED_PAWN_MASK", whiteBitmaps);
+        printResults("BLACK_PASSED_PAWN_MASK", blackBitmaps);
+    }
+
+    /**
      * Print the array of bitmaps in correct Java syntax
      */
     private static void printResults(String name, long[] bitmaps) {
@@ -414,11 +845,33 @@ public class Lookup {
         System.out.println(sb);
     }
 
+    private static void sanityChecks() {
+        System.out.println("King attack at h7");
+        Util.printBitmap(KING_ATTACK[Util.squareToIndex("h7")]);
+        System.out.println("White doubled pawn mask at c3");
+        Util.printBitmap(WHITE_DOUBLED_PAWN_MASK[Util.squareToIndex("c3")]);
+        System.out.println("Black doubled pawn mask at c3");
+        Util.printBitmap(BLACK_DOUBLED_PAWN_MASK[Util.squareToIndex("c3")]);
+        System.out.println("Isolated pawn mask at b2");
+        Util.printBitmap(ISOLATED_PAWN_MASK[Util.squareToIndex("b2")]);
+        System.out.println("Isolated pawn mask at h2");
+        Util.printBitmap(ISOLATED_PAWN_MASK[Util.squareToIndex("h2")]);
+        System.out.println("White passed pawn mask at g4");
+        Util.printBitmap(WHITE_PASSED_PAWN_MASK[Util.squareToIndex("g4")]);
+        System.out.println("White passed pawn mask at c7");
+        Util.printBitmap(WHITE_PASSED_PAWN_MASK[Util.squareToIndex("c7")]);
+        System.out.println("Black passed pawn mask at a5");
+        Util.printBitmap(BLACK_PASSED_PAWN_MASK[Util.squareToIndex("a5")]);
+    }
+
     public static void main(String[] args) {
         computePawnAttack(true);
         computePawnAttack(false);
         computeKnightAttack();
         computeKingAttack();
-        Util.printBitmap(KING_ATTACK[63]);
+        computeDoubledPawnMasks();
+        computeIsolatedPawnMasks();
+        computePassedPawnMasks();
+        sanityChecks();
     }
 }

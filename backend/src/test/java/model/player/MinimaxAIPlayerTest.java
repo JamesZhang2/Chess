@@ -281,13 +281,8 @@ class MinimaxAIPlayerTest {
      */
     @Test
     void tempTest() throws IllegalBoardException, MalformedFENException {
-        MinimaxAIPlayer player = new MinimaxAIPlayer(true, new WeightedEvaluator(), 4, true, false, false, 0, 2);
-        Board board = new BitmapBoard("r1bqkbnr/pppppppp/2n5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 1 2");
-        System.out.println(player.getBestEvalMove(board));
-        System.out.println();
-
-        MinimaxAIPlayer player2 = new MinimaxAIPlayer(false, new WeightedEvaluator(), 3, true, false, false, 0, 2);
-        Board board2 = new BitmapBoard("r1bqkbnr/pppppppp/B1n5/8/4P3/8/PPPP1PPP/RNBQK1NR b KQkq - 2 2");
-        System.out.println(player2.getBestEvalMove(board2));
+        MinimaxAIPlayer player = new MinimaxAIPlayer(true, new WeightedEvaluator(), 1, true, true, true, 10, 2);
+        Board board = new BitmapBoard("rnbqkbnr/pppppppp/8/8/4P3/4P3/PPP1P1PP/RNBQKBNR w KQkq - 0 1");
+        player.getBestEvalMove(board);
     }
 }

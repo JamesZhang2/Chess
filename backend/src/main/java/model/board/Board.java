@@ -934,7 +934,7 @@ public abstract class Board {
      * @return the chessboard notation for the square at {row, col}. (for example: a1, e4)
      */
     private String toSquare(int row, int col) {
-        return "" + ('a' + col) + (row + 1);
+        return "" + (char)('a' + col) + (row + 1);
     }
 
     /**

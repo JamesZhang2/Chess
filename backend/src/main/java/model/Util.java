@@ -214,6 +214,25 @@ public class Util {
     }
 
     /**
+     * Turns a square (like f3) into index (like 21),
+     * where a1 corresponds to 0, h1 corresponds to 7, and h8 corresponds to 63
+     * @throws IllegalArgumentException if square is not a valid square.
+     */
+    public static int squareToIndex(String square) {
+        int[] coords = squareToCoords(square);
+        return coords[0] * 8 + coords[1];
+    }
+
+    /**
+     * Turns an index (like 21) into a square (like f3),
+     * where a1 corresponds to 0, h1 corresponds to 7, and h8 corresponds to 63
+     * @throws IllegalArgumentException if square is not a valid square.
+     */
+    public static String indexToSquare(int idx) {
+        return coordsToSquare(idx / 8, idx % 8);
+    }
+
+    /**
      * Converts {row, col} into a square (like f3).
      * @param r row value, must satisfy 0 <= r <= 7
      * @param c column value, must satisfy 0 <= c <= 7
