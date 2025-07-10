@@ -51,7 +51,8 @@ class MinimaxAIPlayerTest {
                 "q3k3/4p3/4P3/4K1R1/8/8/8/8 w - - 0 1",
                 "8/8/8/8/1B6/8/2K5/k1N5 w - - 0 1",
                 "8/3R4/6pk/8/6PK/8/8/8 w - - 0 1",
-                "8/8/pppppppK/NBBR1NRp/nbbrqnrP/PPPPPPPk/8/Q7 w - - 0 1", // https://www.stmintz.com/ccc/index.php?id=123825
+                // Quiescence on the following test case will take a very long time - need to implement move ordering
+                "8/8/pppppppK/NBBR1NRp/nbbrqnrP/PPPPPPPk/8/Q7 w - - 0 1", // https://www.stmintz.com/ccc/index.php?id=123825S
                 "n7/k1PK4/p7/8/8/8/8/1R6 w - - 0 1",
                 "n1q5/k2PK3/r7/8/8/8/8/1R6 w - - 0 1",
                 "4q1kq/6p1/6K1/4R3/8/8/8/8 w - - 0 1"
@@ -174,7 +175,7 @@ class MinimaxAIPlayerTest {
             results.add(new HashMap<>());
             System.out.println("Running on depth " + depth);
             long startTime = System.nanoTime();
-            MinimaxAIPlayer player = new MinimaxAIPlayer(true, evaluator, depth, enablePruning, enableQuiesce, enableTpnTable, quiesceMaxDepth);
+            MinimaxAIPlayer player = new MinimaxAIPlayer(true, evaluator, depth, enablePruning, enableQuiesce, enableTpnTable, quiesceMaxDepth, 0);
             for (String position : EVAL_TEST_POSITIONS) {
                 Board board = new BitmapBoard(position);
                 EvalMovePair pair = player.getBestEvalMove(board);
@@ -218,8 +219,8 @@ class MinimaxAIPlayerTest {
         // In this position, without quiescence search, Qxf5 would seem like a good idea at the horizon (depth 1).
         // However, with quiescence search, it's a terrible idea since black can capture back.
 
-        MinimaxAIPlayer noQuiesce = new MinimaxAIPlayer(true, evaluator, 1, false, false, false, 0);
-        MinimaxAIPlayer withQuiesce = new MinimaxAIPlayer(true, evaluator, 1, false, true, false, 30);
+        MinimaxAIPlayer noQuiesce = new MinimaxAIPlayer(true, evaluator, 1, false, false, false, 0, 0);
+        MinimaxAIPlayer withQuiesce = new MinimaxAIPlayer(true, evaluator, 1, false, true, false, 30, 0);
         System.out.println("Without quiescence search: " + noQuiesce.getBestEvalMove(board));
         System.out.println("With quiescence search: " + withQuiesce.getBestEvalMove(board));
         assertEquals(Util.moveFromSquares("f2", "f5", false, true), noQuiesce.getBestEvalMove(board).move());
@@ -280,12 +281,12 @@ class MinimaxAIPlayerTest {
      */
     @Test
     void tempTest() throws IllegalBoardException, MalformedFENException {
-        MinimaxAIPlayer player = new MinimaxAIPlayer(true, new WeightedEvaluator(), 4, true, false, false, 0);
+        MinimaxAIPlayer player = new MinimaxAIPlayer(true, new WeightedEvaluator(), 4, true, false, false, 0, 2);
         Board board = new BitmapBoard("r1bqkbnr/pppppppp/2n5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 1 2");
         System.out.println(player.getBestEvalMove(board));
         System.out.println();
 
-        MinimaxAIPlayer player2 = new MinimaxAIPlayer(false, new WeightedEvaluator(), 3, true, false, false, 0);
+        MinimaxAIPlayer player2 = new MinimaxAIPlayer(false, new WeightedEvaluator(), 3, true, false, false, 0, 2);
         Board board2 = new BitmapBoard("r1bqkbnr/pppppppp/B1n5/8/4P3/8/PPPP1PPP/RNBQK1NR b KQkq - 2 2");
         System.out.println(player2.getBestEvalMove(board2));
     }

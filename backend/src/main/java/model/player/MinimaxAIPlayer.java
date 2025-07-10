@@ -41,11 +41,14 @@ public class MinimaxAIPlayer extends Player {
 
     private long exactHits = 0, lowerBoundHits = 0, upperBoundHits = 0;  // some tpn table stats to estimate performance
 
+    private final int verbosityLevel;  // how much or little information to print to console
+    // 0 is lowest (disables all outputs), 1 is default, 2 is highest (prints all input).
+
     /**
-     * Constructs a new Minimax AI Player with pruning and quiescence search enabled.
+     * Constructs a new Minimax AI Player with pruning, transposition table, and quiescence search enabled.
      */
     public MinimaxAIPlayer(boolean isWhite, Evaluator evaluator, int maxDepth) {
-        this(isWhite, evaluator, maxDepth, true, true, true, 30);
+        this(isWhite, evaluator, maxDepth, true, true, true, 30, 1);
     }
 
     /**
@@ -57,7 +60,7 @@ public class MinimaxAIPlayer extends Player {
      */
     public MinimaxAIPlayer(boolean isWhite, Evaluator evaluator, int maxDepth,
                            boolean enablePruning, boolean enableQuiesce, boolean enableTpnTable,
-                           int quiesceMaxDepth) {
+                           int quiesceMaxDepth, int verbosityLevel) {
         super(isWhite);
         this.evaluator = evaluator;
         this.MAX_DEPTH = maxDepth;
@@ -72,6 +75,7 @@ public class MinimaxAIPlayer extends Player {
             this.quiesceTpnTable = null;
         }
         this.QUIESCE_MAX_DEPTH = quiesceMaxDepth;
+        this.verbosityLevel = verbosityLevel;
     }
 
     @Override
@@ -88,13 +92,24 @@ public class MinimaxAIPlayer extends Player {
         double bestEval = isWhite ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
         double alpha = Double.NEGATIVE_INFINITY;
         double beta = Double.POSITIVE_INFINITY;
+        PriorityQueue<EvalMovePair> pqApprox;  // rough estimation - static eval after one move. Used for ordering the search.
         PriorityQueue<EvalMovePair> pq;  // used for debugging and getting evals for all legal moves
         if (isWhite) {
+            pqApprox = new PriorityQueue<>((a, b) -> Double.compare(b.eval(), a.eval()));  // sorted by eval in descending order
             pq = new PriorityQueue<>((a, b) -> Double.compare(b.eval(), a.eval()));  // sorted by eval in descending order
         } else {
+            pqApprox = new PriorityQueue<>((a, b) -> Double.compare(a.eval(), b.eval()));  // sorted by eval in ascending order
             pq = new PriorityQueue<>((a, b) -> Double.compare(a.eval(), b.eval()));  // sorted by eval in ascending order
         }
+        // First pass: only make one move and then evaluate statically
         for (Move move : board.getLegalMoves()) {
+            board.move(move, false);  // we already know that the move is legal
+            pqApprox.add(new EvalMovePair(evaluator.evaluate(board), move));
+            board.undoLastMove();
+        }
+        // Second pass: perform the actual search based the approximate evals
+        while (!pqApprox.isEmpty()) {
+            Move move = pqApprox.poll().move();
             board.move(move, false);  // we already know that the move is legal
             // evaluate resulting board from opponent's point of view
             double eval = evaluate(board, MAX_DEPTH - 1, alpha, beta, !isWhite, false);
@@ -114,12 +129,17 @@ public class MinimaxAIPlayer extends Player {
             }
             board.undoLastMove();
         }
-//        while (!pq.isEmpty()) {
-//            System.out.print(pq.poll() + " ");
-//        }
-//        System.out.println();
-//        System.out.printf("%s evaluation: %s\n", isWhite ? "White" : "Black", bestEval);
-//        System.out.printf("%s Minimax AI plays %s\n", isWhite ? "White" : "Black", bestMove);
+        if (verbosityLevel >= 2) {
+            System.out.printf("%s Minimax player:\n", isWhite ? "White" : "Black");
+            while (!pq.isEmpty()) {
+                System.out.print(pq.poll() + " ");
+            }
+            System.out.println();
+        }
+        if (verbosityLevel >= 1) {
+            System.out.printf("%s Minimax player's evaluation: %s\n", isWhite ? "White" : "Black", bestEval);
+            System.out.printf("%s Minimax player plays %s\n", isWhite ? "White" : "Black", bestMove);
+        }
         return new EvalMovePair(bestEval, bestMove);
     }
 
@@ -283,8 +303,25 @@ public class MinimaxAIPlayer extends Player {
         }
     }
 
+    @Override
     public void win(Board board) {
-        System.out.println(isWhite ? "White won" : "Black won");
+        if (verbosityLevel >= 1) {
+            System.out.println(isWhite ? "White Minimax player won" : "Black Minimax player won");
+        }
+    }
+
+    @Override
+    public void draw(Board board) {
+        if (verbosityLevel >= 1) {
+            System.out.println(isWhite ? "White Minimax player drew" : "Black Minimax player drew");
+        }
+    }
+
+    @Override
+    public void lose(Board board) {
+        if (verbosityLevel >= 1) {
+            System.out.println(isWhite ? "White Minimax player lost" : "Black Minimax player lost");
+        }
     }
 
     public long getExactHits() {
